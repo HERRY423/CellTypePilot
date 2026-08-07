@@ -1,0 +1,17 @@
+{
+  "description": "CellTypePilot session hooks — environment validation on start",
+  "hooks": {
+    "SessionStart": [
+      {
+        "matcher": "*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python -c \"import celltypepilot; print(f'CellTypePilot {celltypepilot.__version__} ready')\" 2>&1 || echo 'CellTypePilot not installed — run: pip install -e .'",
+            "timeout": 10
+          }
+        ]
+      }
+    ]
+  }
+}

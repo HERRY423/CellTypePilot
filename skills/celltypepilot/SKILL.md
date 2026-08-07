@@ -209,11 +209,9 @@ Mouse gene symbols are auto-converted from human conventions.
 ## Installation
 
 ```bash
-# Clone into skills directory
-git clone https://github.com/your-org/celltypepilot ~/.claude/skills/celltypepilot
-
-# Install Python dependencies
-cd ~/.claude/skills/celltypepilot
+# As a Claude Code plugin (recommended)
+git clone https://github.com/HERRY423/CellTypePilot ~/.claude/plugins/marketplaces/local/plugins/celltypepilot
+cd ~/.claude/plugins/marketplaces/local/plugins/celltypepilot
 pip install -e .
 
 # Verify installation

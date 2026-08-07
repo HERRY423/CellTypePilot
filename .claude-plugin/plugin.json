@@ -1,11 +1,20 @@
 {
   "name": "celltypepilot",
-  "version": "0.1.0",
-  "description": "Single-cell annotation intelligence layer — marker evidence, critic review, and publication-ready output. Dual-platform: Claude Code (SKILL.md) + Codex CLI (AGENTS.md).",
-  "platforms": ["claude-code", "codex-cli"],
-  "skills": {
-    "celltypepilot": {
-      "path": "skills/celltypepilot"
-    }
-  }
+  "version": "0.2.0",
+  "description": "Single-cell annotation trust layer — evidence-based cell-type labeling with an independent Annotation Critic. Parasitizes on your coding agent; no standalone app needed.",
+  "author": {
+    "name": "HERRY423"
+  },
+  "repository": "https://github.com/HERRY423/CellTypePilot",
+  "homepage": "https://github.com/HERRY423/CellTypePilot",
+  "license": "MIT",
+  "keywords": [
+    "single-cell",
+    "cell-type-annotation",
+    "scrna-seq",
+    "bioinformatics",
+    "annotation-critic",
+    "marker-genes",
+    "scverse"
+  ]
 }

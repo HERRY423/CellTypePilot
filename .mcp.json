@@ -1,0 +1,12 @@
+{
+  "mcpServers": {
+    "pubmed": {
+      "type": "http",
+      "url": "https://pubmed.mcp.claude.com/mcp"
+    },
+    "biorxiv": {
+      "type": "http",
+      "url": "https://hcls.mcp.claude.com/biorxiv/mcp"
+    }
+  }
+}
