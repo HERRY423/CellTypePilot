@@ -1,0 +1,46 @@
+{
+  "name": "celltypepilot",
+  "version": "0.2.0",
+  "description": "Single-cell annotation trust layer — evidence-based cell-type labeling with an independent Annotation Critic. Parasitizes on your coding agent; no standalone app needed.",
+  "author": {
+    "name": "HERRY423",
+    "url": "https://github.com/HERRY423"
+  },
+  "repository": "https://github.com/HERRY423/CellTypePilot",
+  "homepage": "https://github.com/HERRY423/CellTypePilot",
+  "license": "MIT",
+  "keywords": [
+    "single-cell",
+    "cell-type-annotation",
+    "scrna-seq",
+    "bioinformatics",
+    "annotation-critic",
+    "marker-genes",
+    "scverse",
+    "h5ad",
+    "transcriptomics"
+  ],
+  "skills": "./skills/",
+  "mcpServers": "./.mcp.json",
+  "interface": {
+    "displayName": "CellTypePilot",
+    "shortDescription": "Evidence-based single-cell annotation with independent critic review",
+    "longDescription": "CellTypePilot turns pre-clustered single-cell data into trusted, publication-ready cell-type annotations. It provides marker-based scoring across 80+ cell types and 11 tissues, an independent Annotation Critic that flags doubtful calls (evidence sufficiency, negative marker conflicts, doublet signals, ontology consistency), colorblind-friendly figures, and a draft methodology paragraph. The plugin parasitizes on your coding agent — no standalone app, no heavy infrastructure.",
+    "developerName": "HERRY423",
+    "category": "Scientific Computing",
+    "capabilities": [
+      "Interactive",
+      "Read",
+      "Write"
+    ],
+    "websiteURL": "https://github.com/HERRY423/CellTypePilot",
+    "logo": "./assets/logo.png",
+    "defaultPrompt": [
+      "Annotate my single-cell clusters",
+      "What cell types are in this h5ad?",
+      "Review the flagged clusters with the critic"
+    ],
+    "brandColor": "#2E86AB",
+    "screenshots": []
+  }
+}

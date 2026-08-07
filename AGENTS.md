@@ -7,11 +7,14 @@
 Activate CellTypePilot when the user wants to:
 - Annotate, label, or identify cell types in pre-clustered scRNA-seq / spatial data
 - Work with `.h5ad` files containing clustered single-cell data
+- Convert Seurat `.rds` files to `.h5ad` for analysis
 - Understand "what are these clusters?"
 - Get publication-ready cell-type annotations with evidence
+- Review annotations interactively in a web panel
 
 Trigger phrases: "annotate my clusters", "what cell types are these?", "label my scRNA-seq",
-"figure out the cell types", "run celltypepilot", "annotate my h5ad".
+"figure out the cell types", "run celltypepilot", "annotate my h5ad", "convert my rds",
+"review annotations in browser".
 
 ## Prerequisites
 
@@ -30,7 +33,12 @@ pip install -e .
 CellTypePilot runs on CPU, requires Python >= 3.10, scanpy, anndata, and matplotlib.
 No MCP servers, no pixi, no conda environment needed for the basic path.
 
-## Workflow — Three Stages
+Optional extras:
+- `pip install -e ".[web]"` — Web Inspector (Flask-based interactive review panel)
+- `pip install -e ".[seurat]"` — Seurat .rds conversion (requires rpy2 or R)
+- `pip install -e ".[all]"` — All optional features
+
+## Workflow — Four Stages
 
 ### Stage 1: Inspect the data
 
@@ -47,6 +55,12 @@ This reports:
 - Embedding keys found (UMAP, tSNE, etc.)
 - Layer info (counts vs log-normalized)
 - Cluster sizes and warnings
+
+If the user provides a Seurat `.rds` file, convert first:
+
+```bash
+celltypepilot convert-rds --input <path.rds> --output <path.h5ad>
+```
 
 After inspection, confirm with the user:
 1. Species and tissue context
@@ -109,12 +123,15 @@ Useful when the critic flags a cluster and you want additional validation.
 
 | Command | Purpose |
 |---|---|
-| `celltypepilot doctor` | Check environment, dependencies, MCP status |
+| `celltypepilot doctor` | Check environment, dependencies, MCP status, license |
 | `celltypepilot inspect -i <path>` | Inspect h5ad: species, tissue, clusters, embeddings |
 | `celltypepilot annotate -i <path> -k <key>` | Full annotation pipeline |
 | `celltypepilot critic -i <path> -k <key> -f <cluster>` | Deep-review a specific cluster |
 | `celltypepilot markers -t <tissue>` | List available cell types and markers |
 | `celltypepilot literature -c <type> -m <markers>` | Literature validation via PubMed |
+| `celltypepilot inspect-web -o <dir>` | Launch Web Inspector (interactive review panel) |
+| `celltypepilot convert-rds -i <path.rds>` | Convert Seurat .rds → .h5ad |
+| `celltypepilot license status` | Check license tier and features |
 
 All commands support `--json` for structured output.
 
@@ -132,6 +149,12 @@ Built-in Marker Knowledge Graph (MKG mkg-2026.08) covers:
 - **Pancreas**: alpha/beta/delta cells, ductal, acinar
 - **Skeletal muscle**: myofibers, satellite cells, FAPs
 - **General**: endothelial, pericytes, fibroblasts, macrophages, mast cells, epithelial
+
+Premium atlas (requires academic/commercial license):
+- **Tumor microenvironment**: TAMs, CAFs, Tregs, exhausted T cells, MDSCs, malignant cells
+- **Developing brain**: radial glia, intermediate progenitors, migrating neurons
+- **Inflamed tissue**: activated fibroblasts, M1/M2 macrophages
+- **Immune activation**: activated CD4/CD8, plasmablasts, activated DCs
 
 ## Critic flags reference
 
@@ -164,17 +187,35 @@ Built-in Marker Knowledge Graph (MKG mkg-2026.08) covers:
 
 ```
 celltypepilot/
-├── AGENTS.md                          # ← you are here (Codex instructions)
-├── skills/celltypepilot/SKILL.md      # Claude Code skill (alternative entry)
-├── src/celltypepilot/                 # Python package (shared backend)
-│   ├── cli.py                         # CLI entry point (5 commands)
-│   ├── data_adapter.py                # h5ad loading, species/tissue detection
-│   ├── data/marker_atlas.json         # Built-in marker knowledge graph
-│   ├── marker_scorer.py               # DE + marker overlap scoring
-│   ├── critic.py                      # Annotation Critic review
-│   ├── visualizer.py                  # UMAP, dotplot, confidence figures
-│   ├── provenance.py                  # manifest.json generation
-│   ├── reporter.py                    # HTML report + methodology text
-│   └── doctor.py                      # Environment check
-└── tests/                             # 18 smoke tests
+├── .codex-plugin/
+│   └── plugin.json              # ← Codex plugin manifest (you are here)
+├── .claude-plugin/
+│   └── plugin.json              # Claude Code plugin manifest
+├── AGENTS.md                    # Codex agent instructions (this file)
+├── skills/celltypepilot/
+│   ├── SKILL.md                 # Shared skill instructions
+│   ├── agents/openai.yaml       # Codex agent interface config
+│   └── reference/               # Reference docs
+├── commands/                    # Claude Code slash commands (/annotate, /critic, etc.)
+├── agents/                      # Claude Code sub-agents
+├── hooks/                       # Claude Code lifecycle hooks
+├── rules/                       # Claude Code behavior rules
+├── .mcp.json                    # MCP servers (PubMed, bioRxiv)
+├── src/celltypepilot/           # Python package (shared backend)
+│   ├── cli.py                   # CLI entry point (9 commands)
+│   ├── data_adapter.py          # h5ad loading, species/tissue detection
+│   ├── seurat_adapter.py        # Seurat .rds → AnnData conversion
+│   ├── data/
+│   │   ├── marker_atlas.json    # Built-in marker knowledge graph (80+ types)
+│   │   └── premium_atlas.json   # Premium atlas (tumor, brain, immune)
+│   ├── marker_scorer.py         # DE + marker overlap scoring
+│   ├── critic.py                # Annotation Critic review
+│   ├── visualizer.py            # UMAP, dotplot, confidence figures
+│   ├── web_inspector.py         # Flask web review panel
+│   ├── literature.py            # PubMed literature validation
+│   ├── license_manager.py       # Tiered license system
+│   ├── provenance.py            # manifest.json generation
+│   ├── reporter.py              # HTML report + methodology text
+│   └── doctor.py                # Environment check
+└── tests/                       # 18 smoke tests
 ```

@@ -57,11 +57,17 @@ celltypepilot inspect --input data.h5ad
 # 4. Annotate — full pipeline in one command
 celltypepilot annotate --input data.h5ad --cluster-key leiden --tissue blood
 
-# 5. Deep-review a flagged cluster
+# 5. Review interactively in browser (optional)
+celltypepilot inspect-web --output output/
+
+# 6. Deep-review a flagged cluster
 celltypepilot critic --input data.h5ad --cluster-key leiden --focus cluster_7
 
-# 6. Validate markers against literature (optional, needs network)
+# 7. Validate markers against literature (optional, needs network)
 celltypepilot literature --cell-type "T cells" --markers "CD3E,CD4,CD8A"
+
+# 8. Convert Seurat .rds → .h5ad (optional, needs R)
+celltypepilot convert-rds --input data.rds --output data.h5ad
 ```
 
 Or just tell your agent: *"annotate my clusters in data.h5ad"* — the plugin instructions
@@ -73,67 +79,68 @@ CellTypePilot **parasitizes** on the coding agent you already use. It does not a
 switch to a new app, learn a new UI, or configure a new environment.
 
 > **Why "plugin" and not "skill"?** "Plugin" is the product concept — a self-contained
-> intelligence layer that attaches to a host agent. Claude Code's plugin system provides
-> the container: `.claude-plugin/plugin.json` (manifest), `skills/` (workflow instructions),
-> `commands/` (slash commands), `agents/` (sub-agents), `hooks/` (lifecycle events),
-> `rules/` (behavior constraints), and `.mcp.json` (tool servers). CellTypePilot uses
-> all of these. Codex CLI gets the same backend via `AGENTS.md`.
+> intelligence layer that attaches to a host agent. Each platform has its own native
+> plugin format: Claude Code uses `.claude-plugin/plugin.json`, Codex uses
+> `.codex-plugin/plugin.json`. Both share the same `skills/` directory and Python backend.
+> CellTypePilot ships **both** plugin manifests plus platform-specific components.
 
 ```
-┌──────────────────────────────────────────────────────────────────┐
-│  Host agent:  Claude Code (plugin)  │  Codex CLI (AGENTS.md)    │
-│                 └──────────┬────────┘                            │
-│                            ↓                                     │
-│  CellTypePilot plugin (.claude-plugin/plugin.json)               │
-│  ┌─────────────────────────────────────────────────────────────┐ │
-│  │  commands/     /annotate  /critic  /inspect  /doctor        │ │
-│  │  agents/       annotation-critic (sub-agent)                │ │
-│  │  hooks/        session-start → environment check            │ │
-│  │  rules/        annotation-workflow routing                  │ │
-│  │  skills/       SKILL.md (4-stage orchestration)             │ │
-│  │  .mcp.json     PubMed, bioRxiv (optional)                   │ │
-│  │  ─────────────────────────────────────────────────────────── │ │
-│  │  Python backend (src/celltypepilot/)                         │ │
-│  │    doctor          Environment gate — what can run, what can't│ │
-│  │    inspect         Data intelligence — species, tissue, keys  │ │
-│  │    annotate        Full pipeline:                             │ │
-│  │      ├─ Data Adapter         Load .h5ad/.rds, detect, validate│ │
-│  │      ├─ Marker Knowledge Graph  80+ cell types, 11 tissues    │ │
-│  │      ├─ Marker Scorer        Wilcoxon DE + 5-dim scoring      │ │
-│  │      ├─ Annotation Critic    Independent evidence review      │ │
-│  │      ├─ Visualizer           UMAP, dotplot, confidence (Wong) │ │
-│  │      ├─ Reporter             HTML report + methods paragraph  │ │
-│  │      ├─ Literature           PubMed validation (optional MCP) │ │
-│  │      └─ Provenance           manifest.json versioning         │ │
-│  │    critic          Deep-review a specific cluster             │ │
-│  └─────────────────────────────────────────────────────────────┘ │
-└──────────────────────────────────────────────────────────────────┘
+┌──────────────────────────────────────────────────────────────────────┐
+│  Host agent:                                                        │
+│  Claude Code                          │  Codex                      │
+│  .claude-plugin/plugin.json           │  .codex-plugin/plugin.json  │
+│  commands/  agents/  hooks/  rules/   │  skills/*/agents/openai.yaml│
+│                 └──────────┬──────────┘                              │
+│                            ↓                                        │
+│  CellTypePilot plugin (shared Python backend)                       │
+│  ┌─────────────────────────────────────────────────────────────────┐│
+│  │  skills/       SKILL.md (4-stage orchestration, shared)         ││
+│  │  .mcp.json     PubMed, bioRxiv (optional)                       ││
+│  │  ─────────────────────────────────────────────────────────────── ││
+│  │  Python backend (src/celltypepilot/)                             ││
+│  │    doctor          Environment gate — what can run, what can't   ││
+│  │    inspect         Data intelligence — species, tissue, keys     ││
+│  │    annotate        Full pipeline:                                ││
+│  │      ├─ Data Adapter         Load .h5ad/.rds, detect, validate   ││
+│  │      ├─ Marker Knowledge Graph  80+ cell types, 11 tissues       ││
+│  │      ├─ Marker Scorer        Wilcoxon DE + 5-dim scoring         ││
+│  │      ├─ Annotation Critic    Independent evidence review         ││
+│  │      ├─ Web Inspector        Flask interactive review panel      ││
+│  │      ├─ Visualizer           UMAP, dotplot, confidence (Wong)    ││
+│  │      ├─ Reporter             HTML report + methods paragraph     ││
+│  │      ├─ Literature           PubMed validation (optional MCP)    ││
+│  │      ├─ License Manager      Tiered: free/academic/commercial    ││
+│  │      └─ Provenance           manifest.json versioning            ││
+│  │    critic          Deep-review a specific cluster                ││
+│  └─────────────────────────────────────────────────────────────────┘│
+└──────────────────────────────────────────────────────────────────────┘
 ```
 
 ### Dual-platform, single backend
 
-| Platform | Native format | Entry point | What it does |
+| Platform | Plugin manifest | Agent config | Discovery |
 |---|---|---|---|
-| **Claude Code** | skill (`SKILL.md`) | `~/.claude/skills/celltypepilot/` | Agent discovers plugin via Claude Code's skill registry |
-| **Codex CLI** | agent instructions (`AGENTS.md`) | repo root | Agent discovers plugin when working in the repo directory |
-| **Standalone** | CLI | `celltypepilot` command | Direct terminal usage, no agent needed |
+| **Claude Code** | `.claude-plugin/plugin.json` | `agents/*.md` + `commands/*.md` + `hooks/` + `rules/` | Plugin manager discovers via `.claude-plugin/` |
+| **Codex** | `.codex-plugin/plugin.json` | `skills/*/agents/openai.yaml` + `AGENTS.md` | Plugin cache or repo-root auto-discovery |
+| **Standalone** | N/A | N/A | `celltypepilot` CLI command |
 
-All three modes call the same Python backend. The "skill" directory is just Claude Code's
-conventional location for discovering plugins — the plugin itself is the full Python package.
+All three modes call the same Python backend. The `skills/` directory is shared between
+both platforms — each reads `SKILL.md` for workflow orchestration.
 
 ### Installation
 
 ```bash
-# Claude Code — install as a plugin via Claude Code's plugin manager
-# (recommended: use /install-plugin in Claude Code, or clone to plugins directory)
+# Claude Code — install as a plugin
 git clone https://github.com/HERRY423/CellTypePilot ~/.claude/plugins/marketplaces/local/plugins/celltypepilot
 cd ~/.claude/plugins/marketplaces/local/plugins/celltypepilot
 pip install -e .
-# Claude Code discovers the plugin via .claude-plugin/plugin.json
+# Claude Code discovers .claude-plugin/plugin.json → skills/ + commands/ + agents/ + hooks/
 
-# Codex CLI — clone anywhere, AGENTS.md is auto-discovered
-git clone https://github.com/HERRY423/CellTypePilot ~/celltypepilot
-cd ~/celltypepilot && pip install -e .
+# Codex — install as a plugin
+git clone https://github.com/HERRY423/CellTypePilot ~/.codex/plugins/cache/local/celltypepilot
+cd ~/.codex/plugins/cache/local/celltypepilot
+pip install -e .
+# Codex discovers .codex-plugin/plugin.json → skills/ + agents/openai.yaml
 
 # Standalone CLI — no agent needed
 git clone https://github.com/HERRY423/CellTypePilot && cd CellTypePilot
@@ -141,26 +148,30 @@ pip install -e .
 celltypepilot doctor
 ```
 
+Optional extras: `pip install -e ".[web]"` (Web Inspector), `"[seurat]"` (.rds support), `"[all]"` (everything).
+
 ### Plugin structure
 
 ```
 CellTypePilot/
 ├── .claude-plugin/
-│   └── plugin.json          ← Claude Code plugin manifest
+│   └── plugin.json              ← Claude Code plugin manifest (v0.2.0)
+├── .codex-plugin/
+│   └── plugin.json              ← Codex plugin manifest (v0.2.0, with interface block)
 ├── skills/
 │   └── celltypepilot/
-│       └── SKILL.md          ← Skill instructions (4-stage workflow)
-├── commands/                 ← Slash commands: /annotate, /critic, /inspect, /doctor
-├── agents/
-│   └── annotation-critic.md  ← Sub-agent: skeptical evidence reviewer
-├── hooks/
-│   └── hooks.json            ← Session-start environment check
-├── rules/
-│   └── annotation-workflow.md ← Routing rules for agent behavior
-├── .mcp.json                 ← MCP servers (PubMed, bioRxiv)
-├── AGENTS.md                 ← Codex CLI entry point
-├── src/celltypepilot/        ← Python backend (shared by all platforms)
-└── tests/
+│       ├── SKILL.md              ← Shared skill instructions (4-stage workflow)
+│       ├── agents/
+│       │   └── openai.yaml       ← Codex agent interface config
+│       └── reference/            ← Reference docs
+├── commands/                     ← Claude Code slash commands: /annotate, /critic, /inspect, /doctor
+├── agents/                       ← Claude Code sub-agents: annotation-critic.md
+├── hooks/                        ← Claude Code lifecycle hooks: session-start check
+├── rules/                        ← Claude Code behavior rules: annotation-workflow
+├── .mcp.json                     ← MCP servers (PubMed, bioRxiv)
+├── AGENTS.md                     ← Codex agent instructions
+├── src/celltypepilot/            ← Python backend (shared by all platforms)
+└── tests/                        ← 18 smoke tests
 ```
 
 ## Built-in Marker Knowledge Graph
@@ -201,9 +212,10 @@ something worth your attention.
 ## Roadmap
 
 - [x] **Phase 1 (MVP)** — h5ad adapter, marker knowledge graph, Wilcoxon DE scoring, Annotation Critic, doctor, figures, JSON output, HTML report, methodology draft, manifest provenance, literature validation (PubMed)
-- [ ] **Phase 2** — Tiered consensus orchestrator (Tier 0 → Tier 1 adaptive upgrade), doublet detection enhancement, ontology validation enhancement
-- [ ] **Phase 3** — docx/pptx submission package, Seurat/R support, reference mapping methods
-- [ ] **Phase 4** — Extended atlas subscription, team sharing, rare cell type mining
+- [x] **Phase 2** — Dual-platform plugin (Claude Code `.claude-plugin/` + Codex `.codex-plugin/`), slash commands, sub-agents, hooks, rules, MCP integration
+- [x] **Phase 3** — Web Inspector (Flask interactive panel), Seurat .rds adapter, tiered license system (free/academic/commercial), premium atlas (tumor/brain/immune)
+- [ ] **Phase 4** — Tiered consensus orchestrator (Tier 0 → Tier 1 adaptive upgrade), doublet detection enhancement, ontology validation enhancement
+- [ ] **Phase 5** — docx/pptx submission package, reference mapping methods, extended atlas subscription, team sharing, rare cell type mining
 
 ## License
 

@@ -1,0 +1,7 @@
+interface:
+  display_name: "CellTypePilot"
+  short_description: "Evidence-based single-cell annotation with critic review"
+  icon_small: "./assets/logo.png"
+  icon_large: "./assets/logo.png"
+  brand_color: "#2E86AB"
+  default_prompt: "Use $celltypepilot to annotate pre-clustered single-cell data with evidence-based cell-type labels and independent critic review."
