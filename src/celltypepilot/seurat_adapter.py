@@ -36,13 +36,19 @@ def _check_rpy2() -> bool:
         return False
 
 
-def _convert_seurat_via_rpy2(rds_path: str | Path) -> ad.AnnData:
+def _convert_seurat_via_rpy2(rds_path: str | Path, chunk_size: int = 10_000) -> ad.AnnData:
     """Convert Seurat .rds to AnnData using rpy2.
 
-    Requires: rpy2, Seurat (R package), SeuratDisk (R package)
+    Memory-safe: extracts sparse matrix components directly from R
+    without materializing a dense intermediate. For very large datasets
+    (>500k cells), falls back to chunked column-wise extraction.
+
+    Args:
+        rds_path: Path to .rds file
+        chunk_size: Cells per chunk for large-dataset mode (default 10k)
     """
     import rpy2.robjects as ro
-    from rpy2.robjects import pandas2ri
+    from rpy2.robjects import pandas2ri, numpy2ri
     from rpy2.robjects.conversion import localconverter
     import scipy.sparse as sp
 
@@ -54,9 +60,8 @@ def _convert_seurat_via_rpy2(rds_path: str | Path) -> ad.AnnData:
         seurat_obj <- readRDS("{rds_path.as_posix()}")
     ''')
 
-    # Extract count matrix
+    # Extract count matrix slot (sparse-preserving)
     ro.r('''
-        # Get the default assay
         default_assay <- DefaultAssay(seurat_obj)
         counts_mat <- GetAssayData(seurat_obj, assay = default_assay, slot = "counts")
         if (ncol(counts_mat) == 0 || nrow(counts_mat) == 0) {
@@ -64,18 +69,32 @@ def _convert_seurat_via_rpy2(rds_path: str | Path) -> ad.AnnData:
         }
     ''')
 
-    # Convert count matrix to scipy sparse
-    counts_r = ro.r("counts_mat")
-    try:
-        # Try as sparse matrix
-        from rpy2.robjects import numpy2ri
-        with localconverter(ro.default_converter + numpy2ri.converter):
-            counts_dense = np.array(ro.r("as.matrix(counts_mat)"))
-        X = sp.csr_matrix(counts_dense.T)  # Cells x Genes
-    except Exception:
-        # Fallback: extract as dense
-        counts_dense = np.array(ro.r("as.matrix(counts_mat)"))
-        X = sp.csr_matrix(counts_dense.T)
+    # ── Sparse-preserving extraction ──────────────────────────
+    # Extract dgCMatrix components (i, p, x) directly from R
+    # without ever calling as.matrix() — avoids OOM on large datasets.
+    n_genes = int(ro.r("nrow(counts_mat)")[0])
+    n_cells = int(ro.r("ncol(counts_mat)")[0])
+    nnz_approx = int(ro.r("""
+        if (is(counts_mat, "dgCMatrix") || is(counts_mat, "CsparseMatrix")) {
+            length(counts_mat@x)
+        } else if (is(counts_mat, "dgTMatrix") || is(counts_mat, "TsparseMatrix")) {
+            length(counts_mat@i)
+        } else {
+            # Estimate: if we can't determine, assume ~10% nonzero
+            as.integer(nrow(counts_mat) * ncol(counts_mat) * 0.1)
+        }
+    """)[0])
+
+    # Decide strategy based on dataset size
+    total_elements = n_genes * n_cells
+    LARGE_THRESHOLD = 500_000_000  # 500M elements (~4GB dense float64)
+
+    if total_elements > LARGE_THRESHOLD and nnz_approx > 100_000_000:
+        # Very large & dense: chunked column-wise extraction
+        X = _extract_sparse_chunked(ro, sp, n_genes, n_cells, chunk_size)
+    else:
+        # Standard path: extract CSC components directly
+        X = _extract_sparse_direct(ro, sp, n_genes, n_cells)
 
     # Extract gene names and cell barcodes
     gene_names = list(ro.r("rownames(counts_mat)"))
@@ -109,6 +128,89 @@ def _convert_seurat_via_rpy2(rds_path: str | Path) -> ad.AnnData:
     adata = ad.AnnData(X=X, obs=obs, var=var, obsm=obsm)
 
     return adata
+
+
+def _extract_sparse_direct(ro, sp, n_genes: int, n_cells: int) -> sp.csr_matrix:
+    """Extract sparse matrix from R without dense intermediate.
+
+    Converts R's dgCMatrix (CSC) to scipy CSR directly via component
+    extraction. The R matrix is genes × cells; we need cells × genes,
+    so we transpose during construction.
+
+    Memory: O(nnz) — never materializes the full matrix.
+    """
+    # Ensure CSC format in R, then extract i/p/x arrays
+    ro.r('''
+        library(Matrix)
+        .ctp_dgc <- as(counts_mat, "dgCMatrix")
+    ''')
+
+    # Extract components individually (small memory footprint)
+    with localconverter(ro.default_converter + numpy2ri.converter):
+        i_indices = np.array(ro.r(".ctp_dgc@i"))      # 0-based row indices
+        p_indices = np.array(ro.r(".ctp_dgc@p"))      # column pointers
+        x_values = np.array(ro.r(".ctp_dgc@x"))       # non-zero values
+
+    # Build scipy CSC matrix (genes × cells in R orientation)
+    csc_genes_cells = sp.csc_matrix(
+        (x_values, i_indices, p_indices),
+        shape=(n_genes, n_cells),
+    )
+
+    # Transpose to cells × genes → becomes CSR (efficient transpose of CSC)
+    return csc_genes_cells.T.tocsr()
+
+
+def _extract_sparse_chunked(ro, sp, n_genes: int, n_cells: int, chunk_size: int) -> sp.csr_matrix:
+    """Chunked column-wise extraction for extremely large datasets.
+
+    Processes cells in chunks of `chunk_size` columns, building the
+    final CSR matrix from sparse blocks. Peak memory is bounded by
+    chunk_size × n_genes rather than n_cells × n_genes.
+
+    Args:
+        ro: rpy2 robjects module
+        sp: scipy.sparse module
+        n_genes: Number of genes (rows in R matrix)
+        n_cells: Number of cells (columns in R matrix)
+        chunk_size: Cells per chunk
+
+    Returns:
+        scipy.sparse.csr_matrix of shape (n_cells, n_genes)
+    """
+    import gc
+
+    n_chunks = (n_cells + chunk_size - 1) // chunk_size
+    chunks = []
+
+    for chunk_idx in range(n_chunks):
+        col_start = chunk_idx * chunk_size + 1  # R is 1-based
+        col_end = min((chunk_idx + 1) * chunk_size, n_cells)
+
+        ro.r(f'''
+            .ctp_chunk <- counts_mat[, {col_start}:{col_end}, drop = FALSE]
+            .ctp_chunk_dgc <- as(.ctp_chunk, "dgCMatrix")
+        ''')
+
+        with localconverter(ro.default_converter + numpy2ri.converter):
+            i_idx = np.array(ro.r(".ctp_chunk_dgc@i"))
+            p_idx = np.array(ro.r(".ctp_chunk_dgc@p"))
+            x_val = np.array(ro.r(".ctp_chunk_dgc@x"))
+
+        chunk_n_cells = col_end - col_start + 1
+        chunk_csc = sp.csc_matrix(
+            (x_val, i_idx, p_idx),
+            shape=(n_genes, chunk_n_cells),
+        )
+        # Transpose chunk: chunk_n_cells × n_genes (CSR)
+        chunks.append(chunk_csc.T.tocsr())
+
+        # Free R memory
+        ro.r("rm(.ctp_chunk, .ctp_chunk_dgc); gc()")
+        gc.collect()
+
+    # Stack all chunks vertically (cells axis)
+    return sp.vstack(chunks, format="csr")
 
 
 # ──────────────────────────────────────────────
