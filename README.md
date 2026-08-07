@@ -4,8 +4,9 @@
 > For individual researchers and small labs — no standalone app, no heavy infrastructure.
 
 **CellTypePilot** is a **plugin** for Claude Code / OpenAI Codex. It turns pre-clustered
-single-cell data into trusted, publication-ready cell-type annotations — with marker evidence,
-confidence levels, an independent critic review, and a draft methodology paragraph for your paper.
+single-cell data into trusted, publication-ready cell-type annotations — with **dual-engine**
+scoring (marker overlap + reference embedding), adaptive ensemble fusion, confidence levels,
+an independent critic review, and a draft methodology paragraph for your paper.
 
 It is **not** another cell-type annotation algorithm. It is a **trust layer** that lives inside
 the coding agent you already use, turning a conversation into a reviewed annotation workflow.
@@ -21,7 +22,7 @@ painful — not because the algorithms don't exist, but because:
 | **Config barrier is too high** (MCP, pixi, conda...) | `git clone` + `pip install -e .` + run. Zero MCP required for the basic path. `doctor` tells you what you have *before* anything fails |
 | **Workflow fragmentation** (scripts here, tool there) | Runs inside your Claude Code / Codex session — no context switch to a separate app |
 | **Can't explain *why* a cluster got its label** | Every annotation ships with: supporting markers, expression stats, critic flags, and a draft methods paragraph |
-| **Rare / transitional states forced into a label** | Critic flags doublet signals and low-confidence calls instead of silently assigning a wrong label |
+| **Rare / transitional states forced into a label** | Reference embedding mapping captures continuous trajectories; critic flags doublet signals and transitional states instead of silently assigning a wrong label |
 | **Token cost spirals** | Deterministic marker scoring is free (Tier 0); expensive multi-model consensus only triggers for genuinely ambiguous clusters (Tier 1) |
 | **Results unreproducible** | `manifest.json` records knowledge graph version, parameters, data hash, and output hashes for every run |
 
@@ -31,6 +32,9 @@ painful — not because the algorithms don't exist, but because:
 output/
 ├── data.annotated.h5ad          # ctp_cell_type, ctp_cl_id, ctp_confidence in obs
 ├── evidence_table.csv           # Per-cluster: scores, markers, critic flags, confidence
+├── ensemble_scores.csv          # Per-cell-type: marker + ref + ensemble scores
+├── transitional_states.csv      # Clusters flagged as differentiation intermediates
+├── disagreements.csv            # Marker vs reference disagreement analysis
 ├── report_draft.html            # Self-contained HTML report with all figures embedded
 ├── methodology_draft.txt        # "We annotated N clusters using CellTypePilot v0.1.0..."
 ├── manifest.json                # Provenance: versions, params, data hash, output hashes
@@ -57,16 +61,23 @@ celltypepilot inspect --input data.h5ad
 # 4. Annotate — full pipeline in one command
 celltypepilot annotate --input data.h5ad --cluster-key leiden --tissue blood
 
-# 5. Review interactively in browser (optional)
+# 5. Annotate with reference embedding (resolves trajectories & rare states)
+celltypepilot annotate-embedding --input data.h5ad --cluster-key leiden \
+    --reference atlas.h5ad --tissue blood
+
+# 6. Check available reference scoring backends
+celltypepilot backends
+
+# 7. Review interactively in browser (optional)
 celltypepilot inspect-web --output output/
 
-# 6. Deep-review a flagged cluster
+# 8. Deep-review a flagged cluster
 celltypepilot critic --input data.h5ad --cluster-key leiden --focus cluster_7
 
-# 7. Validate markers against literature (optional, needs network)
+# 9. Validate markers against literature (optional, needs network)
 celltypepilot literature --cell-type "T cells" --markers "CD3E,CD4,CD8A"
 
-# 8. Convert Seurat .rds → .h5ad (optional, needs R)
+# 10. Convert Seurat .rds → .h5ad (optional, needs R)
 celltypepilot convert-rds --input data.rds --output data.h5ad
 ```
 
@@ -104,12 +115,14 @@ switch to a new app, learn a new UI, or configure a new environment.
 │  │      ├─ Data Adapter         Load .h5ad/.rds, detect, validate   ││
 │  │      ├─ Marker Knowledge Graph  80+ cell types, 11 tissues       ││
 │  │      ├─ Marker Scorer        Wilcoxon DE + 5-dim scoring         ││
+│  │      ├─ Reference Scorer     CellTypist/scANVI/KNN/Correlation   ││
+│  │      ├─ Ensemble Scorer      Adaptive fusion + disagreement      ││
 │  │      ├─ Annotation Critic    Independent evidence review         ││
 │  │      ├─ Web Inspector        Flask interactive review panel      ││
 │  │      ├─ Visualizer           UMAP, dotplot, confidence (Wong)    ││
 │  │      ├─ Reporter             HTML report + methods paragraph     ││
 │  │      ├─ Literature           PubMed validation (optional MCP)    ││
-│  │      ├─ License Manager      Tiered: free/academic/commercial    ││
+│  │      ├─ License Manager      RSA-2048 signed, machine-bound      ││
 │  │      └─ Provenance           manifest.json versioning            ││
 │  │    critic          Deep-review a specific cluster                ││
 │  └─────────────────────────────────────────────────────────────────┘│
@@ -148,7 +161,8 @@ pip install -e .
 celltypepilot doctor
 ```
 
-Optional extras: `pip install -e ".[web]"` (Web Inspector), `"[seurat]"` (.rds support), `"[all]"` (everything).
+Optional extras: `pip install -e ".[web]"` (Web Inspector), `"[seurat]"` (.rds support),
+`"[reference]"` (CellTypist), `"[embedding]"` (scVI/scANVI), `"[all]"` (everything).
 
 ### Plugin structure
 
@@ -171,7 +185,7 @@ CellTypePilot/
 ├── .mcp.json                     ← MCP servers (PubMed, bioRxiv)
 ├── AGENTS.md                     ← Codex agent instructions
 ├── src/celltypepilot/            ← Python backend (shared by all platforms)
-└── tests/                        ← 18 smoke tests
+└── tests/                        ← 31 tests (all passing)
 ```
 
 ## Built-in Marker Knowledge Graph
@@ -194,9 +208,58 @@ both supported with automatic gene symbol conversion.
 | Skeletal muscle | Myofibers, satellite cells, FAPs |
 | General | Endothelial, pericytes, fibroblasts, macrophages, mast cells, epithelial |
 
+## Reference Embedding + Ensemble Fusion
+
+For continuous differentiation trajectories (stem → progenitor → mature) and rare
+transitional states, pure marker overlap scoring can fail. CellTypePilot addresses this
+with a **dual-engine** architecture:
+
+**Engine 1 — Marker Scorer** (deterministic):
+Wilcoxon DE + 5-dim scoring against the built-in marker knowledge graph. Zero cost,
+fully reproducible, works offline.
+
+**Engine 2 — Reference Scorer** (deep learning):
+Projects query cells into a reference embedding space and transfers labels. Four backends:
+
+| Backend | Method | Best for | Dependencies |
+|---|---|---|---|
+| **CellTypist** | Pre-trained logistic regression on CellxGene Census | Standard human/mouse tissues | `celltypist` |
+| **scANVI** | Semi-supervised VAE with custom reference atlas | Custom atlases, cross-species | `scvi-tools` |
+| **KNN** | PCA + inverse-distance KNN label transfer | Quick mapping, no model needed | `sklearn` (always available) |
+| **Correlation** | Pearson correlation with reference mean profiles | Lightweight fallback | None (always available) |
+
+**Ensemble Fusion** — Adaptive weighting combines both engines:
+
+| Marker confidence | Marker weight | Reference weight | Rationale |
+|---|---|---|---|
+| ≥ 0.6 (high) | 0.70 | 0.30 | Markers are reliable → trust them |
+| 0.3–0.6 (medium) | 0.50 | 0.50 | Balanced fusion |
+| ≤ 0.3 + ref ≥ 0.5 | 0.20 | 0.80 | Markers fail → reference override |
+| Strong disagreement | 0.15 | 0.85 | Reference confident, markers wrong |
+
+**Transitional state detection** — Three signals identify differentiation intermediates:
+1. **Cross-ranking**: each method's top-1 appears in the other's top-N
+2. **Distribution entropy**: broad probability = diffuse identity
+3. **Confidence asymmetry**: one method confident, other uncertain
+
+Disagreements are flagged with biological interpretation (novel subtype, transitional
+state, marker database gap, or low-quality cluster).
+
+```bash
+# Use CellTypist pre-trained model
+celltypepilot annotate-embedding -i data.h5ad -k leiden -m Immune_All_Low.pkl
+
+# Use custom reference atlas with auto-selected backend
+celltypepilot annotate-embedding -i data.h5ad -k leiden -r atlas.h5ad
+
+# Force specific backend
+celltypepilot annotate-embedding -i data.h5ad -k leiden -r atlas.h5ad -b knn
+```
+
 ## Annotation Critic — the soul of the plugin
 
-The Critic doesn't just score — it *doubts*. Every annotation is independently reviewed:
+The Critic doesn't just score — it *doubts*. Every annotation is independently reviewed
+across **6 checks** (including ensemble agreement when reference embedding is available):
 
 | Check | What it catches |
 |---|---|
@@ -204,6 +267,8 @@ The Critic doesn't just score — it *doubts*. Every annotation is independently
 | Negative marker conflict | Negative markers expressed in > 15% of cells → `NEG_MARKER_CONFLICT` |
 | Doublet signal | Two mutually exclusive lineage signatures co-expressed → `POSSIBLE_DOUBLET` |
 | Ontology consistency | Is the label a valid Cell Ontology term in the right tissue context? |
+| Ensemble agreement | Marker vs reference disagreement → `ENSEMBLE_DISAGREEMENT` / `ENSEMBLE_MILD_DISAGREEMENT` |
+| Weak reference | Reference-only support with low confidence → `WEAK_REFERENCE_ONLY` |
 
 Confidence levels: **high** / **medium** / **low** / **needs_review**. The Critic can only
 downgrade, never upgrade. A flagged cluster is a *success* — it means the system caught
@@ -214,8 +279,8 @@ something worth your attention.
 - [x] **Phase 1 (MVP)** — h5ad adapter, marker knowledge graph, Wilcoxon DE scoring, Annotation Critic, doctor, figures, JSON output, HTML report, methodology draft, manifest provenance, literature validation (PubMed)
 - [x] **Phase 2** — Dual-platform plugin (Claude Code `.claude-plugin/` + Codex `.codex-plugin/`), slash commands, sub-agents, hooks, rules, MCP integration
 - [x] **Phase 3** — Web Inspector (Flask interactive panel), Seurat .rds adapter, tiered license system (free/academic/commercial), premium atlas (tumor/brain/immune)
-- [ ] **Phase 4** — Tiered consensus orchestrator (Tier 0 → Tier 1 adaptive upgrade), doublet detection enhancement, ontology validation enhancement
-- [ ] **Phase 5** — docx/pptx submission package, reference mapping methods, extended atlas subscription, team sharing, rare cell type mining
+- [x] **Phase 4** — Reference Embedding + Ensemble fusion (CellTypist / scANVI / KNN / Correlation backends), adaptive weighting, transitional state detection, ensemble-aware critic, RSA-2048 license security, sparse-preserving Seurat conversion, Web Inspector override API
+- [ ] **Phase 5** — Tiered consensus orchestrator (Tier 0 → Tier 1 adaptive upgrade), docx/pptx submission package, extended atlas subscription, team sharing, rare cell type mining
 
 ## License
 
