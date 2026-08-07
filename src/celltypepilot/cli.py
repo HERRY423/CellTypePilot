@@ -602,6 +602,167 @@ def apply_overrides(
 
 
 # ──────────────────────────────────────────────
+# annotate-embedding command (reference embedding + ensemble)
+# ──────────────────────────────────────────────
+@app.command()
+def annotate_embedding(
+    input: str = typer.Option(..., "--input", "-i", help="Path to .h5ad file"),
+    cluster_key: str = typer.Option(..., "--cluster-key", "-k", help="Cluster key in obs"),
+    reference: Optional[str] = typer.Option(None, "--reference", "-r", help="Reference .h5ad with cell type labels"),
+    ref_label_key: str = typer.Option("cell_type", "--ref-label", help="Cell type column in reference.obs"),
+    model_path: Optional[str] = typer.Option(None, "--model", "-m", help="CellTypist model path (.pkl)"),
+    backend: str = typer.Option("auto", "--backend", "-b", help="Backend: auto/celltypist/scanvi/correlation"),
+    output_dir: str = typer.Option(".", "--output", "-o", help="Output directory"),
+    species: Optional[str] = typer.Option(None, "--species", "-s", help="Species: human/mouse"),
+    tissue: Optional[str] = typer.Option(None, "--tissue", "-t", help="Tissue context"),
+    marker_weight: float = typer.Option(0.5, "--marker-weight", help="Base marker weight (0-1)"),
+    no_ensemble: bool = typer.Option(False, "--no-ensemble", help="Skip ensemble, use reference only"),
+    json_output: bool = typer.Option(False, "--json", help="Output as JSON"),
+):
+    """Annotate using reference embedding + marker ensemble.
+
+    Combines marker-based scoring with deep learning reference mapping
+    (CellTypist / scANVI / correlation) to resolve continuous
+    differentiation trajectories and rare transitional states.
+
+    Examples:
+        # Auto-detect backend with reference atlas
+        celltypepilot annotate-embedding -i data.h5ad -k leiden -r reference.h5ad
+
+        # Use CellTypist pre-trained model
+        celltypepilot annotate-embedding -i data.h5ad -k leiden -m models/Immune_All_Low.pkl
+
+        # Force correlation backend (no extra deps)
+        celltypepilot annotate-embedding -i data.h5ad -k leiden -r ref.h5ad -b correlation
+    """
+    from .data_adapter import load_h5ad, detect_species, detect_tissue, load_marker_atlas, get_all_markers_for_tissue
+    from .marker_scorer import compute_marker_scores, generate_annotation_summary
+    from .reference_scorer import score_by_reference, detect_transitional_states, check_reference_backends
+    from .ensemble_scorer import ensemble_scores, generate_ensemble_summary, analyze_disagreements
+
+    output_path = Path(output_dir)
+    output_path.mkdir(parents=True, exist_ok=True)
+
+    # Step 1: Load query
+    console.print("[bold blue]Step 1/5:[/bold blue] Loading data...")
+    adata = load_h5ad(input)
+
+    if species is None:
+        species = detect_species(adata)
+    if tissue is None:
+        tissue = detect_tissue(adata) or "general"
+
+    # Step 2: Marker scoring (existing pipeline)
+    console.print("[bold blue]Step 2/5:[/bold blue] Marker-based scoring...")
+    atlas = load_marker_atlas(species)
+    markers = get_all_markers_for_tissue(atlas, tissue)
+    marker_scores = compute_marker_scores(adata, cluster_key, markers)
+    marker_summary = generate_annotation_summary(marker_scores, cluster_key)
+    console.print(f"  Marker: {len(marker_summary)} clusters scored")
+
+    # Step 3: Reference embedding scoring
+    console.print("[bold blue]Step 3/5:[/bold blue] Reference embedding scoring...")
+
+    # Check available backends
+    backends = check_reference_backends()
+    console.print(f"  Available backends: {', '.join(k for k, v in backends.items() if v)}")
+
+    # Load reference if provided
+    ref_adata = None
+    if reference:
+        console.print(f"  Loading reference: {reference}")
+        ref_adata = load_h5ad(reference)
+
+    ref_scores = score_by_reference(
+        adata, cluster_key,
+        reference=ref_adata,
+        ref_label_key=ref_label_key,
+        model_path=model_path,
+        backend=backend,
+    )
+    console.print(f"  Reference: {len(ref_scores['cluster'].unique())} clusters scored")
+
+    # Step 4: Ensemble fusion
+    if no_ensemble:
+        console.print("[bold blue]Step 4/5:[/bold blue] Using reference scores only (no ensemble)")
+        final_df = ref_scores
+    else:
+        console.print("[bold blue]Step 4/5:[/bold blue] Ensemble fusion...")
+        final_df = ensemble_scores(
+            marker_scores, ref_scores,
+            marker_weight=marker_weight,
+            adaptive=True,
+        )
+        ensemble_summary = generate_ensemble_summary(final_df)
+
+        # Show agreement stats
+        n_agree = sum(1 for _, r in ensemble_summary.iterrows() if r.get("agreement", True))
+        n_total = len(ensemble_summary)
+        console.print(f"  Agreement: {n_agree}/{n_total} clusters agree between methods")
+
+    # Step 5: Detect transitional states
+    console.print("[bold blue]Step 5/5:[/bold blue] Detecting transitional states...")
+    transitions = detect_transitional_states(ref_scores, marker_scores)
+    disagreements = analyze_disagreements(final_df)
+
+    n_transitional = transitions["is_transitional"].sum() if not transitions.empty else 0
+    console.print(f"  Transitional candidates: {n_transitional}")
+
+    if not disagreements.empty:
+        console.print(f"\n  [bold]Disagreements (potential novel/transitional states):[/bold]")
+        for _, row in disagreements.head(5).iterrows():
+            console.print(f"    Cluster {row['cluster']}: "
+                          f"marker→{row['marker_type']} ({row['marker_score']:.2f}) "
+                          f"vs ref→{row['ref_type']} ({row['ref_score']:.2f})")
+            console.print(f"      → {row['interpretation'][:80]}...")
+
+    # Save outputs
+    ensemble_path = output_path / "ensemble_scores.csv"
+    final_df.to_csv(ensemble_path, index=False)
+    console.print(f"\n  Ensemble scores: {ensemble_path}")
+
+    if not transitions.empty:
+        trans_path = output_path / "transitional_states.csv"
+        transitions.to_csv(trans_path, index=False)
+        console.print(f"  Transitional states: {trans_path}")
+
+    if not disagreements.empty:
+        disagree_path = output_path / "disagreements.csv"
+        disagreements.to_csv(disagree_path, index=False)
+        console.print(f"  Disagreements: {disagree_path}")
+
+    if json_output:
+        output_json = {
+            "ensemble": final_df.to_dict(orient="records"),
+            "transitional": transitions.to_dict(orient="records") if not transitions.empty else [],
+            "disagreements": disagreements.to_dict(orient="records") if not disagreements.empty else [],
+        }
+        console.print(json.dumps(output_json, indent=2, default=str))
+
+    console.print(f"\n[bold green]Done![/bold green] Ensemble annotation complete.")
+
+
+# ──────────────────────────────────────────────
+# backends command (check reference scoring support)
+# ──────────────────────────────────────────────
+@app.command()
+def backends():
+    """Show available reference scoring backends."""
+    from .reference_scorer import check_reference_backends
+    status = check_reference_backends()
+
+    console.print("[bold]Reference Scoring Backends:[/bold]\n")
+    for name, available in status.items():
+        icon = "[green]✓[/green]" if available else "[red]✗[/red]"
+        console.print(f"  {icon} {name}")
+
+    console.print("\n[bold]Install backends:[/bold]")
+    console.print("  pip install celltypist       # Pre-trained models (recommended)")
+    console.print("  pip install scvi-tools        # Custom reference atlas (scANVI)")
+    console.print("  Or provide --reference .h5ad  # Correlation (no extra deps)")
+
+
+# ──────────────────────────────────────────────
 # license command
 # ──────────────────────────────────────────────
 @app.command()

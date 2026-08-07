@@ -28,7 +28,15 @@ gpu = ["cupy-cuda12x"]
 report = ["python-docx>=1.0.0"]
 web = ["flask>=3.0.0"]
 seurat = ["rpy2>=3.5.0"]
-all = ["python-docx>=1.0.0", "flask>=3.0.0", "rpy2>=3.5.0"]
+reference = ["celltypist>=1.6.0"]
+embedding = ["scvi-tools>=1.0.0"]
+all = [
+    "python-docx>=1.0.0",
+    "flask>=3.0.0",
+    "rpy2>=3.5.0",
+    "celltypist>=1.6.0",
+    "scvi-tools>=1.0.0",
+]
 dev = ["pytest>=7.0.0", "pytest-cov"]
 
 [project.scripts]
