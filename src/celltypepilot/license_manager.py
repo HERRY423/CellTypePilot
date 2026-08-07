@@ -138,11 +138,21 @@ _RSA_PUBLIC_KEY_PEM = (
 
 # Local HMAC key for license.json file integrity (tamper detection)
 # This is separate from RSA — it protects the local file from manual editing
+
+
+def _login_name_safe() -> str:
+    """Best-effort login name; os.getlogin() raises OSError in headless/CI environments."""
+    if hasattr(os, "getlogin"):
+        try:
+            return os.getlogin()
+        except OSError:
+            pass
+    return os.environ.get("USER") or os.environ.get("USERNAME") or ""
+
+
 _FILE_HMAC_SECRET = (
     b"ctp-file-integrity-"
-    + hashlib.sha256(
-        platform.node().encode() + os.getlogin().encode() if hasattr(os, "getlogin") else b""
-    ).digest()[:32]
+    + hashlib.sha256((platform.node() + _login_name_safe()).encode()).digest()[:32]
 )
 
 
