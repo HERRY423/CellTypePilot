@@ -1,1 +1,1 @@
-"""Tests for CellTypePilot."""
+"""CellTypePilot test suite."""

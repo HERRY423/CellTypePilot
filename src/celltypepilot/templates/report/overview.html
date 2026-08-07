@@ -1,0 +1,48 @@
+<p class="subtitle">
+  Generated: {{ manifest.get('timestamp', 'N/A') }} |
+  CellTypePilot v{{ manifest.get('celltypepilot_version', '?') }} |
+  MKG: {{ manifest.get('mkg_version', '?') }}
+</p>
+
+<h2>Overview</h2>
+<div class="stats-grid">
+  <div class="stat-card">
+    <div class="stat-value">{{ input_filename }}</div>
+    <div class="stat-label">Input File</div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-value">{{ total }}</div>
+    <div class="stat-label">Total Clusters</div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-value" style="color: var(--success)">{{ passed }}</div>
+    <div class="stat-label">Passed Critic</div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-value" style="color: var(--danger)">{{ flagged }}</div>
+    <div class="stat-label">Flagged for Review</div>
+  </div>
+</div>
+
+<div class="stats-grid">
+  <div class="stat-card">
+    <div class="stat-value" style="color: var(--success)">{{ conf_dist.get('high', 0) }}</div>
+    <div class="stat-label">High Confidence</div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-value" style="color: var(--warning)">{{ conf_dist.get('medium', 0) }}</div>
+    <div class="stat-label">Medium Confidence</div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-value" style="color: var(--danger)">{{ conf_dist.get('low', 0) }}</div>
+    <div class="stat-label">Low Confidence</div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-value" style="color: #CC0000">{{ conf_dist.get('needs_review', 0) }}</div>
+    <div class="stat-label">Needs Review</div>
+  </div>
+</div>
+
+<p><strong>Species:</strong> {{ params.get('species', 'N/A') }} |
+   <strong>Tissue:</strong> {{ params.get('tissue', 'N/A') }} |
+   <strong>Cluster key:</strong> {{ params.get('cluster_key', 'N/A') }}</p>

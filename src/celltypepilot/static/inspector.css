@@ -1,0 +1,146 @@
+/* CellTypePilot — Web Inspector styles */
+:root {
+    --bg: #fafafa;
+    --card: #ffffff;
+    --border: #e0e0e0;
+    --text: #2c3e50;
+    --muted: #7f8c8d;
+    --accent: #3498db;
+    --success: #27ae60;
+    --warning: #f39c12;
+    --danger: #e74c3c;
+    --info: #9b59b6;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.6;
+}
+.container { max-width: 1400px; margin: 0 auto; padding: 20px; }
+header {
+    background: var(--card);
+    border-bottom: 1px solid var(--border);
+    padding: 16px 24px;
+    margin-bottom: 24px;
+}
+header h1 { font-size: 1.5rem; font-weight: 600; }
+header .subtitle { color: var(--muted); font-size: 0.9rem; }
+.stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 16px;
+    margin-bottom: 24px;
+}
+.stat-card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 16px;
+}
+.stat-card .label { color: var(--muted); font-size: 0.8rem; text-transform: uppercase; }
+.stat-card .value { font-size: 2rem; font-weight: 700; margin-top: 4px; }
+.stat-card .value.high { color: var(--success); }
+.stat-card .value.medium { color: var(--warning); }
+.stat-card .value.low { color: var(--danger); }
+.stat-card .value.needs_review { color: var(--info); }
+.panel {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    margin-bottom: 24px;
+}
+.panel-header {
+    padding: 12px 16px;
+    border-bottom: 1px solid var(--border);
+    font-weight: 600;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+.panel-body { padding: 16px; overflow-x: auto; }
+table { width: 100%; border-collapse: collapse; font-size: 0.9rem; }
+th, td { padding: 10px 12px; text-align: left; border-bottom: 1px solid var(--border); }
+th { font-weight: 600; color: var(--muted); font-size: 0.8rem; text-transform: uppercase; }
+tr:hover { background: #f8f9fa; }
+.badge {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 12px;
+    font-size: 0.75rem;
+    font-weight: 600;
+}
+.badge-pass { background: #d4edda; color: #155724; }
+.badge-low_evidence { background: #fff3cd; color: #856404; }
+.badge-partial_evidence { background: #fff3cd; color: #856404; }
+.badge-neg_marker_conflict { background: #f8d7da; color: #721c24; }
+.badge-possible_doublet { background: #d1ecf1; color: #0c5460; }
+.badge-high { background: #d4edda; color: #155724; }
+.badge-medium { background: #fff3cd; color: #856404; }
+.badge-low { background: #f8d7da; color: #721c24; }
+.badge-needs_review { background: #d1ecf1; color: #0c5460; }
+.btn {
+    display: inline-block;
+    padding: 6px 12px;
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    background: var(--card);
+    cursor: pointer;
+    font-size: 0.85rem;
+}
+.btn:hover { background: #f0f0f0; }
+.btn-primary { background: var(--accent); color: white; border-color: var(--accent); }
+.btn-primary:hover { background: #2980b9; }
+.modal-overlay {
+    display: none;
+    position: fixed;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: rgba(0,0,0,0.5);
+    z-index: 1000;
+}
+.modal {
+    background: var(--card);
+    border-radius: 8px;
+    max-width: 600px;
+    margin: 50px auto;
+    padding: 24px;
+}
+.modal h3 { margin-bottom: 16px; }
+.form-group { margin-bottom: 12px; }
+.form-group label { display: block; font-weight: 600; margin-bottom: 4px; }
+.form-group input, .form-group select {
+    width: 100%;
+    padding: 8px;
+    border: 1px solid var(--border);
+    border-radius: 4px;
+}
+.evidence-list { list-style: none; padding: 0; }
+.evidence-list li { padding: 4px 0; font-size: 0.9rem; }
+.evidence-list .gene { font-weight: 600; color: var(--accent); }
+.filter-bar {
+    display: flex;
+    gap: 12px;
+    margin-bottom: 16px;
+    flex-wrap: wrap;
+}
+.filter-bar select, .filter-bar input {
+    padding: 6px 10px;
+    border: 1px solid var(--border);
+    border-radius: 4px;
+}
+.save-bar {
+    display: none;
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background: var(--card);
+    border-top: 2px solid var(--accent);
+    padding: 12px 24px;
+    z-index: 999;
+    align-items: center;
+    justify-content: space-between;
+}
+.save-bar .info { font-weight: 600; }
+.save-bar .actions { display: flex; gap: 8px; }

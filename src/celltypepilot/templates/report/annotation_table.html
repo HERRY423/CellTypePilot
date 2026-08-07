@@ -1,0 +1,21 @@
+<h2>Annotation Results</h2>
+<table>
+<thead>
+<tr>
+  <th>Cluster</th><th>Cell Type</th><th>CL ID</th>
+  <th>Score</th><th>Confidence</th><th>Critic</th>
+</tr>
+</thead>
+<tbody>
+{% for row in rows %}
+<tr>
+  <td><strong>{{ row.cluster }}</strong></td>
+  <td>{{ row.cell_type }}</td>
+  <td>{{ row.cl_id }}</td>
+  <td>{{ "%.3f"|format(row.score) }}</td>
+  <td><span class="badge {{ row.badge_class }}">{{ row.confidence }}</span></td>
+  <td><span class="badge {{ row.flag_badge }}">{{ row.flags[:40] }}</span></td>
+</tr>
+{% endfor %}
+</tbody>
+</table>

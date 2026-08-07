@@ -83,157 +83,52 @@ def annotate(
     no_figures: bool = typer.Option(False, "--no-figures", help="Skip figure generation"),
 ):
     """Run the full annotation pipeline: marker scoring → critic → report."""
-    from .data_adapter import (
-        load_h5ad, compute_data_hash, detect_species, detect_tissue,
-        load_marker_atlas, get_all_markers_for_tissue,
-    )
-    from .marker_scorer import compute_marker_scores, generate_annotation_summary
-    from .critic import run_critic, generate_critic_summary
-    from .visualizer import generate_all_figures
-    from .reporter import save_evidence_table, generate_html_report, generate_methodology_text
-    from .provenance import create_manifest, update_manifest_outputs, save_manifest, format_manifest_summary
+    from .orchestrator import run_annotation_pipeline, PipelineError
 
-    output_path = Path(output_dir)
-    output_path.mkdir(parents=True, exist_ok=True)
+    def _progress(step: int, total: int, message: str):
+        console.print(f"[bold blue]Step {step}/{total}:[/bold blue] {message}")
 
-    # Step 1: Load data
-    console.print("[bold blue]Step 1/6:[/bold blue] Loading data...")
-    adata = load_h5ad(input)
-    data_hash = compute_data_hash(input)
-
-    # Step 2: Detect/auto-set parameters
-    console.print("[bold blue]Step 2/6:[/bold blue] Detecting parameters...")
-    if species is None:
-        species = detect_species(adata)
-        console.print(f"  Detected species: [cyan]{species}[/cyan]")
-    if tissue is None:
-        tissue = detect_tissue(adata)
-        if tissue:
-            console.print(f"  Detected tissue: [cyan]{tissue}[/cyan]")
-        else:
-            tissue = "general"
-            console.print(f"  Tissue not detected, using [cyan]general[/cyan] marker set")
-    if embedding_key is None:
-        from .data_adapter import find_embedding_keys
-        candidates = find_embedding_keys(adata)
-        if candidates:
-            embedding_key = candidates[0]
-            console.print(f"  Using embedding: [cyan]{embedding_key}[/cyan]")
-        else:
-            console.print("[yellow]  Warning: No embedding found. Figures will be skipped.[/yellow]")
-
-    # Validate cluster key
-    if cluster_key not in adata.obs.columns:
-        console.print(f"[red]Error: cluster key '{cluster_key}' not found in obs.[/red]")
-        console.print(f"Available columns: {list(adata.obs.columns)}")
+    try:
+        result = run_annotation_pipeline(
+            input_path=input,
+            cluster_key=cluster_key,
+            output_dir=output_dir,
+            species=species,
+            tissue=tissue,
+            embedding_key=embedding_key,
+            layer=layer,
+            no_figures=no_figures,
+            progress=_progress,
+        )
+    except PipelineError as e:
+        console.print(f"[red]Error: {e}[/red]")
         raise typer.Exit(1)
 
-    # Step 3: Load marker atlas and score
-    console.print("[bold blue]Step 3/6:[/bold blue] Computing marker scores...")
-    atlas = load_marker_atlas(species)
-    markers = get_all_markers_for_tissue(atlas, tissue)
-    console.print(f"  Using {len(markers)} cell types from '{tissue}' tissue atlas")
-
-    scores = compute_marker_scores(adata, cluster_key, markers, layer=layer)
-    summary = generate_annotation_summary(scores, cluster_key)
-
-    if summary.empty:
-        console.print("[red]Error: No annotations generated. Check marker gene overlap with your data.[/red]")
-        raise typer.Exit(1)
-
-    console.print(f"  Annotated {len(summary)} clusters")
-
-    # Step 4: Run critic
-    console.print("[bold blue]Step 4/6:[/bold blue] Running Annotation Critic...")
-    critic_results = run_critic(adata, cluster_key, summary, atlas, tissue)
-    critic_summary = generate_critic_summary(critic_results)
-
+    critic_summary = result["critic_summary"]
+    console.print(f"  Detected species: [cyan]{result['species']}[/cyan]")
+    console.print(f"  Tissue: [cyan]{result['tissue']}[/cyan]")
+    if result["embedding_key"]:
+        console.print(f"  Embedding: [cyan]{result['embedding_key']}[/cyan]")
+    else:
+        console.print("[yellow]  No embedding found. Figures were skipped.[/yellow]")
+    console.print(f"  Annotated {len(result['critic_results'])} clusters")
     console.print(f"  Passed: [green]{critic_summary['pass']}[/green] | "
                   f"Flagged: [red]{critic_summary['flagged']}[/red]")
-
-    # Step 5: Generate figures
-    figure_paths = []
-    if not no_figures and embedding_key:
-        console.print("[bold blue]Step 5/6:[/bold blue] Generating figures...")
-        figure_paths = generate_all_figures(
-            adata, cluster_key, embedding_key, critic_results, output_path, tissue
-        )
-        console.print(f"  Generated {len(figure_paths)} figures")
-    else:
-        console.print("[bold blue]Step 5/6:[/bold blue] Skipping figures")
-
-    # Step 6: Save outputs
-    console.print("[bold blue]Step 6/6:[/bold blue] Saving outputs...")
-
-    # Evidence table
-    evidence_path = save_evidence_table(critic_results, output_path)
-    console.print(f"  Evidence table: {evidence_path}")
-
-    # Manifest
-    manifest = create_manifest(
-        input_path=input,
-        data_hash=data_hash,
-        cluster_key=cluster_key,
-        species=species,
-        tissue=tissue,
-        parameters={
-            "embedding_key": embedding_key,
-            "layer": layer,
-        },
-        output_dir=output_path,
-    )
-
-    # HTML report
-    report_path = generate_html_report(
-        critic_results, critic_results, critic_summary, manifest, figure_paths, output_path
-    )
-    console.print(f"  HTML report: {report_path}")
-
-    # Methodology text
-    method_text = generate_methodology_text(manifest, critic_summary, critic_results)
-    method_path = output_path / "methodology_draft.txt"
-    with open(method_path, "w") as f:
-        f.write(method_text)
-    console.print(f"  Methodology draft: {method_path}")
-
-    # Update and save manifest
-    manifest = update_manifest_outputs(manifest, output_path)
-    manifest_path = save_manifest(manifest, output_path)
-    console.print(f"  Manifest: {manifest_path}")
-
-    # Write annotations back to adata
-    _write_annotations_to_adata(adata, critic_results, cluster_key, output_path)
+    console.print(f"  Generated {len(result['figure_paths'])} figures")
+    for label, path in result["paths"].items():
+        console.print(f"  {label.replace('_', ' ').title()}: {path}")
 
     # JSON output
     if json_output:
         output_json = {
-            "annotations": critic_results.to_dict(orient="records"),
+            "annotations": result["critic_results"].to_dict(orient="records"),
             "critic_summary": critic_summary,
-            "manifest": manifest,
+            "manifest": result["manifest"],
         }
         console.print(json.dumps(output_json, indent=2, default=str))
 
     console.print("\n[bold green]Done![/bold green] CellTypePilot annotation complete.")
-    console.print(f"Output directory: {output_path.resolve()}")
-
-
-def _write_annotations_to_adata(
-    adata, critic_results: "pd.DataFrame", cluster_key: str, output_dir: Path
-):
-    """Write annotation results back into adata obs and save."""
-    import anndata as ad
-
-    # Map cluster → annotation
-    cluster_to_ct = dict(zip(critic_results["cluster"], critic_results["cell_type"]))
-    cluster_to_cl = dict(zip(critic_results["cluster"], critic_results.get("cl_id", [""] * len(critic_results))))
-    cluster_to_conf = dict(zip(critic_results["cluster"], critic_results.get("critic_confidence", [""] * len(critic_results))))
-
-    adata.obs["ctp_cell_type"] = adata.obs[cluster_key].map(cluster_to_ct).fillna("Unknown")
-    adata.obs["ctp_cl_id"] = adata.obs[cluster_key].map(cluster_to_cl).fillna("")
-    adata.obs["ctp_confidence"] = adata.obs[cluster_key].map(cluster_to_conf).fillna("unknown")
-
-    output_path = output_dir / "data.annotated.h5ad"
-    adata.write(output_path)
+    console.print(f"Output directory: {result['output_path'].resolve()}")
 
 
 # ──────────────────────────────────────────────
@@ -490,8 +385,10 @@ def apply_overrides(
     Example:
         celltypepilot apply-overrides -o ./ctp_output -f annotation_overrides.json
     """
-    import shutil
-    from datetime import datetime
+    from .orchestrator import (
+        apply_overrides_to_h5ad, find_cluster_column,
+        regenerate_figures_after_override,
+    )
 
     h5ad_path = output_dir / "data.annotated.h5ad"
     if not h5ad_path.exists():
@@ -517,84 +414,40 @@ def apply_overrides(
 
     console.print(f"[bold]Applying {len(overrides)} override(s)...[/bold]")
 
-    # Backup original
-    backup_name = f"data.annotated.backup_{datetime.now().strftime('%Y%m%d_%H%M%S')}.h5ad"
-    backup_path = output_dir / backup_name
-    shutil.copy2(h5ad_path, backup_path)
-    console.print(f"  Backup: {backup_path}")
+    result = apply_overrides_to_h5ad(h5ad_path, overrides)
+    console.print(f"  Backup: {result['backup']}")
 
-    # Load and modify
-    import scanpy as sc
-    adata = sc.read_h5ad(h5ad_path)
-    obs = adata.obs
+    for detail in result["details"]:
+        if detail["status"] == "applied":
+            console.print(
+                f"  [green]OK[/green] Cluster {detail['cluster']}: "
+                f"{detail.get('old_type', 'Unknown')} → {detail['new_type']} "
+                f"({detail['n_cells']} cells)"
+            )
+        else:
+            console.print(
+                f"  [yellow]Cluster {detail['cluster']}: "
+                f"{detail.get('reason', detail['status'])}, skipped[/yellow]"
+            )
 
-    applied = 0
-    skipped = 0
-
-    for cluster_id, override in overrides.items():
-        new_type = override.get("new_type", "")
-        reason = override.get("reason", "")
-        if not new_type:
-            skipped += 1
-            continue
-
-        # Find cluster column
-        cluster_col = None
-        for col in ["ctp_cl_id", "cluster", "cl_id"]:
-            if col in obs.columns:
-                cluster_col = col
-                break
-
-        if cluster_col is None:
-            console.print(f"  [yellow]Warning: No cluster column found, skipping[/yellow]")
-            skipped += 1
-            continue
-
-        mask = obs[cluster_col].astype(str) == str(cluster_id)
-        n_cells = mask.sum()
-
-        if n_cells == 0:
-            console.print(f"  [yellow]Cluster {cluster_id}: no cells found, skipped[/yellow]")
-            skipped += 1
-            continue
-
-        old_type = obs.loc[mask, "ctp_cell_type"].iloc[0] if "ctp_cell_type" in obs.columns else "Unknown"
-
-        # Apply
-        if "ctp_cell_type" in obs.columns:
-            adata.obs.loc[mask, "ctp_cell_type"] = new_type
-        if "ctp_override_reason" not in obs.columns:
-            adata.obs["ctp_override_reason"] = ""
-        adata.obs.loc[mask, "ctp_override_reason"] = reason
-        if "ctp_overridden" not in obs.columns:
-            adata.obs["ctp_overridden"] = False
-        adata.obs.loc[mask, "ctp_overridden"] = True
-
-        applied += 1
-        console.print(f"  [green]OK[/green] Cluster {cluster_id}: {old_type} → {new_type} ({n_cells} cells)")
-
-    # Save
-    adata.write(h5ad_path)
-    console.print(f"\n[bold green]Applied {applied} override(s)[/bold green], {skipped} skipped")
+    console.print(f"\n[bold green]Applied {result['applied']} override(s)[/bold green], "
+                  f"{result['skipped']} skipped")
 
     # Regenerate figures if requested
     if regenerate:
         console.print("\n[bold blue]Regenerating figures...[/bold blue]")
         try:
-            from .visualizer import generate_all_figures
-            embedding_key = None
-            from .data_adapter import find_embedding_keys
-            candidates = find_embedding_keys(adata)
-            if candidates:
-                embedding_key = candidates[0]
-            if embedding_key:
-                tissue = "general"
-                figure_paths = generate_all_figures(
-                    adata, cluster_col, embedding_key, None, output_dir, tissue
-                )
-                console.print(f"  Regenerated {len(figure_paths)} figures")
+            import scanpy as sc
+            adata = sc.read_h5ad(h5ad_path)
+            cluster_col = find_cluster_column(adata.obs)
+            if cluster_col is None:
+                console.print("  [yellow]No cluster column found, skipping figure regeneration[/yellow]")
             else:
-                console.print("  [yellow]No embedding found, skipping figure regeneration[/yellow]")
+                figure_paths = regenerate_figures_after_override(output_dir, adata, cluster_col)
+                if figure_paths:
+                    console.print(f"  Regenerated {len(figure_paths)} figures")
+                else:
+                    console.print("  [yellow]No embedding found, skipping figure regeneration[/yellow]")
         except Exception as e:
             console.print(f"  [yellow]Figure regeneration failed: {e}[/yellow]")
 

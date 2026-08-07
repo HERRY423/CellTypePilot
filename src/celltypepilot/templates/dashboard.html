@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CellTypePilot — Web Inspector</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='inspector.css') }}">
+</head>
+<body>
+    <header>
+        <h1>CellTypePilot Web Inspector</h1>
+        <div class="subtitle">v{{ version }} — Interactive annotation review panel</div>
+    </header>
+
+    <div class="container">
+        <!-- Stats -->
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="label">Total Clusters</div>
+                <div class="value">{{ stats.total_clusters }}</div>
+            </div>
+            <div class="stat-card">
+                <div class="label">High Confidence</div>
+                <div class="value high">{{ stats.high }}</div>
+            </div>
+            <div class="stat-card">
+                <div class="label">Medium Confidence</div>
+                <div class="value medium">{{ stats.medium }}</div>
+            </div>
+            <div class="stat-card">
+                <div class="label">Low / Needs Review</div>
+                <div class="value low">{{ stats.low + stats.needs_review }}</div>
+            </div>
+            <div class="stat-card">
+                <div class="label">Critic Flags</div>
+                <div class="value" style="color: var(--info);">{{ stats.flagged }}</div>
+            </div>
+        </div>
+
+        <!-- Annotation Table -->
+        <div class="panel">
+            <div class="panel-header">
+                <span>Annotation Results</span>
+                <button class="btn" onclick="exportOverrides()">Export JSON</button>
+                <button class="btn btn-primary" onclick="applyOverrides()" style="margin-left:8px">Apply to .h5ad</button>
+            </div>
+            <div class="panel-body">
+                <div class="filter-bar">
+                    <select id="confidenceFilter" onchange="filterTable()">
+                        <option value="">All confidence levels</option>
+                        <option value="high">High</option>
+                        <option value="medium">Medium</option>
+                        <option value="low">Low</option>
+                        <option value="needs_review">Needs Review</option>
+                    </select>
+                    <select id="flagFilter" onchange="filterTable()">
+                        <option value="">All critic flags</option>
+                        <option value="PASS">PASS</option>
+                        <option value="LOW_EVIDENCE">LOW_EVIDENCE</option>
+                        <option value="PARTIAL_EVIDENCE">PARTIAL_EVIDENCE</option>
+                        <option value="NEG_MARKER_CONFLICT">NEG_MARKER_CONFLICT</option>
+                        <option value="POSSIBLE_DOUBLET">POSSIBLE_DOUBLET</option>
+                    </select>
+                    <input type="text" id="searchBox" placeholder="Search cell type..." oninput="filterTable()">
+                </div>
+                <table id="annotationTable">
+                    <thead>
+                        <tr>
+                            <th>Cluster</th>
+                            <th>Cell Type</th>
+                            <th>CL ID</th>
+                            <th>Score</th>
+                            <th>Confidence</th>
+                            <th>Critic Flags</th>
+                            <th>Cells</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for row in annotations %}
+                        <tr data-confidence="{{ row.confidence }}" data-flag="{{ row.flags }}" data-celltype="{{ row.cell_type|lower }}">
+                            <td>{{ row.cluster }}</td>
+                            <td><strong>{{ row.cell_type }}</strong></td>
+                            <td>{{ row.cl_id }}</td>
+                            <td>{{ "%.3f"|format(row.score) }}</td>
+                            <td><span class="badge badge-{{ row.confidence }}">{{ row.confidence }}</span></td>
+                            <td><span class="badge badge-{{ row.flags|lower }}">{{ row.flags }}</span></td>
+                            <td>{{ row.n_cells }}</td>
+                            <td>
+                                <button class="btn" onclick="showEvidence('{{ row.cluster }}')">Evidence</button>
+                                <button class="btn" onclick="showOverride('{{ row.cluster }}', '{{ row.cell_type }}')">Override</button>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Save Bar -->
+    <div class="save-bar" id="saveBar">
+        <div class="info"><span id="overrideCount">0</span> override(s) pending</div>
+        <div class="actions">
+            <button class="btn" onclick="exportOverrides()">Export JSON</button>
+            <button class="btn btn-primary" onclick="applyOverrides()">Apply to .h5ad</button>
+            <button class="btn" onclick="hideSaveBar()" style="color:var(--muted)">Dismiss</button>
+        </div>
+    </div>
+
+    <!-- Evidence Modal -->
+    <div class="modal-overlay" id="evidenceModal">
+        <div class="modal">
+            <h3>Cluster <span id="evidenceCluster"></span> — Evidence</h3>
+            <div id="evidenceContent"></div>
+            <br>
+            <button class="btn" onclick="closeModal('evidenceModal')">Close</button>
+        </div>
+    </div>
+
+    <!-- Override Modal -->
+    <div class="modal-overlay" id="overrideModal">
+        <div class="modal">
+            <h3>Override Annotation for Cluster <span id="overrideCluster"></span></h3>
+            <div class="form-group">
+                <label>Current: <span id="currentAnnotation"></span></label>
+            </div>
+            <div class="form-group">
+                <label>New Cell Type</label>
+                <input type="text" id="newCellType" placeholder="e.g., CD4 naive T cell">
+            </div>
+            <div class="form-group">
+                <label>Reason</label>
+                <input type="text" id="overrideReason" placeholder="e.g., Manual review based on marker expression">
+            </div>
+            <br>
+            <button class="btn btn-primary" onclick="saveOverride()">Save Override</button>
+            <button class="btn" onclick="closeModal('overrideModal')">Cancel</button>
+        </div>
+    </div>
+
+    <script>
+        // Evidence payload injected server-side; consumed by inspector.js
+        const evidenceData = {{ evidence_json|safe }};
+    </script>
+    <script src="{{ url_for('static', filename='inspector.js') }}"></script>
+</body>
+</html>

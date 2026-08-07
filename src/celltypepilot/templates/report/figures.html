@@ -1,0 +1,11 @@
+{% if figures %}
+<h2>Figures</h2>
+<div class="figure-grid">
+{% for fig in figures %}
+<div class="figure-card">
+  <img src="{{ fig.rel_path }}" alt="{{ fig.title }}" loading="lazy">
+  <div class="caption">{{ fig.title }}</div>
+</div>
+{% endfor %}
+</div>
+{% endif %}

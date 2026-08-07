@@ -55,6 +55,46 @@ OUTPUT_REPORT = "report_draft.html"
 # Species
 SPECIES_HUMAN = "human"
 SPECIES_MOUSE = "mouse"
+SPECIES_RAT = "rat"
+SPECIES_ZEBRAFISH = "zebrafish"
+SPECIES_CHICKEN = "chicken"
+SPECIES_PIG = "pig"
+SPECIES_COW = "cow"
+SPECIES_MACAQUE = "macaque"
+SPECIES_DOG = "dog"
+SPECIES_UNKNOWN = "unknown"
+
+# Ensembl gene ID prefix → species (longer prefixes first to avoid
+# ambiguity, e.g. ENSGALG would otherwise match the ENSG prefix).
+ENSEMBL_PREFIX_SPECIES = [
+    ("ENSMUSG", SPECIES_MOUSE),
+    ("ENSRNOG", SPECIES_RAT),
+    ("ENSDARG", SPECIES_ZEBRAFISH),
+    ("ENSGALG", SPECIES_CHICKEN),
+    ("ENSSSCG", SPECIES_PIG),
+    ("ENSBTAG", SPECIES_COW),
+    ("ENSMMUG", SPECIES_MACAQUE),
+    ("ENSCAFG", SPECIES_DOG),
+    ("ENSG", SPECIES_HUMAN),
+]
+
+# Fraction of sampled genes that must match an Ensembl prefix / symbol
+# convention before the species call is considered confident.
+SPECIES_DOMINANCE_RATIO = 0.5
+SPECIES_SYMBOL_RATIO = 2.0
+
+# obs column names that may carry tissue context (matched case-insensitively)
+TISSUE_COLUMN_SYNONYMS = [
+    "tissue", "tissue_type", "tissue_origin", "tissue_source",
+    "sample_tissue", "organ", "organ_system",
+    "anatomy", "anatomical_site", "anatomy_site",
+    "body_site", "body_part",
+    "source", "sample_source", "sample_type",
+    "location", "site", "origin",
+]
+
+# Fallback keywords scanned as substrings of obs column names
+TISSUE_COLUMN_KEYWORDS = ["tissue", "organ", "anatom", "body_site"]
 
 # Color-blind friendly palette (Wong palette)
 CB_PALETTE = [

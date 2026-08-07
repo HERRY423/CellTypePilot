@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 import hashlib
+import logging
 from pathlib import Path
 from typing import Optional
 
@@ -15,8 +16,11 @@ from rich.console import Console
 
 from .constants import (
     SPECIES_HUMAN, SPECIES_MOUSE, MIN_CLUSTER_SIZE, ATLAS_PATH,
+    ENSEMBL_PREFIX_SPECIES, SPECIES_DOMINANCE_RATIO, SPECIES_SYMBOL_RATIO,
+    TISSUE_COLUMN_SYNONYMS, TISSUE_COLUMN_KEYWORDS,
 )
 
+logger = logging.getLogger(__name__)
 console = Console()
 
 
@@ -42,31 +46,110 @@ def compute_data_hash(path: str | Path) -> str:
     return h.hexdigest()
 
 
-def detect_species(adata: ad.AnnData) -> str:
-    """Auto-detect species from gene naming conventions."""
-    var_names = list(adata.var_names[:500])
-    # Mouse genes: first letter uppercase, rest lowercase (e.g., Cd3d)
-    mouse_pattern = sum(1 for g in var_names if g and g[0].isupper() and (len(g) < 2 or g[1].islower()))
-    # Human genes: all uppercase (e.g., CD3D)
-    human_pattern = sum(1 for g in var_names if g and g == g.upper() and g.isalpha())
+def match_ensembl_species(gene: str) -> Optional[str]:
+    """Map a single gene ID to a species via Ensembl prefix, or None."""
+    for prefix, species in ENSEMBL_PREFIX_SPECIES:
+        if gene.startswith(prefix):
+            return species
+    return None
 
-    if human_pattern > mouse_pattern * 2:
+
+def detect_species(adata: ad.AnnData) -> str:
+    """Auto-detect species from gene identifiers.
+
+    Detection order:
+    1. Ensembl ID prefixes (ENSG/ENSMUSG/ENSRNOG/ENSDARG/...) — the
+       authoritative signal, supports human, mouse, rat, zebrafish,
+       chicken, pig, cow, macaque, dog.
+    2. Gene-symbol conventions: ALL-CAPS → human, Title-case → mouse.
+    3. Ambiguous / mixed naming falls back to human with a warning.
+    """
+    var_names = [str(g) for g in adata.var_names[:1000]]
+    if not var_names:
+        logger.warning("Empty var_names; defaulting species to human")
         return SPECIES_HUMAN
-    elif mouse_pattern > human_pattern * 2:
+
+    n_sampled = len(var_names)
+
+    # 1. Ensembl prefix voting (longest-prefix match per gene)
+    prefix_counts: dict[str, int] = {}
+    for gene in var_names:
+        sp = match_ensembl_species(gene)
+        if sp is not None:
+            prefix_counts[sp] = prefix_counts.get(sp, 0) + 1
+
+    if prefix_counts:
+        best_species, best_count = max(prefix_counts.items(), key=lambda kv: kv[1])
+        if best_count >= n_sampled * SPECIES_DOMINANCE_RATIO:
+            return best_species
+        logger.warning(
+            "Mixed Ensembl ID prefixes detected (%s); falling back to symbol conventions",
+            prefix_counts,
+        )
+
+    # 2. Symbol conventions
+    # Human symbols: all uppercase (e.g., CD3D, S100A8, HLA-DRA).
+    # Do NOT require isalpha() — most real symbols contain digits.
+    human_pattern = sum(
+        1 for g in var_names if g and g == g.upper() and any(c.isalpha() for c in g)
+    )
+    # Mouse/rat symbols: first letter uppercase, rest lowercase (e.g., Cd3d).
+    # Exclude ALL-CAPS genes — they match this shape too but are the human
+    # convention, so counting them here would bias mixed datasets to mouse.
+    mouse_pattern = sum(
+        1 for g in var_names
+        if g and g[0].isupper() and (len(g) < 2 or g[1].islower())
+        and g != g.upper()
+    )
+
+    if human_pattern > mouse_pattern * SPECIES_SYMBOL_RATIO:
+        return SPECIES_HUMAN
+    if mouse_pattern > human_pattern * SPECIES_SYMBOL_RATIO:
         return SPECIES_MOUSE
-    else:
-        # Default to human; let user confirm
-        return SPECIES_HUMAN
+
+    # 3. Ambiguous — default to human but flag it
+    logger.warning(
+        "Species detection ambiguous (human-like=%d, mouse-like=%d of %d genes); "
+        "defaulting to human. Pass --species explicitly to override.",
+        human_pattern, mouse_pattern, n_sampled,
+    )
+    return SPECIES_HUMAN
+
+
+def _first_nonempty_value(series: pd.Series) -> Optional[str]:
+    """Return the first non-null, non-empty value of an obs column."""
+    vals = series.dropna().unique()
+    for v in vals:
+        s = str(v).strip()
+        if s and s.lower() != "nan":
+            return s
+    return None
 
 
 def detect_tissue(adata: ad.AnnData) -> Optional[str]:
-    """Try to detect tissue from obs metadata."""
-    tissue_keys = ["tissue", "tissue_type", "organ", "sample_tissue"]
-    for key in tissue_keys:
-        if key in adata.obs.columns:
-            vals = adata.obs[key].dropna().unique()
-            if len(vals) > 0:
-                return str(vals[0])
+    """Try to detect tissue from obs metadata.
+
+    Matching is case-insensitive: first an exact synonym lookup
+    (tissue, organ, organ_system, source, anatomy, body_site, ...),
+    then a substring keyword scan of all obs columns.
+    """
+    col_map = {str(col).strip().lower(): col for col in adata.obs.columns}
+
+    # 1. Exact (case-insensitive) synonym match, in priority order
+    for synonym in TISSUE_COLUMN_SYNONYMS:
+        if synonym in col_map:
+            value = _first_nonempty_value(adata.obs[col_map[synonym]])
+            if value:
+                return value
+
+    # 2. Substring keyword scan (e.g., "Tissue", "organ_system", "anatomy_region")
+    for keyword in TISSUE_COLUMN_KEYWORDS:
+        for col_lower, col in col_map.items():
+            if keyword in col_lower:
+                value = _first_nonempty_value(adata.obs[col])
+                if value:
+                    return value
+
     return None
 
 
@@ -184,18 +267,31 @@ def inspect_adata(
                 f"No --embedding-key specified. Candidates found: {candidates}"
             )
 
-    # Gene ID convention
-    sample_genes = list(adata.var_names[:100])
-    all_upper = all(g == g.upper() for g in sample_genes if g.isalpha())
-    first_cap = all(g[0].isupper() and g[1:].islower() for g in sample_genes if g.isalpha() and len(g) > 1)
-    if all_upper:
+    # Gene ID convention (majority vote over sampled genes)
+    sample_genes = [str(g) for g in adata.var_names[:100]]
+    ensembl_votes: dict[str, int] = {}
+    for g in sample_genes:
+        sp = match_ensembl_species(g)
+        if sp is not None:
+            ensembl_votes[sp] = ensembl_votes.get(sp, 0) + 1
+
+    alpha_genes = [g for g in sample_genes if g.isalpha()]
+    all_upper = bool(alpha_genes) and all(g == g.upper() for g in alpha_genes)
+    first_cap = bool(alpha_genes) and all(
+        g[0].isupper() and g[1:].islower() for g in alpha_genes if len(g) > 1
+    )
+    majority = len(sample_genes) // 2 + 1
+
+    if ensembl_votes:
+        best_species, best_count = max(ensembl_votes.items(), key=lambda kv: kv[1])
+        if best_count >= majority:
+            report["gene_id_convention"] = f"ensembl_{best_species}"
+        else:
+            report["gene_id_convention"] = "mixed_ensembl"
+    elif all_upper:
         report["gene_id_convention"] = "human_symbols"
     elif first_cap:
         report["gene_id_convention"] = "mouse_symbols"
-    elif all(g.startswith("ENSG") for g in sample_genes):
-        report["gene_id_convention"] = "ensembl_human"
-    elif all(g.startswith("ENSMUSG") for g in sample_genes):
-        report["gene_id_convention"] = "ensembl_mouse"
     else:
         report["gene_id_convention"] = "unknown"
 

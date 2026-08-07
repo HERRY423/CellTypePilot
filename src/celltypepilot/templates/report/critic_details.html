@@ -1,0 +1,17 @@
+{% if not flagged_rows %}
+<h2>Critic Details</h2>
+<div class="card"><p>All clusters passed the critic review. No flags raised.</p></div>
+{% else %}
+<h2>Critic Details — Flagged Clusters</h2>
+<div class="warning-box">
+  {{ flagged_rows|length }} cluster(s) flagged for review. See details below.
+</div>
+{% for row in flagged_rows %}
+<div class="card">
+  <div class="card-header">Cluster: {{ row.cluster }} → {{ row.cell_type }}</div>
+  <p><strong>Flags:</strong> {{ row.critic_flags }}</p>
+  <p class="evidence-text"><strong>Evidence:</strong> {{ row.critic_evidence }}</p>
+  <p class="evidence-text"><strong>Notes:</strong> {{ row.critic_notes }}</p>
+</div>
+{% endfor %}
+{% endif %}

@@ -21,6 +21,7 @@ dependencies = [
     "scipy>=1.11.0",
     "matplotlib>=3.7.0",
     "seaborn>=0.12.0",
+    "jinja2>=3.1.0",
 ]
 
 [project.optional-dependencies]
@@ -37,7 +38,13 @@ all = [
     "celltypist>=1.6.0",
     "scvi-tools>=1.0.0",
 ]
-dev = ["pytest>=7.0.0", "pytest-cov"]
+dev = [
+    "pytest>=7.0.0",
+    "pytest-cov>=4.0.0",
+    "ruff>=0.1.0",
+    "mypy>=1.5.0",
+    "coverage>=7.0.0",
+]
 
 [project.scripts]
 celltypepilot = "celltypepilot.cli:app"
@@ -47,3 +54,69 @@ packages = ["src/celltypepilot"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+python_files = ["test_*.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*"]
+addopts = [
+    "-v",
+    "--strict-markers",
+    "--cov=celltypepilot",
+    "--cov-report=term-missing",
+    "--cov-report=html",
+]
+markers = [
+    "slow: marks tests as slow (deselect with '-m not slow')",
+    "integration: marks tests as integration tests",
+]
+
+[tool.coverage.run]
+source = ["src/celltypepilot"]
+omit = [
+    "*/tests/*",
+    "*/test_*",
+    "*/__pycache__/*",
+    "src/celltypepilot/seurat_adapter.py",
+    "src/celltypepilot/web_inspector.py",
+]
+
+[tool.coverage.report]
+exclude_lines = [
+    "pragma: no cover",
+    "if __name__ == .__main__.:",
+    "raise NotImplementedError",
+    "except ImportError:",
+]
+fail_under = 60
+show_missing = true
+
+[tool.ruff]
+line-length = 100
+target-version = "py310"
+src = ["src", "tests"]
+
+[tool.ruff.lint]
+select = [
+    "E",   # pycodestyle errors
+    "W",   # pycodestyle warnings
+    "F",   # pyflakes
+    "I",   # isort
+    "N",   # pep8-naming
+    "UP",  # pyupgrade
+    "B",   # flake8-bugbear
+    "SIM", # flake8-simplify
+]
+ignore = [
+    "E501",  # line too long (handled by formatter)
+    "B008",  # do not perform function calls in argument defaults
+]
+
+[tool.ruff.lint.isort]
+known-first-party = ["celltypepilot"]
+
+[tool.mypy]
+python_version = "3.10"
+warn_return_any = true
+warn_unused_configs = true
+disallow_untyped_defs = false
+check_untyped_defs = true
+ignore_missing_imports = true

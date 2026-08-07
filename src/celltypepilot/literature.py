@@ -179,26 +179,62 @@ def search_biorxiv(
     query: str,
     max_results: int = 5,
 ) -> list[LiteratureHit]:
-    """Search bioRxiv preprints.
+    """Search bioRxiv and medRxiv preprints via Europe PMC REST API.
 
     Args:
-        query: Search query
-        max_results: Max results
+        query: Search query (e.g., "CD3E T cell marker")
+        max_results: Max results to return
 
     Returns:
-        List of LiteratureHit objects
+        List of LiteratureHit objects with source="biorxiv"
     """
     try:
-        # bioRxiv API: search by date range (last 2 years)
-        params = {
-            "server": "biorxiv",
-        }
-        # Note: bioRxiv API doesn't have direct text search,
-        # we'd need to fetch recent papers and filter
-        # For now, return empty — full implementation would use
-        # a search proxy or the bioRxiv website search
+        encoded_query = urllib.parse.quote(
+            f'(PUBLISHER:"bioRxiv" OR PUBLISHER:"medRxiv") AND ({query})'
+        )
+        url = (
+            f"https://www.ebi.ac.uk/europepmc/webservices/rest/search"
+            f"?query=SRC:PPR%20AND%20{encoded_query}&format=json&pageSize={max_results}"
+        )
 
-        return []
+        req = urllib.request.Request(
+            url,
+            headers={"User-Agent": "CellTypePilot/0.1 (https://github.com/celltypepilot)"},
+        )
+        with urllib.request.urlopen(req, timeout=10) as resp:
+            data = json.loads(resp.read().decode("utf-8"))
+
+        hits = []
+        results = data.get("resultList", {}).get("result", [])
+        for r in results:
+            publisher = r.get("bookOrReportDetails", {}).get("publisher", "bioRxiv")
+            authors_raw = r.get("authorString", "Unknown authors")
+            authors_parts = [a.strip() for a in authors_raw.split(",") if a.strip()]
+            if len(authors_parts) > 3:
+                authors = ", ".join(authors_parts[:3]) + " et al."
+            else:
+                authors = authors_raw
+
+            title = r.get("title", "Unknown title").rstrip(".")
+            doi = r.get("doi")
+            pub_year = r.get("pubYear")
+            year = int(pub_year) if pub_year and str(pub_year).isdigit() else 0
+            snippet = r.get("abstractText", "")
+
+            hits.append(
+                LiteratureHit(
+                    title=title,
+                    authors=authors,
+                    journal=publisher,
+                    year=year,
+                    doi=doi,
+                    abstract_snippet=snippet,
+                    source="biorxiv",
+                    relevance_score=1.0,
+                )
+            )
+
+        return hits
 
     except Exception:
         return []
@@ -212,6 +248,7 @@ def validate_marker_in_literature(
     gene: str,
     cell_type: str,
     max_refs: int = 3,
+    include_biorxiv: bool = True,
 ) -> MarkerLiteratureEvidence:
     """Search literature for evidence supporting a marker-cell_type association.
 
@@ -219,6 +256,7 @@ def validate_marker_in_literature(
         gene: Gene symbol (e.g., "CD3E")
         cell_type: Cell type name (e.g., "T cells")
         max_refs: Max references to retrieve
+        include_biorxiv: Whether to include bioRxiv preprints if PubMed results are sparse
 
     Returns:
         MarkerLiteratureEvidence with search results
@@ -227,6 +265,11 @@ def validate_marker_in_literature(
     query = f"{gene} {cell_type} marker expression"
 
     hits = search_pubmed(query, max_results=max_refs)
+
+    # If pubmed hits are sparse and biorxiv is enabled, query biorxiv
+    if include_biorxiv and len(hits) < max_refs:
+        biorxiv_hits = search_biorxiv(query, max_results=max_refs - len(hits))
+        hits.extend(biorxiv_hits)
 
     evidence = MarkerLiteratureEvidence(
         gene=gene,
@@ -249,7 +292,7 @@ def validate_marker_in_literature(
 def validate_annotation_with_literature(
     cell_type: str,
     positive_markers: list[str],
-    negative_markers: list[str],
+    negative_markers: Optional[list[str]] = None,
     max_refs_per_marker: int = 2,
 ) -> dict:
     """Validate an entire annotation against literature.
@@ -257,12 +300,15 @@ def validate_annotation_with_literature(
     Args:
         cell_type: Assigned cell type
         positive_markers: Markers that should be expressed
-        negative_markers: Markers that should NOT be expressed
+        negative_markers: Markers that should NOT be expressed (optional)
         max_refs_per_marker: Max refs per marker
 
     Returns:
         Dict with validation summary
     """
+    if negative_markers is None:
+        negative_markers = []
+
     positive_evidence = []
     for gene in positive_markers[:5]:  # Limit to top 5
         ev = validate_marker_in_literature(gene, cell_type, max_refs=max_refs_per_marker)
