@@ -108,6 +108,7 @@ select = [
 ignore = [
     "E501",  # line too long (handled by formatter)
     "B008",  # do not perform function calls in argument defaults
+    "N806",  # uppercase locals: scientific convention (X matrices, constants)
 ]
 
 [tool.ruff.lint.isort]

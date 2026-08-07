@@ -11,29 +11,25 @@ using CellTypePilot's annotation capabilities.
 
 from __future__ import annotations
 
-import json
+import importlib.util
 import shutil
 import subprocess
 import tempfile
 from pathlib import Path
-from typing import Optional
 
 import anndata as ad
 import numpy as np
 import pandas as pd
-
+import scipy.sparse as sp
 
 # ──────────────────────────────────────────────
 # rpy2-based conversion (preferred if available)
 # ──────────────────────────────────────────────
 
+
 def _check_rpy2() -> bool:
     """Check if rpy2 is available."""
-    try:
-        import rpy2
-        return True
-    except ImportError:
-        return False
+    return importlib.util.find_spec("rpy2") is not None
 
 
 def _convert_seurat_via_rpy2(rds_path: str | Path, chunk_size: int = 10_000) -> ad.AnnData:
@@ -48,9 +44,8 @@ def _convert_seurat_via_rpy2(rds_path: str | Path, chunk_size: int = 10_000) -> 
         chunk_size: Cells per chunk for large-dataset mode (default 10k)
     """
     import rpy2.robjects as ro
-    from rpy2.robjects import pandas2ri, numpy2ri
+    from rpy2.robjects import pandas2ri
     from rpy2.robjects.conversion import localconverter
-    import scipy.sparse as sp
 
     rds_path = Path(rds_path).resolve()
 
@@ -61,20 +56,21 @@ def _convert_seurat_via_rpy2(rds_path: str | Path, chunk_size: int = 10_000) -> 
     ''')
 
     # Extract count matrix slot (sparse-preserving)
-    ro.r('''
+    ro.r("""
         default_assay <- DefaultAssay(seurat_obj)
         counts_mat <- GetAssayData(seurat_obj, assay = default_assay, slot = "counts")
         if (ncol(counts_mat) == 0 || nrow(counts_mat) == 0) {
             counts_mat <- GetAssayData(seurat_obj, assay = default_assay, slot = "data")
         }
-    ''')
+    """)
 
     # ── Sparse-preserving extraction ──────────────────────────
     # Extract dgCMatrix components (i, p, x) directly from R
     # without ever calling as.matrix() — avoids OOM on large datasets.
     n_genes = int(ro.r("nrow(counts_mat)")[0])
     n_cells = int(ro.r("ncol(counts_mat)")[0])
-    nnz_approx = int(ro.r("""
+    nnz_approx = int(
+        ro.r("""
         if (is(counts_mat, "dgCMatrix") || is(counts_mat, "CsparseMatrix")) {
             length(counts_mat@x)
         } else if (is(counts_mat, "dgTMatrix") || is(counts_mat, "TsparseMatrix")) {
@@ -83,7 +79,8 @@ def _convert_seurat_via_rpy2(rds_path: str | Path, chunk_size: int = 10_000) -> 
             # Estimate: if we can't determine, assume ~10% nonzero
             as.integer(nrow(counts_mat) * ncol(counts_mat) * 0.1)
         }
-    """)[0])
+    """)[0]
+    )
 
     # Decide strategy based on dataset size
     total_elements = n_genes * n_cells
@@ -106,9 +103,9 @@ def _convert_seurat_via_rpy2(rds_path: str | Path, chunk_size: int = 10_000) -> 
 
     # Extract embeddings
     obsm = {}
-    ro.r('''
+    ro.r("""
         reductions <- Reductions(seurat_obj)
-    ''')
+    """)
     reduction_names = list(ro.r("reductions"))
 
     for red_name in reduction_names:
@@ -139,17 +136,20 @@ def _extract_sparse_direct(ro, sp, n_genes: int, n_cells: int) -> sp.csr_matrix:
 
     Memory: O(nnz) — never materializes the full matrix.
     """
+    from rpy2.robjects import numpy2ri
+    from rpy2.robjects.conversion import localconverter
+
     # Ensure CSC format in R, then extract i/p/x arrays
-    ro.r('''
+    ro.r("""
         library(Matrix)
         .ctp_dgc <- as(counts_mat, "dgCMatrix")
-    ''')
+    """)
 
     # Extract components individually (small memory footprint)
     with localconverter(ro.default_converter + numpy2ri.converter):
-        i_indices = np.array(ro.r(".ctp_dgc@i"))      # 0-based row indices
-        p_indices = np.array(ro.r(".ctp_dgc@p"))      # column pointers
-        x_values = np.array(ro.r(".ctp_dgc@x"))       # non-zero values
+        i_indices = np.array(ro.r(".ctp_dgc@i"))  # 0-based row indices
+        p_indices = np.array(ro.r(".ctp_dgc@p"))  # column pointers
+        x_values = np.array(ro.r(".ctp_dgc@x"))  # non-zero values
 
     # Build scipy CSC matrix (genes × cells in R orientation)
     csc_genes_cells = sp.csc_matrix(
@@ -180,6 +180,9 @@ def _extract_sparse_chunked(ro, sp, n_genes: int, n_cells: int, chunk_size: int)
     """
     import gc
 
+    from rpy2.robjects import numpy2ri
+    from rpy2.robjects.conversion import localconverter
+
     n_chunks = (n_cells + chunk_size - 1) // chunk_size
     chunks = []
 
@@ -187,10 +190,10 @@ def _extract_sparse_chunked(ro, sp, n_genes: int, n_cells: int, chunk_size: int)
         col_start = chunk_idx * chunk_size + 1  # R is 1-based
         col_end = min((chunk_idx + 1) * chunk_size, n_cells)
 
-        ro.r(f'''
+        ro.r(f"""
             .ctp_chunk <- counts_mat[, {col_start}:{col_end}, drop = FALSE]
             .ctp_chunk_dgc <- as(.ctp_chunk, "dgCMatrix")
-        ''')
+        """)
 
         with localconverter(ro.default_converter + numpy2ri.converter):
             i_idx = np.array(ro.r(".ctp_chunk_dgc@i"))
@@ -217,7 +220,7 @@ def _extract_sparse_chunked(ro, sp, n_genes: int, n_cells: int, chunk_size: int)
 # External R script fallback
 # ──────────────────────────────────────────────
 
-R_CONVERSION_SCRIPT = '''
+R_CONVERSION_SCRIPT = """
 #!/usr/bin/env Rscript
 # CellTypePilot Seurat -> h5ad conversion script
 # Usage: Rscript convert_seurat.rds <input.rds> <output.h5ad>
@@ -258,7 +261,7 @@ cat("Conversion complete:", output_h5ad, "\\n")
 
 # Clean up
 unlink(temp_h5seurat)
-'''
+"""
 
 
 def _convert_seurat_via_rscript(rds_path: str | Path) -> ad.AnnData:
@@ -316,6 +319,7 @@ def _convert_seurat_via_rscript(rds_path: str | Path) -> ad.AnnData:
 # Public API
 # ──────────────────────────────────────────────
 
+
 def load_seurat_rds(rds_path: str | Path) -> ad.AnnData:
     """Load a Seurat .rds file and convert to AnnData.
 
@@ -343,7 +347,7 @@ def load_seurat_rds(rds_path: str | Path) -> ad.AnnData:
     if _check_rpy2():
         try:
             return _convert_seurat_via_rpy2(rds_path)
-        except Exception as e:
+        except Exception:
             # Fall back to R script
             pass
 
@@ -367,6 +371,7 @@ def check_seurat_support() -> dict:
     # Check rpy2
     try:
         import rpy2
+
         support["rpy2_available"] = True
         support["details"]["rpy2_version"] = rpy2.__version__
     except ImportError:

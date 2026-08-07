@@ -15,15 +15,18 @@ or transitional states.
 from __future__ import annotations
 
 import logging
-from typing import Optional
 
-import numpy as np
 import pandas as pd
 
 from .constants import (
-    CONFIDENCE_HIGH, CONFIDENCE_MEDIUM, CONFIDENCE_LOW, CONFIDENCE_REVIEW,
-    ENSEMBLE_AGREEMENT_THRESHOLD, ENSEMBLE_MARKER_HIGH,
-    ENSEMBLE_MARKER_LOW, ENSEMBLE_REF_OVERRIDE,
+    CONFIDENCE_HIGH,
+    CONFIDENCE_LOW,
+    CONFIDENCE_MEDIUM,
+    CONFIDENCE_REVIEW,
+    ENSEMBLE_AGREEMENT_THRESHOLD,
+    ENSEMBLE_MARKER_HIGH,
+    ENSEMBLE_MARKER_LOW,
+    ENSEMBLE_REF_OVERRIDE,
 )
 
 logger = logging.getLogger(__name__)
@@ -65,10 +68,7 @@ def ensemble_scores(
         return _marker_only_results(marker_scores)
 
     # Build per-cluster ensemble
-    clusters = sorted(
-        set(marker_scores["cluster"].unique()) |
-        set(ref_scores["cluster"].unique())
-    )
+    clusters = sorted(set(marker_scores["cluster"].unique()) | set(ref_scores["cluster"].unique()))
 
     all_results = []
 
@@ -82,8 +82,14 @@ def ensemble_scores(
         )
 
         # Build unified cell type list (union of both scorers)
-        m_types = dict(zip(m_cl["cell_type"], m_cl["combined_score"])) if not m_cl.empty else {}
-        r_types = dict(zip(r_cl["cell_type"], r_cl["ref_score"])) if not r_cl.empty else {}
+        m_types = (
+            dict(zip(m_cl["cell_type"], m_cl["combined_score"], strict=True))
+            if not m_cl.empty
+            else {}
+        )
+        r_types = (
+            dict(zip(r_cl["cell_type"], r_cl["ref_score"], strict=True)) if not r_cl.empty else {}
+        )
 
         all_types = sorted(set(list(m_types.keys()) + list(r_types.keys())))
 
@@ -109,26 +115,28 @@ def ensemble_scores(
                 source = "reference"
                 agreement = True
 
-            all_results.append({
-                "cluster": str(cl),
-                "cell_type": ct,
-                "ensemble_score": round(ensemble, 4),
-                "marker_score": round(m_score, 4),
-                "ref_score": round(r_score, 4),
-                "marker_weight_used": round(m_weight, 3),
-                "ref_weight_used": round(r_weight, 3),
-                "agreement": agreement,
-                "source": source,
-            })
+            all_results.append(
+                {
+                    "cluster": str(cl),
+                    "cell_type": ct,
+                    "ensemble_score": round(ensemble, 4),
+                    "marker_score": round(m_score, 4),
+                    "ref_score": round(r_score, 4),
+                    "marker_weight_used": round(m_weight, 3),
+                    "ref_weight_used": round(r_weight, 3),
+                    "agreement": agreement,
+                    "source": source,
+                }
+            )
 
     df = pd.DataFrame(all_results)
     if df.empty:
         return df
 
     # Rank within each cluster
-    df["rank"] = df.groupby("cluster")["ensemble_score"].rank(
-        ascending=False, method="first"
-    ).astype(int)
+    df["rank"] = (
+        df.groupby("cluster")["ensemble_score"].rank(ascending=False, method="first").astype(int)
+    )
     df = df.sort_values(["cluster", "rank"])
 
     return df
@@ -172,17 +180,19 @@ def _compute_adaptive_weights(
     if m_top_score >= ENSEMBLE_MARKER_HIGH:
         m_weight = 0.7
     elif m_top_score <= ENSEMBLE_MARKER_LOW:
-        if r_top_score >= ENSEMBLE_REF_OVERRIDE:
-            m_weight = 0.2  # Reference override
-        else:
-            m_weight = 0.3  # Both uncertain
+        m_weight = 0.2 if r_top_score >= ENSEMBLE_REF_OVERRIDE else 0.3
     else:
         m_weight = 0.5
 
     # Special case: strong disagreement with confident reference
-    if m_top_type and r_top_type and m_top_type != r_top_type:
-        if r_top_score > 0.7 and m_top_score < 0.3:
-            m_weight = 0.15
+    if (
+        m_top_type
+        and r_top_type
+        and m_top_type != r_top_type
+        and r_top_score > 0.7
+        and m_top_score < 0.3
+    ):
+        m_weight = 0.15
 
     r_weight = 1.0 - m_weight
     return m_weight, r_weight
@@ -219,6 +229,7 @@ def _marker_only_results(marker_scores: pd.DataFrame) -> pd.DataFrame:
 # Ensemble summary
 # ──────────────────────────────────────────────
 
+
 def generate_ensemble_summary(
     ensemble_df: pd.DataFrame,
 ) -> pd.DataFrame:
@@ -234,10 +245,18 @@ def generate_ensemble_summary(
     top1 = ensemble_df[ensemble_df["rank"] == 1].copy()
     top1["confidence"] = top1.apply(_assign_ensemble_confidence, axis=1)
 
-    return top1[[
-        "cluster", "cell_type", "ensemble_score", "confidence",
-        "source", "agreement", "marker_score", "ref_score",
-    ]].reset_index(drop=True)
+    return top1[
+        [
+            "cluster",
+            "cell_type",
+            "ensemble_score",
+            "confidence",
+            "source",
+            "agreement",
+            "marker_score",
+            "ref_score",
+        ]
+    ].reset_index(drop=True)
 
 
 def _assign_ensemble_confidence(row: pd.Series) -> str:
@@ -273,6 +292,7 @@ def _assign_ensemble_confidence(row: pd.Series) -> str:
 # ──────────────────────────────────────────────
 # Disagreement analysis
 # ──────────────────────────────────────────────
+
 
 def analyze_disagreements(
     ensemble_df: pd.DataFrame,
@@ -316,17 +336,17 @@ def analyze_disagreements(
         if m_type != r_type:
             severity = abs(m_score - r_score)
             if severity >= min_score_gap:
-                disagreements.append({
-                    "cluster": cl,
-                    "marker_type": m_type,
-                    "marker_score": round(m_score, 4),
-                    "ref_type": r_type,
-                    "ref_score": round(r_score, 4),
-                    "severity": round(severity, 4),
-                    "interpretation": _interpret_disagreement(
-                        m_type, m_score, r_type, r_score
-                    ),
-                })
+                disagreements.append(
+                    {
+                        "cluster": cl,
+                        "marker_type": m_type,
+                        "marker_score": round(m_score, 4),
+                        "ref_type": r_type,
+                        "ref_score": round(r_score, 4),
+                        "severity": round(severity, 4),
+                        "interpretation": _interpret_disagreement(m_type, m_score, r_type, r_score),
+                    }
+                )
 
     df = pd.DataFrame(disagreements)
     if not df.empty:
@@ -336,8 +356,10 @@ def analyze_disagreements(
 
 
 def _interpret_disagreement(
-    m_type: str, m_score: float,
-    r_type: str, r_score: float,
+    m_type: str,
+    m_score: float,
+    r_type: str,
+    r_score: float,
 ) -> str:
     """Interpret the biological meaning of a disagreement."""
     if m_score > 0.5 and r_score < 0.2:

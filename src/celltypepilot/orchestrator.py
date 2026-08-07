@@ -8,23 +8,23 @@ lives here so it can be reused by the Web Inspector and tested directly.
 from __future__ import annotations
 
 import shutil
+from collections.abc import Callable
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Callable, Optional
 
 import pandas as pd
 
 from .constants import OUTPUT_ANNOTATED, SPECIES_HUMAN, SPECIES_MOUSE
 
 # progress(step, total, message)
-ProgressFn = Optional[Callable[[int, int, str], None]]
+ProgressFn = Callable[[int, int, str], None] | None
 
 
 class PipelineError(ValueError):
     """Raised when the annotation pipeline cannot proceed."""
 
 
-def find_cluster_column(obs: pd.DataFrame) -> Optional[str]:
+def find_cluster_column(obs: pd.DataFrame) -> str | None:
     """Locate the cluster label column in obs (ctp_cl_id first, then heuristics)."""
     if "ctp_cl_id" in obs.columns:
         return "ctp_cl_id"
@@ -42,15 +42,21 @@ def write_annotations_to_adata(
     output_dir: Path,
 ) -> Path:
     """Write annotation results back into adata obs and save."""
-    cluster_to_ct = dict(zip(critic_results["cluster"], critic_results["cell_type"]))
-    cluster_to_cl = dict(zip(
-        critic_results["cluster"],
-        critic_results.get("cl_id", [""] * len(critic_results)),
-    ))
-    cluster_to_conf = dict(zip(
-        critic_results["cluster"],
-        critic_results.get("critic_confidence", [""] * len(critic_results)),
-    ))
+    cluster_to_ct = dict(zip(critic_results["cluster"], critic_results["cell_type"], strict=True))
+    cluster_to_cl = dict(
+        zip(
+            critic_results["cluster"],
+            critic_results.get("cl_id", [""] * len(critic_results)),
+            strict=True,
+        )
+    )
+    cluster_to_conf = dict(
+        zip(
+            critic_results["cluster"],
+            critic_results.get("critic_confidence", [""] * len(critic_results)),
+            strict=True,
+        )
+    )
 
     adata.obs["ctp_cell_type"] = adata.obs[cluster_key].map(cluster_to_ct).fillna("Unknown")
     adata.obs["ctp_cl_id"] = adata.obs[cluster_key].map(cluster_to_cl).fillna("")
@@ -65,10 +71,10 @@ def run_annotation_pipeline(
     input_path: str | Path,
     cluster_key: str,
     output_dir: str | Path,
-    species: Optional[str] = None,
-    tissue: Optional[str] = None,
-    embedding_key: Optional[str] = None,
-    layer: Optional[str] = None,
+    species: str | None = None,
+    tissue: str | None = None,
+    embedding_key: str | None = None,
+    layer: str | None = None,
     no_figures: bool = False,
     progress: ProgressFn = None,
 ) -> dict:
@@ -82,15 +88,20 @@ def run_annotation_pipeline(
         PipelineError: invalid cluster key or no annotations produced.
         FileNotFoundError: input file missing.
     """
+    from .critic import generate_critic_summary, run_critic
     from .data_adapter import (
-        load_h5ad, compute_data_hash, detect_species, detect_tissue,
-        find_embedding_keys, load_marker_atlas, get_all_markers_for_tissue,
+        compute_data_hash,
+        detect_species,
+        detect_tissue,
+        find_embedding_keys,
+        get_all_markers_for_tissue,
+        load_h5ad,
+        load_marker_atlas,
     )
     from .marker_scorer import compute_marker_scores, generate_annotation_summary
-    from .critic import run_critic, generate_critic_summary
+    from .provenance import create_manifest, save_manifest, update_manifest_outputs
+    from .reporter import generate_html_report, generate_methodology_text, save_evidence_table
     from .visualizer import generate_all_figures
-    from .reporter import save_evidence_table, generate_html_report, generate_methodology_text
-    from .provenance import create_manifest, update_manifest_outputs, save_manifest
 
     def _emit(step: int, msg: str):
         if progress is not None:
@@ -134,9 +145,7 @@ def run_annotation_pipeline(
     summary = generate_annotation_summary(scores, cluster_key)
 
     if summary.empty:
-        raise PipelineError(
-            "No annotations generated. Check marker gene overlap with your data."
-        )
+        raise PipelineError("No annotations generated. Check marker gene overlap with your data.")
 
     # Step 4: Critic
     _emit(4, "Running Annotation Critic...")
@@ -207,7 +216,7 @@ def run_annotation_pipeline(
 def apply_overrides_to_h5ad(
     h5ad_path: str | Path,
     overrides: dict,
-    backup_dir: Optional[str | Path] = None,
+    backup_dir: str | Path | None = None,
 ) -> dict:
     """Apply annotation overrides to an annotated .h5ad file.
 
@@ -238,7 +247,9 @@ def apply_overrides_to_h5ad(
     for col in ("ctp_cell_type", "ctp_override_reason"):
         if col in obs.columns and isinstance(obs[col].dtype, pd.CategoricalDtype):
             adata.obs[col] = obs[col].astype(object)
-    if "ctp_overridden" in obs.columns and isinstance(obs["ctp_overridden"].dtype, pd.CategoricalDtype):
+    if "ctp_overridden" in obs.columns and isinstance(
+        obs["ctp_overridden"].dtype, pd.CategoricalDtype
+    ):
         adata.obs["ctp_overridden"] = obs["ctp_overridden"].astype(bool)
 
     cluster_col = find_cluster_column(obs)
@@ -257,7 +268,9 @@ def apply_overrides_to_h5ad(
 
         if cluster_col is None:
             skipped += 1
-            details.append({"cluster": cluster_id, "status": "error", "reason": "No cluster column found"})
+            details.append(
+                {"cluster": cluster_id, "status": "error", "reason": "No cluster column found"}
+            )
             continue
 
         mask = obs[cluster_col].astype(str) == str(cluster_id)
@@ -268,7 +281,9 @@ def apply_overrides_to_h5ad(
             details.append({"cluster": cluster_id, "status": "skipped", "reason": "No cells found"})
             continue
 
-        old_type = obs.loc[mask, "ctp_cell_type"].iloc[0] if "ctp_cell_type" in obs.columns else "Unknown"
+        old_type = (
+            obs.loc[mask, "ctp_cell_type"].iloc[0] if "ctp_cell_type" in obs.columns else "Unknown"
+        )
 
         if "ctp_cell_type" in obs.columns:
             adata.obs.loc[mask, "ctp_cell_type"] = new_type
@@ -280,14 +295,16 @@ def apply_overrides_to_h5ad(
         adata.obs.loc[mask, "ctp_overridden"] = True
 
         applied += 1
-        details.append({
-            "cluster": cluster_id,
-            "old_type": old_type,
-            "new_type": new_type,
-            "n_cells": int(n_cells),
-            "reason": reason,
-            "status": "applied",
-        })
+        details.append(
+            {
+                "cluster": cluster_id,
+                "old_type": old_type,
+                "new_type": new_type,
+                "n_cells": int(n_cells),
+                "reason": reason,
+                "status": "applied",
+            }
+        )
 
     adata.write(h5ad_path)
 

@@ -3,18 +3,15 @@
 from __future__ import annotations
 
 from pathlib import Path
-from typing import Optional
 
+import matplotlib
 import numpy as np
 import pandas as pd
-import matplotlib
+
 matplotlib.use("Agg")  # Non-interactive backend
 import matplotlib.pyplot as plt
-import seaborn as sns
-from matplotlib.colors import ListedColormap
-from scipy import sparse
 
-from .constants import CB_PALETTE, OUTPUT_FIGURES_DIR, CONFIDENCE_REVIEW
+from .constants import CB_PALETTE, OUTPUT_FIGURES_DIR
 
 
 def generate_all_figures(
@@ -66,9 +63,7 @@ def generate_all_figures(
     return generated
 
 
-def plot_umap_clusters(
-    adata, cluster_key: str, embedding_key: str, output_dir: Path
-) -> Optional[str]:
+def plot_umap_clusters(adata, cluster_key: str, embedding_key: str, output_dir: Path) -> str | None:
     """UMAP colored by cluster ID."""
     if embedding_key not in adata.obsm:
         return None
@@ -85,18 +80,24 @@ def plot_umap_clusters(
     for cluster in unique_clusters:
         mask = clusters == cluster
         ax.scatter(
-            coords[mask, 0], coords[mask, 1],
+            coords[mask, 0],
+            coords[mask, 1],
             c=[cluster_color_map[str(cluster)]],
             label=str(cluster),
-            s=1, alpha=0.6, rasterized=True,
+            s=1,
+            alpha=0.6,
+            rasterized=True,
         )
 
     ax.set_title(f"Clusters ({cluster_key})", fontsize=12)
     ax.set_xlabel(f"{embedding_key}1")
     ax.set_ylabel(f"{embedding_key}2")
     ax.legend(
-        markerscale=4, fontsize=7, loc="center left",
-        bbox_to_anchor=(1.0, 0.5), frameon=False,
+        markerscale=4,
+        fontsize=7,
+        loc="center left",
+        bbox_to_anchor=(1.0, 0.5),
+        frameon=False,
     )
     ax.set_aspect("equal")
 
@@ -108,7 +109,7 @@ def plot_umap_clusters(
 
 def plot_umap_celltype(
     adata, annotations: pd.DataFrame, cluster_key: str, embedding_key: str, output_dir: Path
-) -> Optional[str]:
+) -> str | None:
     """UMAP colored by cell type annotation."""
     if embedding_key not in adata.obsm:
         return None
@@ -116,7 +117,7 @@ def plot_umap_celltype(
     coords = adata.obsm[embedding_key]
 
     # Map cluster → cell_type
-    cluster_to_ct = dict(zip(annotations["cluster"], annotations["cell_type"]))
+    cluster_to_ct = dict(zip(annotations["cluster"], annotations["cell_type"], strict=True))
     cell_types = [cluster_to_ct.get(str(c), "Unknown") for c in adata.obs[cluster_key]]
 
     unique_ct = sorted(set(cell_types))
@@ -127,18 +128,24 @@ def plot_umap_celltype(
     for ct in unique_ct:
         mask = np.array([c == ct for c in cell_types])
         ax.scatter(
-            coords[mask, 0], coords[mask, 1],
+            coords[mask, 0],
+            coords[mask, 1],
             c=[ct_color_map[ct]],
             label=ct,
-            s=1, alpha=0.6, rasterized=True,
+            s=1,
+            alpha=0.6,
+            rasterized=True,
         )
 
     ax.set_title("Cell Type Annotation", fontsize=12)
     ax.set_xlabel(f"{embedding_key}1")
     ax.set_ylabel(f"{embedding_key}2")
     ax.legend(
-        markerscale=4, fontsize=7, loc="center left",
-        bbox_to_anchor=(1.0, 0.5), frameon=False,
+        markerscale=4,
+        fontsize=7,
+        loc="center left",
+        bbox_to_anchor=(1.0, 0.5),
+        frameon=False,
     )
     ax.set_aspect("equal")
 
@@ -150,14 +157,20 @@ def plot_umap_celltype(
 
 def plot_umap_confidence(
     adata, annotations: pd.DataFrame, cluster_key: str, embedding_key: str, output_dir: Path
-) -> Optional[str]:
+) -> str | None:
     """UMAP colored by critic confidence level."""
     if embedding_key not in adata.obsm:
         return None
 
     coords = adata.obsm[embedding_key]
 
-    cluster_to_conf = dict(zip(annotations["cluster"], annotations.get("critic_confidence", ["unknown"] * len(annotations))))
+    cluster_to_conf = dict(
+        zip(
+            annotations["cluster"],
+            annotations.get("critic_confidence", ["unknown"] * len(annotations)),
+            strict=True,
+        )
+    )
     conf_levels = [cluster_to_conf.get(str(c), "unknown") for c in adata.obs[cluster_key]]
 
     conf_colors = {
@@ -173,9 +186,13 @@ def plot_umap_confidence(
         mask = np.array([c == level for c in conf_levels])
         if mask.any():
             ax.scatter(
-                coords[mask, 0], coords[mask, 1],
-                c=[color], label=level,
-                s=2, alpha=0.6, rasterized=True,
+                coords[mask, 0],
+                coords[mask, 1],
+                c=[color],
+                label=level,
+                s=2,
+                alpha=0.6,
+                rasterized=True,
             )
 
     ax.set_title("Annotation Confidence", fontsize=12)
@@ -192,10 +209,9 @@ def plot_umap_confidence(
 
 def plot_marker_dotplot(
     adata, annotations: pd.DataFrame, cluster_key: str, output_dir: Path
-) -> Optional[str]:
+) -> str | None:
     """Marker gene dotplot: cell types × key markers."""
     # Collect top markers per cell type
-    all_markers = set()
     ct_markers = {}
     for _, row in annotations.iterrows():
         ct = row.get("cell_type", "")
@@ -211,7 +227,8 @@ def plot_marker_dotplot(
         import scanpy as sc
 
         # Collect markers from the atlas
-        from .data_adapter import load_marker_atlas, get_all_markers_for_tissue
+        from .data_adapter import get_all_markers_for_tissue, load_marker_atlas
+
         atlas = load_marker_atlas()
 
         # Get tissue from annotations or use general
@@ -231,8 +248,7 @@ def plot_marker_dotplot(
 
         # Flatten and deduplicate markers
         all_marker_genes = []
-        marker_labels = []
-        for ct, genes in selected_markers.items():
+        for genes in selected_markers.values():
             for g in genes:
                 if g in adata.var_names and g not in all_marker_genes:
                     all_marker_genes.append(g)
@@ -242,12 +258,17 @@ def plot_marker_dotplot(
 
         # Create dotplot
         dp = sc.pl.dotplot(
-            adata, var_names=all_marker_genes,
-            groupby=cluster_key, show=False, ax=None,
+            adata,
+            var_names=all_marker_genes,
+            groupby=cluster_key,
+            show=False,
+            ax=None,
             return_fig=True,
         )
         fig = dp.figure
-        fig.set_size_inches(max(10, len(all_marker_genes) * 0.5), max(6, adata.obs[cluster_key].nunique() * 0.4))
+        fig.set_size_inches(
+            max(10, len(all_marker_genes) * 0.5), max(6, adata.obs[cluster_key].nunique() * 0.4)
+        )
 
         path = output_dir / "marker_dotplot.png"
         fig.savefig(path, dpi=150, bbox_inches="tight")
@@ -258,7 +279,7 @@ def plot_marker_dotplot(
         return None
 
 
-def plot_confidence_bar(annotations: pd.DataFrame, output_dir: Path) -> Optional[str]:
+def plot_confidence_bar(annotations: pd.DataFrame, output_dir: Path) -> str | None:
     """Bar chart showing confidence distribution across clusters."""
     if "critic_confidence" not in annotations.columns:
         return None
@@ -280,9 +301,15 @@ def plot_confidence_bar(annotations: pd.DataFrame, output_dir: Path) -> Optional
     ax.set_ylabel("Number of Clusters")
     ax.set_title("Annotation Confidence Distribution")
 
-    for bar, val in zip(bars, conf_counts.values):
-        ax.text(bar.get_x() + bar.get_width() / 2, bar.get_height() + 0.1,
-                str(val), ha="center", va="bottom", fontsize=10)
+    for bar, val in zip(bars, conf_counts.values, strict=True):
+        ax.text(
+            bar.get_x() + bar.get_width() / 2,
+            bar.get_height() + 0.1,
+            str(val),
+            ha="center",
+            va="bottom",
+            fontsize=10,
+        )
 
     path = output_dir / "confidence_distribution.png"
     fig.savefig(path, dpi=150, bbox_inches="tight")
@@ -297,9 +324,21 @@ def _generate_colors(n: int) -> list[str]:
 
     # Extend with additional distinct colors
     extra_colors = [
-        "#8B4513", "#20B2AA", "#9370DB", "#FF6347", "#4682B4",
-        "#32CD32", "#FF8C00", "#8A2BE2", "#00CED1", "#DC143C",
-        "#228B22", "#FF1493", "#1E90FF", "#B22222", "#3CB371",
+        "#8B4513",
+        "#20B2AA",
+        "#9370DB",
+        "#FF6347",
+        "#4682B4",
+        "#32CD32",
+        "#FF8C00",
+        "#8A2BE2",
+        "#00CED1",
+        "#DC143C",
+        "#228B22",
+        "#FF1493",
+        "#1E90FF",
+        "#B22222",
+        "#3CB371",
     ]
     all_colors = CB_PALETTE + extra_colors
     return [all_colors[i % len(all_colors)] for i in range(n)]

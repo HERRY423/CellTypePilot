@@ -1,14 +1,12 @@
 """Smoke tests for CellTypePilot using synthetic data."""
 
-import json
 import tempfile
 from pathlib import Path
 
+import anndata as ad
 import numpy as np
 import pandas as pd
-import anndata as ad
 import scanpy as sc
-import pytest
 
 
 def make_synthetic_pbmc(n_cells=500, seed=42) -> ad.AnnData:
@@ -53,7 +51,6 @@ def make_synthetic_pbmc(n_cells=500, seed=42) -> ad.AnnData:
     # Log-transform
     X_log = np.log1p(X)
 
-    var = pd.DataFrame(index=all_genes)
     obs = pd.DataFrame({"true_cell_type": labels})
 
     adata = ad.AnnData(X=X_log.astype(np.float32))
@@ -83,11 +80,13 @@ class TestDataAdapter:
 
     def test_detect_species_human(self):
         from celltypepilot.data_adapter import detect_species
+
         adata = make_synthetic_pbmc()
         assert detect_species(adata) == "human"
 
     def test_detect_species_mouse(self):
         from celltypepilot.data_adapter import detect_species
+
         adata = make_synthetic_pbmc()
         # Convert to mouse naming
         mouse_genes = [g[0].upper() + g[1:].lower() for g in adata.var_names]
@@ -96,19 +95,23 @@ class TestDataAdapter:
 
     def test_find_cluster_keys(self):
         from celltypepilot.data_adapter import find_cluster_keys
+
         adata = make_synthetic_pbmc()
         keys = find_cluster_keys(adata)
         assert "leiden" in keys
 
     def test_find_embedding_keys(self):
         from celltypepilot.data_adapter import find_embedding_keys
+
         adata = make_synthetic_pbmc()
         keys = find_embedding_keys(adata)
         assert any("umap" in k for k in keys)
 
     def test_inspect_adata(self):
-        from celltypepilot.data_adapter import inspect_adata
         import tempfile
+
+        from celltypepilot.data_adapter import inspect_adata
+
         tmpdir = tempfile.mkdtemp()
         h5ad_path = Path(tmpdir) / "test.h5ad"
         adata = make_synthetic_pbmc()
@@ -120,26 +123,30 @@ class TestDataAdapter:
 
     def test_load_marker_atlas(self):
         from celltypepilot.data_adapter import load_marker_atlas
+
         atlas = load_marker_atlas("human")
         assert "tissues" in atlas
         assert "blood" in atlas["tissues"]
 
     def test_load_marker_atlas_mouse(self):
         from celltypepilot.data_adapter import load_marker_atlas
+
         atlas = load_marker_atlas("mouse")
         assert "tissues" in atlas
         # Check mouse gene conversion
         blood_types = atlas["tissues"]["blood"]["cell_types"]
         t_cell_markers = blood_types["T cell"]["positive_markers"]
-        assert all(m[0].isupper() and (len(m) < 2 or m[1].islower()) for m in t_cell_markers if m.isalpha())
+        assert all(
+            m[0].isupper() and (len(m) < 2 or m[1].islower()) for m in t_cell_markers if m.isalpha()
+        )
 
 
 class TestMarkerScorer:
     """Tests for the marker scorer."""
 
     def test_compute_marker_scores(self):
+        from celltypepilot.data_adapter import get_all_markers_for_tissue, load_marker_atlas
         from celltypepilot.marker_scorer import compute_marker_scores
-        from celltypepilot.data_adapter import load_marker_atlas, get_all_markers_for_tissue
 
         adata = make_synthetic_pbmc()
         atlas = load_marker_atlas("human")
@@ -152,8 +159,8 @@ class TestMarkerScorer:
         assert "cell_type" in scores.columns
 
     def test_generate_annotation_summary(self):
+        from celltypepilot.data_adapter import get_all_markers_for_tissue, load_marker_atlas
         from celltypepilot.marker_scorer import compute_marker_scores, generate_annotation_summary
-        from celltypepilot.data_adapter import load_marker_atlas, get_all_markers_for_tissue
 
         adata = make_synthetic_pbmc()
         atlas = load_marker_atlas("human")
@@ -170,9 +177,9 @@ class TestCritic:
     """Tests for the annotation critic."""
 
     def test_run_critic(self):
+        from celltypepilot.critic import generate_critic_summary, run_critic
+        from celltypepilot.data_adapter import get_all_markers_for_tissue, load_marker_atlas
         from celltypepilot.marker_scorer import compute_marker_scores, generate_annotation_summary
-        from celltypepilot.critic import run_critic, generate_critic_summary
-        from celltypepilot.data_adapter import load_marker_atlas, get_all_markers_for_tissue
 
         adata = make_synthetic_pbmc()
         atlas = load_marker_atlas("human")
@@ -194,6 +201,7 @@ class TestDoctor:
 
     def test_run_doctor(self):
         from celltypepilot.doctor import run_doctor
+
         report = run_doctor()
         assert report.python_ok is True
         assert len(report.dependencies) > 0
@@ -203,7 +211,7 @@ class TestProvenance:
     """Tests for provenance tracking."""
 
     def test_create_and_save_manifest(self):
-        from celltypepilot.provenance import create_manifest, save_manifest, load_manifest
+        from celltypepilot.provenance import create_manifest, load_manifest, save_manifest
 
         with tempfile.TemporaryDirectory() as tmpdir:
             manifest = create_manifest(
@@ -228,6 +236,7 @@ class TestCLI:
 
     def test_doctor_command(self):
         from typer.testing import CliRunner
+
         from celltypepilot.cli import app
 
         runner = CliRunner()
@@ -236,6 +245,7 @@ class TestCLI:
 
     def test_version(self):
         from typer.testing import CliRunner
+
         from celltypepilot.cli import app
 
         runner = CliRunner()
@@ -245,6 +255,7 @@ class TestCLI:
 
     def test_markers_command(self):
         from typer.testing import CliRunner
+
         from celltypepilot.cli import app
 
         runner = CliRunner()
@@ -254,6 +265,7 @@ class TestCLI:
 
     def test_markers_tissue(self):
         from typer.testing import CliRunner
+
         from celltypepilot.cli import app
 
         runner = CliRunner()
@@ -263,6 +275,7 @@ class TestCLI:
 
     def test_inspect_command(self):
         from typer.testing import CliRunner
+
         from celltypepilot.cli import app
 
         tmpdir = tempfile.mkdtemp()
@@ -271,11 +284,14 @@ class TestCLI:
         adata.write(str(h5ad_path))
 
         runner = CliRunner()
-        result = runner.invoke(app, ["inspect", "--input", str(h5ad_path), "--cluster-key", "leiden"])
+        result = runner.invoke(
+            app, ["inspect", "--input", str(h5ad_path), "--cluster-key", "leiden"]
+        )
         assert result.exit_code == 0
 
     def test_annotate_command(self):
         from typer.testing import CliRunner
+
         from celltypepilot.cli import app
 
         with tempfile.TemporaryDirectory() as tmpdir:
@@ -285,15 +301,24 @@ class TestCLI:
             adata.write(str(h5ad_path))
 
             runner = CliRunner()
-            result = runner.invoke(app, [
-                "annotate",
-                "--input", str(h5ad_path),
-                "--cluster-key", "leiden",
-                "--output", str(output_dir),
-                "--species", "human",
-                "--tissue", "blood",
-                "--embedding-key", "X_umap",
-            ])
+            result = runner.invoke(
+                app,
+                [
+                    "annotate",
+                    "--input",
+                    str(h5ad_path),
+                    "--cluster-key",
+                    "leiden",
+                    "--output",
+                    str(output_dir),
+                    "--species",
+                    "human",
+                    "--tissue",
+                    "blood",
+                    "--embedding-key",
+                    "X_umap",
+                ],
+            )
             assert result.exit_code == 0
             assert (output_dir / "evidence_table.csv").exists()
             assert (output_dir / "manifest.json").exists()
@@ -305,6 +330,7 @@ class TestReferenceScorer:
 
     def test_check_backends(self):
         from celltypepilot.reference_scorer import check_reference_backends
+
         backends = check_reference_backends()
         assert "celltypist" in backends
         assert "scanvi" in backends
@@ -336,7 +362,8 @@ class TestReferenceScorer:
         ref.obs["cell_type"] = ref.obs["true_cell_type"]
 
         scores = score_by_reference(
-            query, "leiden",
+            query,
+            "leiden",
             reference=ref,
             ref_label_key="cell_type",
             backend="correlation",
@@ -367,7 +394,8 @@ class TestReferenceScorer:
         ref.obs["cell_type"] = ref.obs["true_cell_type"]
 
         scores = score_by_reference(
-            query, "leiden",
+            query,
+            "leiden",
             reference=ref,
             ref_label_key="cell_type",
             backend="knn",
@@ -382,18 +410,22 @@ class TestReferenceScorer:
         from celltypepilot.reference_scorer import detect_transitional_states
 
         # Create mock marker and ref scores
-        marker_scores = pd.DataFrame({
-            "cluster": ["0", "0", "1", "1"],
-            "cell_type": ["T cell", "B cell", "NK cell", "Monocyte"],
-            "combined_score": [0.7, 0.3, 0.4, 0.35],
-            "rank": [1, 2, 1, 2],
-        })
-        ref_scores = pd.DataFrame({
-            "cluster": ["0", "0", "1", "1"],
-            "cell_type": ["T cell", "B cell", "Monocyte", "NK cell"],
-            "ref_score": [0.6, 0.35, 0.5, 0.2],
-            "ref_rank": [1, 2, 1, 2],
-        })
+        marker_scores = pd.DataFrame(
+            {
+                "cluster": ["0", "0", "1", "1"],
+                "cell_type": ["T cell", "B cell", "NK cell", "Monocyte"],
+                "combined_score": [0.7, 0.3, 0.4, 0.35],
+                "rank": [1, 2, 1, 2],
+            }
+        )
+        ref_scores = pd.DataFrame(
+            {
+                "cluster": ["0", "0", "1", "1"],
+                "cell_type": ["T cell", "B cell", "Monocyte", "NK cell"],
+                "ref_score": [0.6, 0.35, 0.5, 0.2],
+                "ref_rank": [1, 2, 1, 2],
+            }
+        )
 
         transitions = detect_transitional_states(ref_scores, marker_scores)
         assert not transitions.empty
@@ -402,12 +434,14 @@ class TestReferenceScorer:
 
     def test_auto_select_backend_with_reference(self):
         from celltypepilot.reference_scorer import _auto_select_backend
+
         # With reference but no scvi → should pick knn
         backend = _auto_select_backend(reference="dummy", model_path=None)
         assert backend == "knn"
 
     def test_auto_select_backend_no_reference(self):
         from celltypepilot.reference_scorer import _auto_select_backend
+
         # Without reference → correlation (always available)
         # But if celltypist is not installed, it falls through
         # At minimum it should raise or return correlation
@@ -424,18 +458,22 @@ class TestEnsembleScorer:
     def test_ensemble_scores_basic(self):
         from celltypepilot.ensemble_scorer import ensemble_scores
 
-        marker_scores = pd.DataFrame({
-            "cluster": ["0", "0", "1", "1"],
-            "cell_type": ["T cell", "B cell", "NK cell", "Monocyte"],
-            "combined_score": [0.8, 0.2, 0.3, 0.6],
-            "rank": [1, 2, 1, 2],
-        })
-        ref_scores = pd.DataFrame({
-            "cluster": ["0", "0", "1", "1"],
-            "cell_type": ["T cell", "B cell", "NK cell", "Monocyte"],
-            "ref_score": [0.7, 0.3, 0.5, 0.4],
-            "ref_rank": [1, 2, 1, 2],
-        })
+        marker_scores = pd.DataFrame(
+            {
+                "cluster": ["0", "0", "1", "1"],
+                "cell_type": ["T cell", "B cell", "NK cell", "Monocyte"],
+                "combined_score": [0.8, 0.2, 0.3, 0.6],
+                "rank": [1, 2, 1, 2],
+            }
+        )
+        ref_scores = pd.DataFrame(
+            {
+                "cluster": ["0", "0", "1", "1"],
+                "cell_type": ["T cell", "B cell", "NK cell", "Monocyte"],
+                "ref_score": [0.7, 0.3, 0.5, 0.4],
+                "ref_rank": [1, 2, 1, 2],
+            }
+        )
 
         result = ensemble_scores(marker_scores, ref_scores, adaptive=True)
         assert not result.empty
@@ -450,29 +488,36 @@ class TestEnsembleScorer:
 
     def test_ensemble_scores_empty(self):
         from celltypepilot.ensemble_scorer import ensemble_scores
+
         result = ensemble_scores(pd.DataFrame(), pd.DataFrame())
         assert result.empty
 
     def test_ensemble_marker_only(self):
         from celltypepilot.ensemble_scorer import ensemble_scores
-        marker_scores = pd.DataFrame({
-            "cluster": ["0"],
-            "cell_type": ["T cell"],
-            "combined_score": [0.8],
-            "rank": [1],
-        })
+
+        marker_scores = pd.DataFrame(
+            {
+                "cluster": ["0"],
+                "cell_type": ["T cell"],
+                "combined_score": [0.8],
+                "rank": [1],
+            }
+        )
         result = ensemble_scores(marker_scores, pd.DataFrame())
         assert not result.empty
         assert result.iloc[0]["source"] == "marker"
 
     def test_ensemble_ref_only(self):
         from celltypepilot.ensemble_scorer import ensemble_scores
-        ref_scores = pd.DataFrame({
-            "cluster": ["0"],
-            "cell_type": ["T cell"],
-            "ref_score": [0.7],
-            "ref_rank": [1],
-        })
+
+        ref_scores = pd.DataFrame(
+            {
+                "cluster": ["0"],
+                "cell_type": ["T cell"],
+                "ref_score": [0.7],
+                "ref_rank": [1],
+            }
+        )
         result = ensemble_scores(pd.DataFrame(), ref_scores)
         assert not result.empty
         assert result.iloc[0]["source"] == "reference"
@@ -480,18 +525,22 @@ class TestEnsembleScorer:
     def test_generate_ensemble_summary(self):
         from celltypepilot.ensemble_scorer import ensemble_scores, generate_ensemble_summary
 
-        marker_scores = pd.DataFrame({
-            "cluster": ["0", "0", "1", "1"],
-            "cell_type": ["T cell", "B cell", "NK cell", "Monocyte"],
-            "combined_score": [0.8, 0.2, 0.3, 0.6],
-            "rank": [1, 2, 1, 2],
-        })
-        ref_scores = pd.DataFrame({
-            "cluster": ["0", "0", "1", "1"],
-            "cell_type": ["T cell", "B cell", "NK cell", "Monocyte"],
-            "ref_score": [0.7, 0.3, 0.5, 0.4],
-            "ref_rank": [1, 2, 1, 2],
-        })
+        marker_scores = pd.DataFrame(
+            {
+                "cluster": ["0", "0", "1", "1"],
+                "cell_type": ["T cell", "B cell", "NK cell", "Monocyte"],
+                "combined_score": [0.8, 0.2, 0.3, 0.6],
+                "rank": [1, 2, 1, 2],
+            }
+        )
+        ref_scores = pd.DataFrame(
+            {
+                "cluster": ["0", "0", "1", "1"],
+                "cell_type": ["T cell", "B cell", "NK cell", "Monocyte"],
+                "ref_score": [0.7, 0.3, 0.5, 0.4],
+                "ref_rank": [1, 2, 1, 2],
+            }
+        )
 
         result = ensemble_scores(marker_scores, ref_scores)
         summary = generate_ensemble_summary(result)
@@ -500,22 +549,26 @@ class TestEnsembleScorer:
         assert len(summary) == 2  # 2 clusters
 
     def test_analyze_disagreements(self):
-        from celltypepilot.ensemble_scorer import ensemble_scores, analyze_disagreements
+        from celltypepilot.ensemble_scorer import analyze_disagreements, ensemble_scores
 
         # Create data where marker strongly supports T cell but ref
         # strongly supports B cell, with asymmetric confidence
-        marker_scores = pd.DataFrame({
-            "cluster": ["0", "0"],
-            "cell_type": ["T cell", "B cell"],
-            "combined_score": [0.8, 0.1],
-            "rank": [1, 2],
-        })
-        ref_scores = pd.DataFrame({
-            "cluster": ["0", "0"],
-            "cell_type": ["B cell", "T cell"],
-            "ref_score": [0.2, 0.05],
-            "ref_rank": [1, 2],
-        })
+        marker_scores = pd.DataFrame(
+            {
+                "cluster": ["0", "0"],
+                "cell_type": ["T cell", "B cell"],
+                "combined_score": [0.8, 0.1],
+                "rank": [1, 2],
+            }
+        )
+        ref_scores = pd.DataFrame(
+            {
+                "cluster": ["0", "0"],
+                "cell_type": ["B cell", "T cell"],
+                "ref_score": [0.2, 0.05],
+                "ref_rank": [1, 2],
+            }
+        )
 
         result = ensemble_scores(marker_scores, ref_scores)
         disagreements = analyze_disagreements(result)
@@ -531,8 +584,8 @@ class TestCriticEnsemble:
 
     def test_critic_with_ensemble_info(self):
         from celltypepilot.critic import run_critic
+        from celltypepilot.data_adapter import get_all_markers_for_tissue, load_marker_atlas
         from celltypepilot.marker_scorer import compute_marker_scores, generate_annotation_summary
-        from celltypepilot.data_adapter import load_marker_atlas, get_all_markers_for_tissue
 
         adata = make_synthetic_pbmc()
         atlas = load_marker_atlas("human")
@@ -542,16 +595,22 @@ class TestCriticEnsemble:
         summary = generate_annotation_summary(scores, "leiden")
 
         # Create mock ensemble info
-        ensemble_info = pd.DataFrame({
-            "cluster": summary["cluster"].values,
-            "marker_score": [0.5] * len(summary),
-            "ref_score": [0.4] * len(summary),
-            "agreement": [True] * len(summary),
-            "source": ["both"] * len(summary),
-        })
+        ensemble_info = pd.DataFrame(
+            {
+                "cluster": summary["cluster"].values,
+                "marker_score": [0.5] * len(summary),
+                "ref_score": [0.4] * len(summary),
+                "agreement": [True] * len(summary),
+                "source": ["both"] * len(summary),
+            }
+        )
 
         critic_results = run_critic(
-            adata, "leiden", summary, atlas, "blood",
+            adata,
+            "leiden",
+            summary,
+            atlas,
+            "blood",
             ensemble_info=ensemble_info,
         )
         assert "critic_flags" in critic_results.columns

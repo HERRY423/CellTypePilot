@@ -29,22 +29,22 @@ over cell types, compatible with the ensemble scorer.
 
 from __future__ import annotations
 
+import importlib.util
 import logging
-from pathlib import Path
-from typing import Optional
 
+import anndata as ad
 import numpy as np
 import pandas as pd
-import anndata as ad
 import scanpy as sc
 from scipy import sparse
-from scipy.stats import pearsonr
 from sklearn.neighbors import NearestNeighbors
 
 from .constants import (
-    REF_MIN_SHARED_GENES, REF_CORR_MIN_GENES,
-    REF_SCANVI_MIN_GENES, REF_CELLTYPIST_MIN_GENES,
-    REF_KNN_DEFAULT_K, REF_KNN_MAX_K,
+    REF_CELLTYPIST_MIN_GENES,
+    REF_CORR_MIN_GENES,
+    REF_KNN_DEFAULT_K,
+    REF_MIN_SHARED_GENES,
+    REF_SCANVI_MIN_GENES,
 )
 
 logger = logging.getLogger(__name__)
@@ -54,20 +54,13 @@ logger = logging.getLogger(__name__)
 # Backend detection
 # ──────────────────────────────────────────────
 
+
 def _check_celltypist() -> bool:
-    try:
-        import celltypist
-        return True
-    except ImportError:
-        return False
+    return importlib.util.find_spec("celltypist") is not None
 
 
 def _check_scvi() -> bool:
-    try:
-        import scvi
-        return True
-    except ImportError:
-        return False
+    return importlib.util.find_spec("scvi") is not None
 
 
 def check_reference_backends() -> dict:
@@ -79,7 +72,7 @@ def check_reference_backends() -> dict:
     return {
         "celltypist": _check_celltypist(),
         "scanvi": _check_scvi(),
-        "knn": True,       # Always available (sklearn)
+        "knn": True,  # Always available (sklearn)
         "correlation": True,  # Always available
     }
 
@@ -88,15 +81,16 @@ def check_reference_backends() -> dict:
 # Core interface
 # ──────────────────────────────────────────────
 
+
 def score_by_reference(
     query: ad.AnnData,
     cluster_key: str,
-    reference: Optional[ad.AnnData] = None,
+    reference: ad.AnnData | None = None,
     ref_label_key: str = "cell_type",
-    model_path: Optional[str] = None,
+    model_path: str | None = None,
     backend: str = "auto",
     n_neighbors: int = REF_KNN_DEFAULT_K,
-    gene_map: Optional[dict[str, str]] = None,
+    gene_map: dict[str, str] | None = None,
 ) -> pd.DataFrame:
     """Score clusters by reference embedding mapping.
 
@@ -127,20 +121,18 @@ def score_by_reference(
     elif backend == "scanvi":
         return _score_scanvi(query, cluster_key, reference, ref_label_key, gene_map)
     elif backend == "knn":
-        return _score_knn(query, cluster_key, reference, ref_label_key,
-                          gene_map, n_neighbors)
+        return _score_knn(query, cluster_key, reference, ref_label_key, gene_map, n_neighbors)
     elif backend == "correlation":
         return _score_correlation(query, cluster_key, reference, ref_label_key, gene_map)
     else:
         raise ValueError(
-            f"Unknown backend: {backend}. "
-            f"Use: celltypist, scanvi, knn, correlation, auto"
+            f"Unknown backend: {backend}. Use: celltypist, scanvi, knn, correlation, auto"
         )
 
 
 def _auto_select_backend(
-    reference: Optional[ad.AnnData],
-    model_path: Optional[str],
+    reference: ad.AnnData | None,
+    model_path: str | None,
 ) -> str:
     """Auto-select the best available backend.
 
@@ -175,11 +167,12 @@ def _auto_select_backend(
 # Backend 1: CellTypist
 # ──────────────────────────────────────────────
 
+
 def _score_celltypist(
     query: ad.AnnData,
     cluster_key: str,
-    model_path: Optional[str],
-    gene_map: Optional[dict[str, str]],
+    model_path: str | None,
+    gene_map: dict[str, str] | None,
 ) -> pd.DataFrame:
     """Score using CellTypist pre-trained models.
 
@@ -212,18 +205,18 @@ def _score_celltypist(
 
     # Predict
     predictions = celltypist.annotate(
-        query_norm, model=model, majority_voting=False,
+        query_norm,
+        model=model,
+        majority_voting=False,
     )
 
     # Extract probability matrix (cells × cell_types)
     proba = predictions.probability_matrix
 
-    return _aggregate_cluster_probabilities(
-        proba, query_work.obs[cluster_key], source="celltypist"
-    )
+    return _aggregate_cluster_probabilities(proba, query_work.obs[cluster_key], source="celltypist")
 
 
-def _load_celltypist_model(models, model_path: Optional[str]):
+def _load_celltypist_model(models, model_path: str | None):
     """Load CellTypist model with fallback chain."""
     if model_path:
         return models.Model.load(model_path)
@@ -246,12 +239,13 @@ def _load_celltypist_model(models, model_path: Optional[str]):
 # Backend 2: scANVI / scVI
 # ──────────────────────────────────────────────
 
+
 def _score_scanvi(
     query: ad.AnnData,
     cluster_key: str,
     reference: ad.AnnData,
     ref_label_key: str,
-    gene_map: Optional[dict[str, str]],
+    gene_map: dict[str, str] | None,
 ) -> pd.DataFrame:
     """Score using scANVI reference mapping.
 
@@ -305,12 +299,13 @@ def _score_scanvi(
 # Backend 3: KNN label transfer
 # ──────────────────────────────────────────────
 
+
 def _score_knn(
     query: ad.AnnData,
     cluster_key: str,
     reference: ad.AnnData,
     ref_label_key: str,
-    gene_map: Optional[dict[str, str]],
+    gene_map: dict[str, str] | None,
     n_neighbors: int = REF_KNN_DEFAULT_K,
     n_hvg: int = 2000,
 ) -> pd.DataFrame:
@@ -328,9 +323,7 @@ def _score_knn(
     # Shared genes
     shared_genes = sorted(set(query_work.var_names) & set(ref_work.var_names))
     if len(shared_genes) < REF_MIN_SHARED_GENES:
-        raise RuntimeError(
-            f"Only {len(shared_genes)} shared genes (need ≥{REF_MIN_SHARED_GENES})."
-        )
+        raise RuntimeError(f"Only {len(shared_genes)} shared genes (need ≥{REF_MIN_SHARED_GENES}).")
 
     ref_sub = ref_work[:, shared_genes].copy()
     query_sub = query_work[:, shared_genes].copy()
@@ -356,8 +349,9 @@ def _score_knn(
 
     # Project query into reference PCA space
     # Use the reference PCA loadings to transform query
-    query_pca = _project_to_pca(query_sub, ref_sub.uns["pca"]["variance_ratio"],
-                                 ref_sub.varm["PCs"])
+    query_pca = _project_to_pca(
+        query_sub, ref_sub.uns["pca"]["variance_ratio"], ref_sub.varm["PCs"]
+    )
 
     # KNN: for each query cell, find nearest reference cells
     k = min(n_neighbors, ref_sub.n_obs)
@@ -390,9 +384,7 @@ def _score_knn(
     # Convert to DataFrame
     proba_df = pd.DataFrame(proba_matrix, columns=unique_types, index=query_sub.obs_names)
 
-    return _aggregate_cluster_probabilities(
-        proba_df, query_work.obs[cluster_key], source="knn"
-    )
+    return _aggregate_cluster_probabilities(proba_df, query_work.obs[cluster_key], source="knn")
 
 
 def _project_to_pca(
@@ -427,12 +419,13 @@ def _project_to_pca(
 # Backend 4: Correlation (lightweight fallback)
 # ──────────────────────────────────────────────
 
+
 def _score_correlation(
     query: ad.AnnData,
     cluster_key: str,
     reference: ad.AnnData,
     ref_label_key: str,
-    gene_map: Optional[dict[str, str]],
+    gene_map: dict[str, str] | None,
     n_top_genes: int = 2000,
 ) -> pd.DataFrame:
     """Score by Pearson correlation with reference mean expression profiles.
@@ -450,9 +443,7 @@ def _score_correlation(
     # Shared genes
     shared_genes = sorted(set(query_work.var_names) & set(ref_work.var_names))
     if len(shared_genes) < REF_CORR_MIN_GENES:
-        raise RuntimeError(
-            f"Only {len(shared_genes)} shared genes (need ≥{REF_CORR_MIN_GENES})."
-        )
+        raise RuntimeError(f"Only {len(shared_genes)} shared genes (need ≥{REF_CORR_MIN_GENES}).")
 
     # Subset to shared genes
     ref_sub = ref_work[:, shared_genes].copy()
@@ -499,8 +490,6 @@ def _score_correlation(
             cluster_profiles[str(cl)] = np.asarray(X.mean(axis=0)).flatten()
 
     # Compute correlation matrix (vectorized)
-    n_clusters = len(cluster_profiles)
-    n_types = len(ref_profiles)
     cl_names = list(cluster_profiles.keys())
     ct_names = list(ref_profiles.keys())
 
@@ -520,20 +509,22 @@ def _score_correlation(
     results = []
     for i, cl_str in enumerate(cl_names):
         for j, ct in enumerate(ct_names):
-            results.append({
-                "cluster": cl_str,
-                "cell_type": ct,
-                "ref_score": round(float(corr_mat[i, j]), 4),
-            })
+            results.append(
+                {
+                    "cluster": cl_str,
+                    "cell_type": ct,
+                    "ref_score": round(float(corr_mat[i, j]), 4),
+                }
+            )
 
     df = pd.DataFrame(results)
     if df.empty:
         return df
 
     # Rank within each cluster
-    df["ref_rank"] = df.groupby("cluster")["ref_score"].rank(
-        ascending=False, method="first"
-    ).astype(int)
+    df["ref_rank"] = (
+        df.groupby("cluster")["ref_score"].rank(ascending=False, method="first").astype(int)
+    )
     df = df.sort_values(["cluster", "ref_rank"])
 
     # Vectorized top-5 summary
@@ -546,9 +537,10 @@ def _score_correlation(
 # Shared utilities
 # ──────────────────────────────────────────────
 
+
 def _apply_gene_map(
     adata: ad.AnnData,
-    gene_map: Optional[dict[str, str]],
+    gene_map: dict[str, str] | None,
 ) -> ad.AnnData:
     """Apply gene name mapping (e.g., mouse → human orthologs)."""
     if not gene_map:
@@ -579,7 +571,7 @@ def _aggregate_cluster_probabilities(
         DataFrame with: cluster, cell_type, ref_score, ref_rank, top5_*
     """
     proba = proba.copy()
-    proba.index = cluster_labels.values[:len(proba)].astype(str)
+    proba.index = cluster_labels.values[: len(proba)].astype(str)
 
     # Mean probability per cluster
     cluster_proba = proba.groupby(proba.index).mean()
@@ -588,12 +580,14 @@ def _aggregate_cluster_probabilities(
     for cl_str in cluster_proba.index:
         scores = cluster_proba.loc[cl_str].sort_values(ascending=False)
         for rank, (ct, score) in enumerate(scores.items(), 1):
-            results.append({
-                "cluster": str(cl_str),
-                "cell_type": ct,
-                "ref_score": round(float(score), 4),
-                "ref_rank": rank,
-            })
+            results.append(
+                {
+                    "cluster": str(cl_str),
+                    "cell_type": ct,
+                    "ref_score": round(float(score), 4),
+                    "ref_rank": rank,
+                }
+            )
 
     df = pd.DataFrame(results)
     if df.empty:
@@ -623,6 +617,7 @@ def _add_top5_summary(df: pd.DataFrame) -> pd.DataFrame:
 # ──────────────────────────────────────────────
 # Trajectory / transitional state detection
 # ──────────────────────────────────────────────
+
 
 def detect_transitional_states(
     ref_scores: pd.DataFrame,
@@ -690,7 +685,7 @@ def detect_transitional_states(
 
         # ── Signal 2: Distribution entropy ──
         if not r_top.empty and len(r_top) >= 2:
-            top_scores = r_top["ref_score"].values[:min(5, len(r_top))].astype(float)
+            top_scores = r_top["ref_score"].values[: min(5, len(r_top))].astype(float)
             top_scores = top_scores / (top_scores.sum() + 1e-10)  # Normalize
             entropy = -np.sum(top_scores * np.log2(top_scores + 1e-10))
             if entropy > 1.5:
@@ -698,22 +693,23 @@ def detect_transitional_states(
                 transition_type = transition_type or "diffuse_distribution"
 
         # ── Signal 3: Confidence asymmetry ──
-        if not same_type and not is_transitional:
-            if r_score - m_score > 0.3 and r_score > 0.5:
-                is_transitional = True
-                transition_type = "asymmetric_confidence"
+        if not same_type and not is_transitional and r_score - m_score > 0.3 and r_score > 0.5:
+            is_transitional = True
+            transition_type = "asymmetric_confidence"
 
-        results.append({
-            "cluster": cl,
-            "marker_type": m_type,
-            "marker_score": round(m_score, 4),
-            "ref_type": r_type,
-            "ref_score": round(r_score, 4),
-            "agreement": same_type,
-            "score_gap": round(score_gap, 4),
-            "is_transitional": is_transitional,
-            "transition_type": transition_type,
-            "ref_top5": r_top.iloc[0].get("top5_types", ""),
-        })
+        results.append(
+            {
+                "cluster": cl,
+                "marker_type": m_type,
+                "marker_score": round(m_score, 4),
+                "ref_type": r_type,
+                "ref_score": round(r_score, 4),
+                "agreement": same_type,
+                "score_gap": round(score_gap, 4),
+                "is_transitional": is_transitional,
+                "transition_type": transition_type,
+                "ref_top5": r_top.iloc[0].get("top5_types", ""),
+            }
+        )
 
     return pd.DataFrame(results)

@@ -5,28 +5,26 @@ This is the zero-cost, fully reproducible first path in the candidate generation
 
 from __future__ import annotations
 
-from typing import Optional
-import json
-
+import anndata as ad
 import numpy as np
 import pandas as pd
 import scanpy as sc
-import anndata as ad
 from scipy import sparse
 
 from .constants import (
-    MARKER_PCT_THRESHOLD, MARKER_FC_THRESHOLD,
-    MARKER_SPECIFICITY_THRESHOLD, CONFIDENCE_HIGH, CONFIDENCE_MEDIUM,
-    CONFIDENCE_LOW, CONFIDENCE_REVIEW,
+    CONFIDENCE_HIGH,
+    CONFIDENCE_LOW,
+    CONFIDENCE_MEDIUM,
+    CONFIDENCE_REVIEW,
+    MARKER_PCT_THRESHOLD,
 )
-from .data_adapter import load_marker_atlas, get_all_markers_for_tissue
 
 
 def compute_marker_scores(
     adata: ad.AnnData,
     cluster_key: str,
     markers: dict[str, dict],
-    layer: Optional[str] = None,
+    layer: str | None = None,
 ) -> pd.DataFrame:
     """Score each cluster against each cell type using marker overlap.
 
@@ -58,7 +56,7 @@ def compute_marker_scores(
             continue
 
         de_genes = set(cluster_de["gene"].values)
-        de_genes_fc = dict(zip(cluster_de["gene"], cluster_de["logfoldchange"]))
+        de_genes_fc = dict(zip(cluster_de["gene"], cluster_de["logfoldchange"], strict=True))
 
         for ct_name, ct_info in markers.items():
             pos_markers = ct_info.get("positive_markers", [])
@@ -83,35 +81,39 @@ def compute_marker_scores(
 
             # Combined score
             combined = (
-                0.35 * pct_overlap +
-                0.25 * min(mean_fc / 2.0, 1.0) +  # normalize FC to [0,1]
-                0.20 * specificity +
-                0.20 * pct_expressed -
-                0.30 * neg_conflict  # penalty
+                0.35 * pct_overlap
+                + 0.25 * min(mean_fc / 2.0, 1.0)  # normalize FC to [0,1]
+                + 0.20 * specificity
+                + 0.20 * pct_expressed
+                - 0.30 * neg_conflict  # penalty
             )
             combined = max(0.0, min(1.0, combined))
 
-            results.append({
-                "cluster": str(cluster),
-                "cell_type": ct_name,
-                "cl_id": ct_info.get("cl_id", ""),
-                "n_pos_markers": len(pos_detected),
-                "n_pos_de": len(pos_de),
-                "pct_overlap": round(pct_overlap, 4),
-                "mean_log2fc": round(mean_fc, 4),
-                "pct_expressed": round(pct_expressed, 4),
-                "specificity": round(specificity, 4),
-                "n_neg_markers": len(neg_detected),
-                "neg_conflict": round(neg_conflict, 4),
-                "combined_score": round(combined, 4),
-            })
+            results.append(
+                {
+                    "cluster": str(cluster),
+                    "cell_type": ct_name,
+                    "cl_id": ct_info.get("cl_id", ""),
+                    "n_pos_markers": len(pos_detected),
+                    "n_pos_de": len(pos_de),
+                    "pct_overlap": round(pct_overlap, 4),
+                    "mean_log2fc": round(mean_fc, 4),
+                    "pct_expressed": round(pct_expressed, 4),
+                    "specificity": round(specificity, 4),
+                    "n_neg_markers": len(neg_detected),
+                    "neg_conflict": round(neg_conflict, 4),
+                    "combined_score": round(combined, 4),
+                }
+            )
 
     df = pd.DataFrame(results)
     if df.empty:
         return df
 
     # Rank cell types within each cluster
-    df["rank"] = df.groupby("cluster")["combined_score"].rank(ascending=False, method="first").astype(int)
+    df["rank"] = (
+        df.groupby("cluster")["combined_score"].rank(ascending=False, method="first").astype(int)
+    )
     df = df.sort_values(["cluster", "rank"])
 
     return df
@@ -126,26 +128,32 @@ def _extract_de_results(adata: ad.AnnData, cluster_key: str) -> dict[str, pd.Dat
         cluster_str = str(cluster)
         try:
             result = sc.get.rank_genes_groups(adata, group=cluster_str, key="rank_genes_groups")
-            df = pd.DataFrame({
-                "gene": result["names"],
-                "logfoldchange": result["logfoldchanges"],
-                "pval": result["pvals"],
-                "pval_adj": result["pvals_adj"],
-            })
+            df = pd.DataFrame(
+                {
+                    "gene": result["names"],
+                    "logfoldchange": result["logfoldchanges"],
+                    "pval": result["pvals"],
+                    "pval_adj": result["pvals_adj"],
+                }
+            )
             results[cluster_str] = df
         except Exception:
             # Fallback: extract from stored results
             try:
                 names = adata.uns["rank_genes_groups"]["names"]
-                scores = adata.uns["rank_genes_groups"]["scores"]
                 lfc = adata.uns["rank_genes_groups"]["logfoldchanges"]
-                if isinstance(names, np.ndarray) and names.dtype.names:
-                    if cluster_str in names.dtype.names:
-                        df = pd.DataFrame({
+                if (
+                    isinstance(names, np.ndarray)
+                    and names.dtype.names
+                    and cluster_str in names.dtype.names
+                ):
+                    df = pd.DataFrame(
+                        {
                             "gene": names[cluster_str],
                             "logfoldchange": lfc[cluster_str],
-                        })
-                        results[cluster_str] = df
+                        }
+                    )
+                    results[cluster_str] = df
             except (KeyError, TypeError):
                 pass
 
@@ -168,10 +176,7 @@ def _get_expressed_markers(
             continue
         idx = list(adata.var_names).index(gene)
         expr = subset.X[:, idx]
-        if sparse.issparse(expr):
-            expr = expr.toarray().flatten()
-        else:
-            expr = np.asarray(expr).flatten()
+        expr = expr.toarray().flatten() if sparse.issparse(expr) else np.asarray(expr).flatten()
         pct = np.mean(expr > threshold)
         if pct >= MARKER_PCT_THRESHOLD:
             expressed.append(gene)
@@ -189,9 +194,6 @@ def _compute_specificity(
         return 0.0
 
     mask = adata.obs[cluster_key] == cluster
-    subset = adata[mask]
-    n_cluster = subset.n_obs
-    n_total = adata.n_obs
 
     specificities = []
     for gene in markers:
@@ -199,18 +201,12 @@ def _compute_specificity(
             continue
         idx = list(adata.var_names).index(gene)
         expr = adata.X[:, idx]
-        if sparse.issparse(expr):
-            expr = expr.toarray().flatten()
-        else:
-            expr = np.asarray(expr).flatten()
+        expr = expr.toarray().flatten() if sparse.issparse(expr) else np.asarray(expr).flatten()
 
         n_expressing = np.sum(expr > 0)
         n_in_cluster = np.sum((expr > 0) & mask.values)
 
-        if n_expressing > 0:
-            spec = n_in_cluster / n_expressing
-        else:
-            spec = 0.0
+        spec = n_in_cluster / n_expressing if n_expressing > 0 else 0.0
         specificities.append(spec)
 
     return np.mean(specificities) if specificities else 0.0
@@ -248,5 +244,16 @@ def generate_annotation_summary(
     top1 = scores[scores["rank"] == 1].copy()
     top1["confidence"] = top1.apply(assign_confidence, axis=1)
 
-    return top1[["cluster", "cell_type", "cl_id", "combined_score", "confidence",
-                  "pct_overlap", "mean_log2fc", "specificity", "neg_conflict"]].reset_index(drop=True)
+    return top1[
+        [
+            "cluster",
+            "cell_type",
+            "cl_id",
+            "combined_score",
+            "confidence",
+            "pct_overlap",
+            "mean_log2fc",
+            "specificity",
+            "neg_conflict",
+        ]
+    ].reset_index(drop=True)

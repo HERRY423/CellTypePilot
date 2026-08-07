@@ -15,8 +15,8 @@ from pathlib import Path
 import pandas as pd
 from jinja2 import Environment, PackageLoader, select_autoescape
 
-from . import __version__, MKG_VERSION
-from .constants import OUTPUT_EVIDENCE, OUTPUT_REPORT, OUTPUT_FIGURES_DIR
+from . import MKG_VERSION, __version__
+from .constants import OUTPUT_EVIDENCE, OUTPUT_FIGURES_DIR, OUTPUT_REPORT
 
 # Jinja2 environment backed by package templates
 _env = Environment(
@@ -109,16 +109,18 @@ def _annotation_rows(results: pd.DataFrame) -> list[dict]:
         )
         flags = row.get("critic_flags", "PASS")
         flag_badge = "badge-pass" if flags == "PASS" else "badge-flag"
-        rows.append({
-            "cluster": row.get("cluster", ""),
-            "cell_type": row.get("cell_type", ""),
-            "cl_id": row.get("cl_id", ""),
-            "score": float(row.get("combined_score", 0)),
-            "confidence": conf,
-            "badge_class": badge_class,
-            "flags": flags,
-            "flag_badge": flag_badge,
-        })
+        rows.append(
+            {
+                "cluster": row.get("cluster", ""),
+                "cell_type": row.get("cell_type", ""),
+                "cl_id": row.get("cl_id", ""),
+                "score": float(row.get("combined_score", 0)),
+                "confidence": conf,
+                "badge_class": badge_class,
+                "flags": flags,
+                "flag_badge": flag_badge,
+            }
+        )
     return rows
 
 
@@ -133,10 +135,12 @@ def _html_figures(figure_paths: list[str], output_dir: Path) -> str:
     figures = []
     for fp in figure_paths:
         fname = Path(fp).name
-        figures.append({
-            "rel_path": f"{OUTPUT_FIGURES_DIR}/{fname}",
-            "title": fname.replace(".png", "").replace("_", " ").title(),
-        })
+        figures.append(
+            {
+                "rel_path": f"{OUTPUT_FIGURES_DIR}/{fname}",
+                "title": fname.replace(".png", "").replace("_", " ").title(),
+            }
+        )
     return _render("figures.html", figures=figures)
 
 
@@ -148,13 +152,15 @@ def _html_critic_details(results: pd.DataFrame) -> str:
 
     flagged_rows = []
     for _, row in flagged.iterrows():
-        flagged_rows.append({
-            "cluster": row.get("cluster", "?"),
-            "cell_type": row.get("cell_type", "?"),
-            "critic_flags": row.get("critic_flags", ""),
-            "critic_evidence": row.get("critic_evidence", ""),
-            "critic_notes": row.get("critic_notes", ""),
-        })
+        flagged_rows.append(
+            {
+                "cluster": row.get("cluster", "?"),
+                "cell_type": row.get("cell_type", "?"),
+                "critic_flags": row.get("critic_flags", ""),
+                "critic_evidence": row.get("critic_evidence", ""),
+                "critic_notes": row.get("critic_notes", ""),
+            }
+        )
     return _render("critic_details.html", flagged_rows=flagged_rows)
 
 

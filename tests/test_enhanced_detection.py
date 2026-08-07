@@ -6,9 +6,9 @@ Covers:
 - Orchestrator: pipeline execution, override application, helper functions
 """
 
+import anndata as ad
 import numpy as np
 import pandas as pd
-import anndata as ad
 import pytest
 
 from celltypepilot.data_adapter import detect_species, detect_tissue, match_ensembl_species
@@ -34,17 +34,20 @@ def _make_adata(genes, obs_dict=None, n_cells=10):
 # Species detection — Ensembl IDs
 # ──────────────────────────────────────────────
 class TestSpeciesEnsembl:
-    @pytest.mark.parametrize("prefix,expected", [
-        ("ENSG", "human"),
-        ("ENSMUSG", "mouse"),
-        ("ENSRNOG", "rat"),
-        ("ENSDARG", "zebrafish"),
-        ("ENSGALG", "chicken"),
-        ("ENSSSCG", "pig"),
-        ("ENSBTAG", "cow"),
-        ("ENSMMUG", "macaque"),
-        ("ENSCAFG", "dog"),
-    ])
+    @pytest.mark.parametrize(
+        "prefix,expected",
+        [
+            ("ENSG", "human"),
+            ("ENSMUSG", "mouse"),
+            ("ENSRNOG", "rat"),
+            ("ENSDARG", "zebrafish"),
+            ("ENSGALG", "chicken"),
+            ("ENSSSCG", "pig"),
+            ("ENSBTAG", "cow"),
+            ("ENSMMUG", "macaque"),
+            ("ENSCAFG", "dog"),
+        ],
+    )
     def test_ensembl_prefix_species(self, prefix, expected):
         genes = [f"{prefix}{i:011d}" for i in range(100)]
         adata = _make_adata(genes)
@@ -85,8 +88,13 @@ class TestSpeciesSymbols:
     def test_ambiguous_mixed_symbols_defaults_human(self):
         # Balanced mix: human ALL-CAPS (incl. digits) vs mouse Title-case.
         # human_pattern = mouse_pattern = 5 → ambiguous → human fallback
-        genes = ["CD3D", "IL7R", "FCER1A", "S100A8", "HLA-DRA"] + \
-                ["Cd3d", "Il7r", "Fcer1a", "Clec10a", "Itgax"]
+        genes = ["CD3D", "IL7R", "FCER1A", "S100A8", "HLA-DRA"] + [
+            "Cd3d",
+            "Il7r",
+            "Fcer1a",
+            "Clec10a",
+            "Itgax",
+        ]
         adata = _make_adata(genes)
         assert detect_species(adata) == "human"
 
@@ -99,16 +107,19 @@ class TestSpeciesSymbols:
 # Tissue detection — synonyms and case handling
 # ──────────────────────────────────────────────
 class TestTissueSynonyms:
-    @pytest.mark.parametrize("col,value", [
-        ("Tissue", "blood"),            # capitalized
-        ("TISSUE_TYPE", "lung"),        # upper snake case
-        ("organ_system", "brain"),      # extended synonym
-        ("Source", "pbmc"),             # capitalized variant synonym
-        ("anatomy", "liver"),
-        ("body_site", "skin"),
-        ("anatomical_site", "gut"),
-        ("sample_source", "kidney"),
-    ])
+    @pytest.mark.parametrize(
+        "col,value",
+        [
+            ("Tissue", "blood"),  # capitalized
+            ("TISSUE_TYPE", "lung"),  # upper snake case
+            ("organ_system", "brain"),  # extended synonym
+            ("Source", "pbmc"),  # capitalized variant synonym
+            ("anatomy", "liver"),
+            ("body_site", "skin"),
+            ("anatomical_site", "gut"),
+            ("sample_source", "kidney"),
+        ],
+    )
     def test_synonym_variants(self, col, value):
         adata = _make_adata(["CD3D", "CD3E"], obs_dict={col: [value] * 10})
         assert detect_tissue(adata) == value
@@ -174,7 +185,9 @@ class TestRunAnnotationPipeline:
 
         steps = []
         result = run_annotation_pipeline(
-            input_path, "leiden", out_dir,
+            input_path,
+            "leiden",
+            out_dir,
             no_figures=True,
             progress=lambda s, t, m: steps.append(s),
         )
@@ -183,8 +196,13 @@ class TestRunAnnotationPipeline:
         assert result["tissue"] == "general"
         assert not result["critic_results"].empty
         assert steps == [1, 2, 3, 4, 6]  # step 5 skipped when no_figures
-        for name in ["data.annotated.h5ad", "evidence_table.csv",
-                     "report_draft.html", "manifest.json", "methodology_draft.txt"]:
+        for name in [
+            "data.annotated.h5ad",
+            "evidence_table.csv",
+            "report_draft.html",
+            "manifest.json",
+            "methodology_draft.txt",
+        ]:
             assert (out_dir / name).exists(), f"missing {name}"
 
         # Annotated obs columns written by write_annotations_to_adata
@@ -216,15 +234,15 @@ class TestRunAnnotationPipeline:
 
 class TestWriteAnnotationsToAdata:
     def test_maps_clusters_and_fills_unknown(self, synthetic_pbmc, tmp_output_dir):
-        critic_results = pd.DataFrame({
-            "cluster": ["T cell_0"],
-            "cell_type": ["T cell"],
-            "cl_id": ["CL:0000084"],
-            "critic_confidence": ["high"],
-        })
-        path = write_annotations_to_adata(
-            synthetic_pbmc, critic_results, "leiden", tmp_output_dir
+        critic_results = pd.DataFrame(
+            {
+                "cluster": ["T cell_0"],
+                "cell_type": ["T cell"],
+                "cl_id": ["CL:0000084"],
+                "critic_confidence": ["high"],
+            }
         )
+        path = write_annotations_to_adata(synthetic_pbmc, critic_results, "leiden", tmp_output_dir)
         assert path.exists()
         mapped = synthetic_pbmc.obs[synthetic_pbmc.obs["leiden"] == "T cell_0"]
         assert (mapped["ctp_cell_type"] == "T cell").all()
@@ -240,11 +258,14 @@ def _make_annotated_h5ad(path):
     n = 30
     adata = ad.AnnData(X=np.zeros((n, 5), dtype=np.float32))
     adata.var_names = [f"GENE_{i}" for i in range(5)]
-    adata.obs = pd.DataFrame({
-        "ctp_cl_id": ["0"] * 20 + ["1"] * 10,
-        "ctp_cell_type": ["T cell"] * 20 + ["B cell"] * 10,
-        "ctp_confidence": ["high"] * 20 + ["medium"] * 10,
-    }, index=[f"cell_{i}" for i in range(n)])
+    adata.obs = pd.DataFrame(
+        {
+            "ctp_cl_id": ["0"] * 20 + ["1"] * 10,
+            "ctp_cell_type": ["T cell"] * 20 + ["B cell"] * 10,
+            "ctp_confidence": ["high"] * 20 + ["medium"] * 10,
+        },
+        index=[f"cell_{i}" for i in range(n)],
+    )
     adata.write(path)
     return adata
 
@@ -265,6 +286,7 @@ class TestApplyOverridesToH5ad:
         assert result["skipped"] == 2
         assert result["total"] == 3
         import os
+
         assert os.path.exists(result["backup"])
 
         updated = ad.read_h5ad(h5ad_path)

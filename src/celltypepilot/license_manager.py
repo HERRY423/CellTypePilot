@@ -22,18 +22,16 @@ import hmac
 import json
 import os
 import platform
-import struct
-import time
 import uuid
-from dataclasses import dataclass, field, asdict
+from dataclasses import asdict, dataclass, field
 from datetime import datetime, timedelta
 from enum import Enum
 from pathlib import Path
-from typing import Optional
 
 
 class LicenseTier(str, Enum):
     """License tiers."""
+
     FREE = "free"
     ACADEMIC = "academic"
     COMMERCIAL = "commercial"
@@ -43,6 +41,7 @@ class LicenseTier(str, Enum):
 @dataclass
 class LicenseInfo:
     """License information."""
+
     tier: LicenseTier = LicenseTier.FREE
     key: str = ""
     holder: str = ""
@@ -84,29 +83,29 @@ class LicenseInfo:
 # ──────────────────────────────────────────────
 
 FREE_FEATURES = {
-    "basic_atlas",           # 80+ cell types, 11 tissues
-    "marker_scoring",        # Wilcoxon DE + 5-dim scoring
-    "critic_review",         # Annotation Critic
-    "basic_visualization",   # UMAP, dotplot, confidence
-    "html_report",           # HTML report generation
-    "manifest_provenance",   # Run provenance tracking
+    "basic_atlas",  # 80+ cell types, 11 tissues
+    "marker_scoring",  # Wilcoxon DE + 5-dim scoring
+    "critic_review",  # Annotation Critic
+    "basic_visualization",  # UMAP, dotplot, confidence
+    "html_report",  # HTML report generation
+    "manifest_provenance",  # Run provenance tracking
 }
 
 ACADEMIC_FEATURES = FREE_FEATURES | {
-    "extended_atlas",        # 200+ cell types, disease states
-    "developmental_atlas",   # Developmental stage markers
-    "disease_atlas",         # Disease-specific cell states
-    "literature_validation", # PubMed integration
-    "advanced_visualization", # Cross-sample comparisons
-    "docx_export",           # Word document export
+    "extended_atlas",  # 200+ cell types, disease states
+    "developmental_atlas",  # Developmental stage markers
+    "disease_atlas",  # Disease-specific cell states
+    "literature_validation",  # PubMed integration
+    "advanced_visualization",  # Cross-sample comparisons
+    "docx_export",  # Word document export
 }
 
 COMMERCIAL_FEATURES = ACADEMIC_FEATURES | {
     "custom_tissue_panels",  # Custom tissue marker panels
-    "team_sharing",          # Team atlas sharing
-    "priority_support",      # Priority email support
-    "api_access",            # REST API access
-    "white_label",           # White-label reports
+    "team_sharing",  # Team atlas sharing
+    "priority_support",  # Priority email support
+    "api_access",  # REST API access
+    "white_label",  # White-label reports
 }
 
 TRIAL_FEATURES = ACADEMIC_FEATURES | set()  # Trial gets academic features for 30 days
@@ -139,15 +138,18 @@ _RSA_PUBLIC_KEY_PEM = (
 
 # Local HMAC key for license.json file integrity (tamper detection)
 # This is separate from RSA — it protects the local file from manual editing
-_FILE_HMAC_SECRET = b"ctp-file-integrity-" + hashlib.sha256(
-    platform.node().encode() + os.getlogin().encode()
-    if hasattr(os, "getlogin") else b""
-).digest()[:32]
+_FILE_HMAC_SECRET = (
+    b"ctp-file-integrity-"
+    + hashlib.sha256(
+        platform.node().encode() + os.getlogin().encode() if hasattr(os, "getlogin") else b""
+    ).digest()[:32]
+)
 
 
 # ──────────────────────────────────────────────
 # Machine Fingerprint
 # ──────────────────────────────────────────────
+
 
 def get_machine_id() -> str:
     """Generate a machine-specific fingerprint.
@@ -176,10 +178,9 @@ def get_machine_id() -> str:
     if platform.system() == "Windows":
         try:
             import winreg
+
             key = winreg.OpenKey(
-                winreg.HKEY_LOCAL_MACHINE,
-                r"SOFTWARE\Microsoft\Cryptography",
-                0, winreg.KEY_READ
+                winreg.HKEY_LOCAL_MACHINE, r"SOFTWARE\Microsoft\Cryptography", 0, winreg.KEY_READ
             )
             guid, _ = winreg.QueryValueEx(key, "MachineGuid")
             components.append(guid)
@@ -200,9 +201,12 @@ def get_machine_id() -> str:
     if platform.system() == "Darwin":
         try:
             import subprocess
+
             result = subprocess.run(
                 ["ioreg", "-rd1", "-c", "IOPlatformExpertDevice"],
-                capture_output=True, text=True, timeout=5
+                capture_output=True,
+                text=True,
+                timeout=5,
             )
             for line in result.stdout.split("\n"):
                 if "IOPlatformUUID" in line:
@@ -220,7 +224,8 @@ def get_machine_id() -> str:
 # License Key Generation (requires private key)
 # ──────────────────────────────────────────────
 
-def _load_private_key() -> Optional[object]:
+
+def _load_private_key() -> object | None:
     """Load the RSA private key from the local file.
 
     This is only available on the license generation server.
@@ -235,6 +240,7 @@ def _load_private_key() -> Optional[object]:
 
     try:
         from cryptography.hazmat.primitives.serialization import load_pem_private_key
+
         pem_data = key_path.read_bytes()
         return load_pem_private_key(pem_data, password=None)
     except Exception:
@@ -275,8 +281,8 @@ def generate_license_key(
             "on the license server, not on client machines."
         )
 
-    from cryptography.hazmat.primitives.asymmetric import padding as asym_padding
     from cryptography.hazmat.primitives import hashes
+    from cryptography.hazmat.primitives.asymmetric import padding as asym_padding
 
     expiry = (datetime.now() + timedelta(days=days_valid)).strftime("%Y%m%d")
 
@@ -301,11 +307,7 @@ def generate_license_key(
     payload_b64 = base64.urlsafe_b64encode(payload_json.encode()).decode().rstrip("=")
 
     # RSA sign the payload
-    signature = private_key.sign(
-        payload_json.encode(),
-        asym_padding.PKCS1v15(),
-        hashes.SHA256()
-    )
+    signature = private_key.sign(payload_json.encode(), asym_padding.PKCS1v15(), hashes.SHA256())
     sig_b64 = base64.urlsafe_b64encode(signature).decode().rstrip("=")
 
     return f"{LICENSE_PREFIX}-{tier_code}-{payload_b64}.{sig_b64}"
@@ -315,7 +317,8 @@ def generate_license_key(
 # License Key Validation (public key only)
 # ──────────────────────────────────────────────
 
-def validate_license_key(key: str) -> tuple[bool, Optional[LicenseTier], str, dict]:
+
+def validate_license_key(key: str) -> tuple[bool, LicenseTier | None, str, dict]:
     """Validate a license key using RSA public key verification.
 
     This only requires the public key, which is embedded in the source.
@@ -384,16 +387,21 @@ def validate_license_key(key: str) -> tuple[bool, Optional[LicenseTier], str, di
     if bound_machine:
         current_machine = get_machine_id()
         if bound_machine != current_machine:
-            return False, None, (
-                "License is bound to a different machine. "
-                f"Expected: {bound_machine[:8]}..., Got: {current_machine[:8]}..."
-            ), payload
+            return (
+                False,
+                None,
+                (
+                    "License is bound to a different machine. "
+                    f"Expected: {bound_machine[:8]}..., Got: {current_machine[:8]}..."
+                ),
+                payload,
+            )
 
     # RSA signature verification
     try:
-        from cryptography.hazmat.primitives.serialization import load_pem_public_key
-        from cryptography.hazmat.primitives.asymmetric import padding as asym_padding
         from cryptography.hazmat.primitives import hashes
+        from cryptography.hazmat.primitives.asymmetric import padding as asym_padding
+        from cryptography.hazmat.primitives.serialization import load_pem_public_key
 
         public_key = load_pem_public_key(_RSA_PUBLIC_KEY_PEM.encode())
         # Reconstruct signature
@@ -404,17 +412,19 @@ def validate_license_key(key: str) -> tuple[bool, Optional[LicenseTier], str, di
 
         # Verify — this will raise InvalidSignature if the signature is wrong
         public_key.verify(
-            signature,
-            payload_json.encode(),
-            asym_padding.PKCS1v15(),
-            hashes.SHA256()
+            signature, payload_json.encode(), asym_padding.PKCS1v15(), hashes.SHA256()
         )
     except ImportError:
         # cryptography not installed — fall back to basic validation
         # This is acceptable for free tier but should warn
-        return True, tier_map[tier_code], (
-            "License validated (signature check skipped — install cryptography for full verification)"
-        ), payload
+        return (
+            True,
+            tier_map[tier_code],
+            (
+                "License validated (signature check skipped — install cryptography for full verification)"
+            ),
+            payload,
+        )
     except Exception as e:
         return False, None, f"License signature verification failed: {e}", payload
 
@@ -494,8 +504,9 @@ def load_license() -> LicenseInfo:
             return LicenseInfo(tier=LicenseTier.FREE)
 
         raw["tier"] = LicenseTier(raw.get("tier", "free"))
-        return LicenseInfo(**{k: v for k, v in raw.items()
-                              if k in LicenseInfo.__dataclass_fields__})
+        return LicenseInfo(
+            **{k: v for k, v in raw.items() if k in LicenseInfo.__dataclass_fields__}
+        )
     except (json.JSONDecodeError, KeyError, ValueError):
         return LicenseInfo(tier=LicenseTier.FREE)
 
@@ -534,8 +545,10 @@ def activate_license(key: str, holder: str = "", email: str = "") -> tuple[bool,
         issued_at=datetime.now().isoformat(),
         expires_at=datetime.strptime(expiry_str, "%Y%m%d").isoformat() if expiry_str else "",
         features=list(
-            ACADEMIC_FEATURES if tier in (LicenseTier.ACADEMIC, LicenseTier.TRIAL)
-            else COMMERCIAL_FEATURES if tier == LicenseTier.COMMERCIAL
+            ACADEMIC_FEATURES
+            if tier in (LicenseTier.ACADEMIC, LicenseTier.TRIAL)
+            else COMMERCIAL_FEATURES
+            if tier == LicenseTier.COMMERCIAL
             else FREE_FEATURES
         ),
         machine_id=machine_id or get_machine_id(),
@@ -558,7 +571,7 @@ def check_feature_access(feature: str) -> tuple[bool, str]:
     license_info = load_license()
 
     if license_info.is_expired():
-        return False, f"License expired. Renew at https://celltypepilot.io/license"
+        return False, "License expired. Renew at https://celltypepilot.io/license"
 
     if license_info.has_feature(feature):
         return True, f"Feature '{feature}' available ({license_info.tier.value} tier)"
@@ -584,6 +597,7 @@ def check_feature_access(feature: str) -> tuple[bool, str]:
 # Premium atlas gating
 # ──────────────────────────────────────────────
 
+
 def get_atlas_access(tissue: str) -> tuple[bool, str]:
     """Check if a tissue is accessible in the atlas.
 
@@ -600,8 +614,17 @@ def get_atlas_access(tissue: str) -> tuple[bool, str]:
 
     # Basic tissues available to all tiers
     basic_tissues = {
-        "blood", "lung", "liver", "brain", "kidney",
-        "gut", "skin", "heart", "pancreas", "muscle", "general"
+        "blood",
+        "lung",
+        "liver",
+        "brain",
+        "kidney",
+        "gut",
+        "skin",
+        "heart",
+        "pancreas",
+        "muscle",
+        "general",
     }
 
     if tissue in basic_tissues:

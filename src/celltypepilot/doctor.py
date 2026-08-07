@@ -46,6 +46,7 @@ def check_dependency(name: str, required: bool = True) -> DependencyStatus:
     try:
         try:
             from importlib.metadata import version as pkg_version
+
             version = pkg_version(name)
         except Exception:
             mod = importlib.import_module(name)
@@ -53,8 +54,10 @@ def check_dependency(name: str, required: bool = True) -> DependencyStatus:
         return DependencyStatus(name=name, installed=True, version=version, required=required)
     except ImportError:
         return DependencyStatus(
-            name=name, installed=False, required=required,
-            note="NOT INSTALLED" if required else "optional"
+            name=name,
+            installed=False,
+            required=required,
+            note="NOT INSTALLED" if required else "optional",
         )
 
 
@@ -69,8 +72,15 @@ def run_doctor() -> DoctorReport:
 
     # Core dependencies
     core_deps = [
-        "anndata", "scanpy", "numpy", "pandas", "scipy",
-        "matplotlib", "seaborn", "typer", "rich",
+        "anndata",
+        "scanpy",
+        "numpy",
+        "pandas",
+        "scipy",
+        "matplotlib",
+        "seaborn",
+        "typer",
+        "rich",
     ]
     for dep in core_deps:
         report.dependencies.append(check_dependency(dep, required=True))
@@ -98,6 +108,7 @@ def run_doctor() -> DoctorReport:
     # MCP / Literature integration check
     try:
         from .literature import check_mcp_availability
+
         report.mcp_status = check_mcp_availability()
     except Exception:
         report.mcp_status = {"pubmed_direct": False}
@@ -113,8 +124,7 @@ def run_doctor() -> DoctorReport:
         missing = [d.name for d in report.dependencies if not d.installed]
         report.capabilities["tier"] = "degraded"
         report.capabilities["description"] = (
-            f"Missing core dependencies: {', '.join(missing)}. "
-            f"Run: pip install celltypepilot"
+            f"Missing core dependencies: {', '.join(missing)}. Run: pip install celltypepilot"
         )
 
     return report
@@ -140,11 +150,14 @@ def format_doctor_report(report: DoctorReport) -> str:
     table.add_column("Version", style="dim")
 
     for dep in report.dependencies:
-        status_str = f"[green]OK {dep.version}[/green]" if dep.installed else "[red]X NOT INSTALLED[/red]"
+        status_str = (
+            f"[green]OK {dep.version}[/green]" if dep.installed else "[red]X NOT INSTALLED[/red]"
+        )
         table.add_row(dep.name, status_str, dep.version if dep.installed else "")
 
     # Use rich to render
     from io import StringIO
+
     str_io = StringIO()
     temp_console = Console(file=str_io, force_terminal=False)
     temp_console.print(table)
@@ -180,7 +193,9 @@ def format_doctor_report(report: DoctorReport) -> str:
         lines.append("")
         lines.append("MCP / Literature Integration:")
         for tool, available in report.mcp_status.items():
-            status_str = "[green]available[/green]" if available else "[yellow]not available[/yellow]"
+            status_str = (
+                "[green]available[/green]" if available else "[yellow]not available[/yellow]"
+            )
             lines.append(f"  {tool}: {status_str}")
         if not any(report.mcp_status.values()):
             lines.append("  (Literature search requires network access to PubMed)")
@@ -188,10 +203,16 @@ def format_doctor_report(report: DoctorReport) -> str:
     # License status
     try:
         from .license_manager import load_license
+
         lic = load_license()
         lines.append("")
         lines.append("License:")
-        tier_color = {"free": "yellow", "academic": "green", "commercial": "green", "trial": "yellow"}
+        tier_color = {
+            "free": "yellow",
+            "academic": "green",
+            "commercial": "green",
+            "trial": "yellow",
+        }
         color = tier_color.get(lic.tier.value, "white")
         lines.append(f"  Tier: [{color}]{lic.tier.value}[/{color}]")
         if lic.holder:

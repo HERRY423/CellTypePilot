@@ -1,20 +1,19 @@
 """Tests for the visualizer module — figure generation and output."""
 
-import tempfile
 from pathlib import Path
 
-import numpy as np
-import pandas as pd
 import matplotlib
+import pandas as pd
+
 matplotlib.use("Agg")
 
 from celltypepilot.visualizer import (
-    generate_all_figures,
-    plot_umap_clusters,
-    plot_umap_celltype,
-    plot_umap_confidence,
-    plot_confidence_bar,
     _generate_colors,
+    generate_all_figures,
+    plot_confidence_bar,
+    plot_umap_celltype,
+    plot_umap_clusters,
+    plot_umap_confidence,
 )
 
 
@@ -40,17 +39,13 @@ class TestGenerateColors:
 
 class TestPlotUmapClusters:
     def test_basic_plot(self, synthetic_pbmc, tmp_output_dir):
-        path = plot_umap_clusters(
-            synthetic_pbmc, "leiden", "X_umap", tmp_output_dir
-        )
+        path = plot_umap_clusters(synthetic_pbmc, "leiden", "X_umap", tmp_output_dir)
         assert path is not None
         assert Path(path).exists()
         assert Path(path).stat().st_size > 0
 
     def test_missing_embedding_returns_none(self, synthetic_pbmc, tmp_output_dir):
-        path = plot_umap_clusters(
-            synthetic_pbmc, "leiden", "X_nonexistent", tmp_output_dir
-        )
+        path = plot_umap_clusters(synthetic_pbmc, "leiden", "X_nonexistent", tmp_output_dir)
         assert path is None
 
 
@@ -78,14 +73,14 @@ class TestPlotUmapConfidence:
         assert Path(path).exists()
 
     def test_with_mixed_confidence(self, synthetic_pbmc, tmp_output_dir):
-        annotations = pd.DataFrame({
-            "cluster": ["0", "1", "2", "3"],
-            "cell_type": ["T cell", "B cell", "NK cell", "Monocyte"],
-            "critic_confidence": ["high", "medium", "low", "needs_review"],
-        })
-        path = plot_umap_confidence(
-            synthetic_pbmc, annotations, "leiden", "X_umap", tmp_output_dir
+        annotations = pd.DataFrame(
+            {
+                "cluster": ["0", "1", "2", "3"],
+                "cell_type": ["T cell", "B cell", "NK cell", "Monocyte"],
+                "critic_confidence": ["high", "medium", "low", "needs_review"],
+            }
         )
+        path = plot_umap_confidence(synthetic_pbmc, annotations, "leiden", "X_umap", tmp_output_dir)
         assert path is not None
 
 
@@ -104,8 +99,7 @@ class TestPlotConfidenceBar:
 class TestGenerateAllFigures:
     def test_generates_figures(self, synthetic_pbmc, sample_critic_results, tmp_output_dir):
         paths = generate_all_figures(
-            synthetic_pbmc, "leiden", "X_umap",
-            sample_critic_results, tmp_output_dir, "blood"
+            synthetic_pbmc, "leiden", "X_umap", sample_critic_results, tmp_output_dir, "blood"
         )
         assert len(paths) >= 2  # At least umap_clusters + confidence bar
         for p in paths:
@@ -113,8 +107,7 @@ class TestGenerateAllFigures:
 
     def test_no_embedding_key(self, synthetic_pbmc, sample_critic_results, tmp_output_dir):
         paths = generate_all_figures(
-            synthetic_pbmc, "leiden", "X_missing",
-            sample_critic_results, tmp_output_dir, "blood"
+            synthetic_pbmc, "leiden", "X_missing", sample_critic_results, tmp_output_dir, "blood"
         )
         # Should still generate confidence bar
         assert isinstance(paths, list)

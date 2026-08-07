@@ -6,15 +6,15 @@ from pathlib import Path
 import pandas as pd
 
 from celltypepilot.reporter import (
-    save_evidence_table,
+    _html_annotation_table,
+    _html_critic_details,
+    _html_figures,
+    _html_footer,
+    _html_header,
+    _html_overview,
     generate_html_report,
     generate_methodology_text,
-    _html_header,
-    _html_footer,
-    _html_overview,
-    _html_annotation_table,
-    _html_figures,
-    _html_critic_details,
+    save_evidence_table,
 )
 
 
@@ -66,8 +66,8 @@ class TestHtmlComponents:
         }
         html = _html_overview(manifest, critic_summary)
         assert "10" in html  # total clusters
-        assert "8" in html   # passed
-        assert "2" in html   # flagged
+        assert "8" in html  # passed
+        assert "2" in html  # flagged
         assert "human" in html
         assert "blood" in html
 
@@ -92,16 +92,18 @@ class TestHtmlComponents:
         assert "All clusters passed" in html
 
     def test_html_critic_details_with_flags(self):
-        results = pd.DataFrame({
-            "cluster": ["0", "1"],
-            "cell_type": ["T cell", "B cell"],
-            "cl_id": ["CL:001", ""],
-            "combined_score": [0.8, 0.3],
-            "critic_flags": ["PASS", "LOW_EVIDENCE"],
-            "critic_evidence": ["Good", "Weak"],
-            "critic_confidence": ["high", "needs_review"],
-            "critic_notes": ["", "Review needed"],
-        })
+        results = pd.DataFrame(
+            {
+                "cluster": ["0", "1"],
+                "cell_type": ["T cell", "B cell"],
+                "cl_id": ["CL:001", ""],
+                "combined_score": [0.8, 0.3],
+                "critic_flags": ["PASS", "LOW_EVIDENCE"],
+                "critic_evidence": ["Good", "Weak"],
+                "critic_confidence": ["high", "needs_review"],
+                "critic_notes": ["", "Review needed"],
+            }
+        )
         html = _html_critic_details(results)
         assert "Flagged" in html
         assert "LOW_EVIDENCE" in html
@@ -123,8 +125,12 @@ class TestGenerateHtmlReport:
             "confidence_distribution": {"high": len(sample_critic_results)},
         }
         path = generate_html_report(
-            sample_critic_results, sample_critic_results,
-            critic_summary, manifest, [], tmp_output_dir,
+            sample_critic_results,
+            sample_critic_results,
+            critic_summary,
+            manifest,
+            [],
+            tmp_output_dir,
         )
         assert path.exists()
         content = path.read_text(encoding="utf-8")

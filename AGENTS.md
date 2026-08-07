@@ -202,13 +202,18 @@ celltypepilot/
 ├── rules/                       # Claude Code behavior rules
 ├── .mcp.json                    # MCP servers (PubMed, bioRxiv)
 ├── src/celltypepilot/           # Python package (shared backend)
-│   ├── cli.py                   # CLI entry point (9 commands)
-│   ├── data_adapter.py          # h5ad loading, species/tissue detection
+│   ├── cli.py                   # CLI entry point (thin layer, delegates to orchestrator)
+│   ├── orchestrator.py          # Pipeline business logic (shared by CLI & Web Inspector)
+│   ├── data_adapter.py          # h5ad loading, robust species/tissue detection
 │   ├── seurat_adapter.py        # Seurat .rds → AnnData conversion
+│   ├── constants.py             # Thresholds, species/tissue constants
 │   ├── data/
 │   │   ├── marker_atlas.json    # Built-in marker knowledge graph (80+ types)
 │   │   └── premium_atlas.json   # Premium atlas (tumor, brain, immune)
+│   ├── templates/               # Jinja2 templates (HTML report, web dashboard)
 │   ├── marker_scorer.py         # DE + marker overlap scoring
+│   ├── reference_scorer.py      # Reference embedding scoring (4 backends)
+│   ├── ensemble_scorer.py       # Adaptive ensemble fusion
 │   ├── critic.py                # Annotation Critic review
 │   ├── visualizer.py            # UMAP, dotplot, confidence figures
 │   ├── web_inspector.py         # Flask web review panel
@@ -217,5 +222,5 @@ celltypepilot/
 │   ├── provenance.py            # manifest.json generation
 │   ├── reporter.py              # HTML report + methodology text
 │   └── doctor.py                # Environment check
-└── tests/                       # 18 smoke tests
+└── tests/                       # 266 tests (~75% coverage)
 ```

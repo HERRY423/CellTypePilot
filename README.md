@@ -1,5 +1,11 @@
 # CellTypePilot
 
+[![CI](https://github.com/HERRY423/CellTypePilot/actions/workflows/ci.yml/badge.svg)](https://github.com/HERRY423/CellTypePilot/actions/workflows/ci.yml)
+![Tests](https://img.shields.io/badge/tests-266%20passed-brightgreen)
+![Coverage](https://img.shields.io/badge/coverage-75%25-blue)
+![Python](https://img.shields.io/badge/python-3.10%20%7C%203.11%20%7C%203.12-blue)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+
 > **Single-cell annotation trust layer that parasitizes on your existing coding agent.**
 > For individual researchers and small labs — no standalone app, no heavy infrastructure.
 
@@ -25,6 +31,7 @@ painful — not because the algorithms don't exist, but because:
 | **Rare / transitional states forced into a label** | Reference embedding mapping captures continuous trajectories; critic flags doublet signals and transitional states instead of silently assigning a wrong label |
 | **Token cost spirals** | Deterministic marker scoring is free (Tier 0); expensive multi-model consensus only triggers for genuinely ambiguous clusters (Tier 1) |
 | **Results unreproducible** | `manifest.json` records knowledge graph version, parameters, data hash, and output hashes for every run |
+| **Metadata is messy** (Ensembl IDs, mixed gene naming, non-standard tissue columns) | Robust auto-detection: Ensembl prefix voting across 9 species, gene-symbol convention fallback, case-insensitive tissue matching with synonym groups |
 
 ## What you get
 
@@ -55,7 +62,7 @@ pip install -e .
 # 2. Environment check — tells you what works and what's missing
 celltypepilot doctor
 
-# 3. Inspect your data — auto-detects species, tissue, clusters, embeddings
+# 3. Inspect your data — robustly auto-detects species, tissue, clusters, embeddings
 celltypepilot inspect --input data.h5ad
 
 # 4. Annotate — full pipeline in one command
@@ -84,6 +91,32 @@ celltypepilot convert-rds --input data.rds --output data.h5ad
 Or just tell your agent: *"annotate my clusters in data.h5ad"* — the plugin instructions
 guide Claude Code / Codex through the full workflow automatically.
 
+## Robust automatic detection
+
+Real-world datasets are messy. CellTypePilot's inspection layer is built to handle it:
+
+**Species detection** — multi-signal voting, not brittle pattern matching:
+
+| Signal | How it works |
+|---|---|
+| Ensembl ID prefixes | Longest-prefix voting over 9 species: `ENS` (human), `ENSMUS` (mouse), `ENSRNO` (rat), `ENSDAR` (zebrafish), `ENSGAL` (chicken), `ENSSSC` (pig), `ENSBTA` (cow), `ENSMMU` (macaque), `ENSCFA` (dog) |
+| Gene symbol conventions | ALL-CAPS (e.g. `CD3E`, `S100A8`) → human; capitalized (e.g. `Cd3e`) → mouse — robust to symbols containing digits |
+| Mixed naming | Per-gene voting with clear majority rule; ambiguous data defaults safely and is reported, never silently mislabeled |
+| Explicit override | `--species human\|mouse` always wins |
+
+**Tissue detection** — case-insensitive matching over `obs` metadata with synonym groups
+(e.g. `pbmc` / `peripheral blood` / `blood` all resolve to the blood atlas), so columns
+named `Tissue`, `tissue_type`, or `organ` all work. `--tissue` overrides when needed.
+
+**Orchestrator architecture** — pipeline business logic (loading, scoring coordination,
+override application, progress reporting) lives in a dedicated `orchestrator` module,
+shared by both the CLI and the Web Inspector. The CLI only parses arguments and renders
+output — no duplicated pipeline code.
+
+**Templates, not hardcoded HTML** — the HTML report and Web Inspector dashboard are
+rendered from Jinja2 templates (`src/celltypepilot/templates/`), keeping markup, JS,
+and CSS cleanly separated from Python logic.
+
 ## Plugin architecture
 
 CellTypePilot **parasitizes** on the coding agent you already use. It does not ask you to
@@ -111,6 +144,7 @@ switch to a new app, learn a new UI, or configure a new environment.
 │  │  Python backend (src/celltypepilot/)                             ││
 │  │    doctor          Environment gate — what can run, what can't   ││
 │  │    inspect         Data intelligence — species, tissue, keys     ││
+│  │    orchestrator    Pipeline logic shared by CLI & Web Inspector  ││
 │  │    annotate        Full pipeline:                                ││
 │  │      ├─ Data Adapter         Load .h5ad/.rds, detect, validate   ││
 │  │      ├─ Marker Knowledge Graph  80+ cell types, 11 tissues       ││
@@ -118,9 +152,9 @@ switch to a new app, learn a new UI, or configure a new environment.
 │  │      ├─ Reference Scorer     CellTypist/scANVI/KNN/Correlation   ││
 │  │      ├─ Ensemble Scorer      Adaptive fusion + disagreement      ││
 │  │      ├─ Annotation Critic    Independent evidence review         ││
-│  │      ├─ Web Inspector        Flask interactive review panel      ││
+│  │      ├─ Web Inspector        Flask review panel (Jinja2 templates)││
 │  │      ├─ Visualizer           UMAP, dotplot, confidence (Wong)    ││
-│  │      ├─ Reporter             HTML report + methods paragraph     ││
+│  │      ├─ Reporter             Jinja2 HTML report + methods text   ││
 │  │      ├─ Literature           PubMed validation (optional MCP)    ││
 │  │      ├─ License Manager      RSA-2048 signed, machine-bound      ││
 │  │      └─ Provenance           manifest.json versioning            ││
@@ -185,8 +219,18 @@ CellTypePilot/
 ├── .mcp.json                     ← MCP servers (PubMed, bioRxiv)
 ├── AGENTS.md                     ← Codex agent instructions
 ├── src/celltypepilot/            ← Python backend (shared by all platforms)
-└── tests/                        ← 31 tests (all passing)
+│   ├── orchestrator.py           ← Pipeline business logic (CLI + Web Inspector)
+│   ├── templates/                ← Jinja2 templates (HTML report, dashboard)
+│   ├── data/                     ← Marker knowledge graph + premium atlas
+│   └── ...                       ← Scorers, critic, visualizer, reporter, etc.
+├── tests/                        ← 266 tests (all passing, ~75% coverage)
+└── .github/workflows/            ← CI: ruff lint/format + test matrix (3.10–3.12)
 ```
+
+### Continuous integration
+
+Every push runs GitHub Actions CI: `ruff check` + `ruff format --check` for code quality,
+then the full test suite across Python 3.10 / 3.11 / 3.12 with coverage reporting.
 
 ## Built-in Marker Knowledge Graph
 
@@ -280,6 +324,7 @@ something worth your attention.
 - [x] **Phase 2** — Dual-platform plugin (Claude Code `.claude-plugin/` + Codex `.codex-plugin/`), slash commands, sub-agents, hooks, rules, MCP integration
 - [x] **Phase 3** — Web Inspector (Flask interactive panel), Seurat .rds adapter, tiered license system (free/academic/commercial), premium atlas (tumor/brain/immune)
 - [x] **Phase 4** — Reference Embedding + Ensemble fusion (CellTypist / scANVI / KNN / Correlation backends), adaptive weighting, transitional state detection, ensemble-aware critic, RSA-2048 license security, sparse-preserving Seurat conversion, Web Inspector override API
+- [x] **Architecture hardening** — Orchestrator layer (pipeline logic extracted from CLI), Jinja2 templates (HTML/JS out of Python), robust multi-species Ensembl detection (9 species), synonym-based tissue detection, 266 tests at ~75% coverage, GitHub Actions CI (ruff + Python 3.10–3.12 matrix)
 - [ ] **Phase 5** — Tiered consensus orchestrator (Tier 0 → Tier 1 adaptive upgrade), docx/pptx submission package, extended atlas subscription, team sharing, rare cell type mining
 
 ## License

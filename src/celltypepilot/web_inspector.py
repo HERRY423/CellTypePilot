@@ -17,9 +17,8 @@ import importlib.resources
 import json
 from datetime import datetime
 from pathlib import Path
-from typing import Optional
 
-from flask import Flask, render_template, jsonify, request
+from flask import Flask, jsonify, render_template, request
 
 from . import __version__
 
@@ -34,7 +33,7 @@ app = Flask(
 )
 
 # Global state — set by `celltypepilot inspect-web`
-_output_dir: Optional[Path] = None
+_output_dir: Path | None = None
 _adata_cache = None
 _evidence_cache = None
 
@@ -48,8 +47,8 @@ def _load_data():
     if _adata_cache is not None:
         return _adata_cache, _evidence_cache
 
-    import scanpy as sc
     import pandas as pd
+    import scanpy as sc
 
     adata_path = _output_dir / "data.annotated.h5ad"
     evidence_path = _output_dir / "evidence_table.csv"
@@ -59,10 +58,7 @@ def _load_data():
 
     _adata_cache = sc.read_h5ad(adata_path)
 
-    if evidence_path.exists():
-        _evidence_cache = pd.read_csv(evidence_path)
-    else:
-        _evidence_cache = pd.DataFrame()
+    _evidence_cache = pd.read_csv(evidence_path) if evidence_path.exists() else pd.DataFrame()
 
     # Load any existing overrides from disk
     _load_overrides_from_disk()
@@ -117,6 +113,7 @@ def _apply_overrides_to_h5ad() -> dict:
 # Routes
 # ──────────────────────────────────────────────
 
+
 @app.route("/")
 def dashboard():
     """Main dashboard."""
@@ -126,10 +123,18 @@ def dashboard():
     obs = adata.obs
     stats = {
         "total_clusters": obs["ctp_cl_id"].nunique() if "ctp_cl_id" in obs.columns else 0,
-        "high": int((obs["ctp_confidence"] == "high").sum()) if "ctp_confidence" in obs.columns else 0,
-        "medium": int((obs["ctp_confidence"] == "medium").sum()) if "ctp_confidence" in obs.columns else 0,
-        "low": int((obs["ctp_confidence"] == "low").sum()) if "ctp_confidence" in obs.columns else 0,
-        "needs_review": int((obs["ctp_confidence"] == "needs_review").sum()) if "ctp_confidence" in obs.columns else 0,
+        "high": int((obs["ctp_confidence"] == "high").sum())
+        if "ctp_confidence" in obs.columns
+        else 0,
+        "medium": int((obs["ctp_confidence"] == "medium").sum())
+        if "ctp_confidence" in obs.columns
+        else 0,
+        "low": int((obs["ctp_confidence"] == "low").sum())
+        if "ctp_confidence" in obs.columns
+        else 0,
+        "needs_review": int((obs["ctp_confidence"] == "needs_review").sum())
+        if "ctp_confidence" in obs.columns
+        else 0,
         "flagged": 0,
     }
 
@@ -144,15 +149,17 @@ def dashboard():
             if flags != "PASS":
                 stats["flagged"] += 1
 
-            annotations.append({
-                "cluster": cluster,
-                "cell_type": row.get("cell_type", "Unknown"),
-                "cl_id": row.get("cl_id", ""),
-                "score": float(row.get("combined_score", 0)),
-                "confidence": row.get("critic_confidence", "unknown"),
-                "flags": flags,
-                "n_cells": int(row.get("n_cells", 0)),
-            })
+            annotations.append(
+                {
+                    "cluster": cluster,
+                    "cell_type": row.get("cell_type", "Unknown"),
+                    "cl_id": row.get("cl_id", ""),
+                    "score": float(row.get("combined_score", 0)),
+                    "confidence": row.get("critic_confidence", "unknown"),
+                    "flags": flags,
+                    "n_cells": int(row.get("n_cells", 0)),
+                }
+            )
 
             evidence_dict[str(cluster)] = {
                 "cell_type": row.get("cell_type", ""),
@@ -202,6 +209,7 @@ def api_stats():
 # Override API Routes
 # ──────────────────────────────────────────────
 
+
 @app.route("/api/overrides", methods=["GET"])
 def api_get_overrides():
     """Get all current overrides."""
@@ -238,12 +246,14 @@ def api_add_override():
     # Persist to disk immediately
     _save_overrides_to_disk()
 
-    return jsonify({
-        "ok": True,
-        "cluster": cluster,
-        "new_type": new_type,
-        "total_overrides": len(_overrides),
-    })
+    return jsonify(
+        {
+            "ok": True,
+            "cluster": cluster,
+            "new_type": new_type,
+            "total_overrides": len(_overrides),
+        }
+    )
 
 
 @app.route("/api/override/<cluster_id>", methods=["DELETE"])
@@ -300,9 +310,9 @@ def run_inspector(output_dir: str | Path, host: str = "127.0.0.1", port: int = 8
     if not (_output_dir / "data.annotated.h5ad").exists():
         raise FileNotFoundError(f"No annotated data found in {_output_dir}")
 
-    print(f"CellTypePilot Web Inspector")
+    print("CellTypePilot Web Inspector")
     print(f"  Output dir: {_output_dir}")
     print(f"  URL: http://{host}:{port}")
-    print(f"  Press Ctrl+C to stop\n")
+    print("  Press Ctrl+C to stop\n")
 
     app.run(host=host, port=port, debug=False)

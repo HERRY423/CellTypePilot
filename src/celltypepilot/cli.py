@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
-from typing import Optional
 
 import typer
 from rich.console import Console
@@ -28,8 +27,12 @@ def version_callback(value: bool):
 @app.callback()
 def main(
     version: bool = typer.Option(
-        False, "--version", "-v", callback=version_callback,
-        is_eager=True, help="Show version and exit.",
+        False,
+        "--version",
+        "-v",
+        callback=version_callback,
+        is_eager=True,
+        help="Show version and exit.",
     ),
 ):
     """CellTypePilot — Single-cell annotation intelligence layer."""
@@ -43,6 +46,7 @@ def main(
 def doctor():
     """Check environment: Python version, dependencies, capability level."""
     from .doctor import print_doctor
+
     print_doctor()
 
 
@@ -52,12 +56,14 @@ def doctor():
 @app.command()
 def inspect(
     input: str = typer.Option(..., "--input", "-i", help="Path to .h5ad file"),
-    cluster_key: Optional[str] = typer.Option(None, "--cluster-key", "-k", help="Cluster key in obs"),
-    embedding_key: Optional[str] = typer.Option(None, "--embedding-key", "-e", help="Embedding key in obsm"),
+    cluster_key: str | None = typer.Option(None, "--cluster-key", "-k", help="Cluster key in obs"),
+    embedding_key: str | None = typer.Option(
+        None, "--embedding-key", "-e", help="Embedding key in obsm"
+    ),
     json_output: bool = typer.Option(False, "--json", help="Output as JSON"),
 ):
     """Inspect an h5ad file: detect species, tissue, clusters, embeddings, layers."""
-    from .data_adapter import inspect_adata, format_inspect_report
+    from .data_adapter import format_inspect_report, inspect_adata
 
     report = inspect_adata(input, cluster_key, embedding_key)
 
@@ -75,15 +81,23 @@ def annotate(
     input: str = typer.Option(..., "--input", "-i", help="Path to .h5ad file"),
     cluster_key: str = typer.Option(..., "--cluster-key", "-k", help="Cluster key in obs"),
     output_dir: str = typer.Option(".", "--output", "-o", help="Output directory"),
-    species: Optional[str] = typer.Option(None, "--species", "-s", help="Species: human/mouse (auto-detect if omitted)"),
-    tissue: Optional[str] = typer.Option(None, "--tissue", "-t", help="Tissue context (e.g., blood, lung, brain)"),
-    embedding_key: Optional[str] = typer.Option(None, "--embedding-key", "-e", help="Embedding key in obsm"),
-    layer: Optional[str] = typer.Option(None, "--layer", help="Layer to use for expression (default: X)"),
+    species: str | None = typer.Option(
+        None, "--species", "-s", help="Species: human/mouse (auto-detect if omitted)"
+    ),
+    tissue: str | None = typer.Option(
+        None, "--tissue", "-t", help="Tissue context (e.g., blood, lung, brain)"
+    ),
+    embedding_key: str | None = typer.Option(
+        None, "--embedding-key", "-e", help="Embedding key in obsm"
+    ),
+    layer: str | None = typer.Option(
+        None, "--layer", help="Layer to use for expression (default: X)"
+    ),
     json_output: bool = typer.Option(False, "--json", help="Output results as JSON"),
     no_figures: bool = typer.Option(False, "--no-figures", help="Skip figure generation"),
 ):
     """Run the full annotation pipeline: marker scoring → critic → report."""
-    from .orchestrator import run_annotation_pipeline, PipelineError
+    from .orchestrator import PipelineError, run_annotation_pipeline
 
     def _progress(step: int, total: int, message: str):
         console.print(f"[bold blue]Step {step}/{total}:[/bold blue] {message}")
@@ -102,7 +116,7 @@ def annotate(
         )
     except PipelineError as e:
         console.print(f"[red]Error: {e}[/red]")
-        raise typer.Exit(1)
+        raise typer.Exit(1) from e
 
     critic_summary = result["critic_summary"]
     console.print(f"  Detected species: [cyan]{result['species']}[/cyan]")
@@ -112,8 +126,10 @@ def annotate(
     else:
         console.print("[yellow]  No embedding found. Figures were skipped.[/yellow]")
     console.print(f"  Annotated {len(result['critic_results'])} clusters")
-    console.print(f"  Passed: [green]{critic_summary['pass']}[/green] | "
-                  f"Flagged: [red]{critic_summary['flagged']}[/red]")
+    console.print(
+        f"  Passed: [green]{critic_summary['pass']}[/green] | "
+        f"Flagged: [red]{critic_summary['flagged']}[/red]"
+    )
     console.print(f"  Generated {len(result['figure_paths'])} figures")
     for label, path in result["paths"].items():
         console.print(f"  {label.replace('_', ' ').title()}: {path}")
@@ -139,13 +155,13 @@ def critic(
     input: str = typer.Option(..., "--input", "-i", help="Path to .h5ad file"),
     cluster_key: str = typer.Option(..., "--cluster-key", "-k", help="Cluster key in obs"),
     focus: str = typer.Option(..., "--focus", "-f", help="Cluster ID to deep-review"),
-    species: Optional[str] = typer.Option(None, "--species", "-s", help="Species"),
-    tissue: Optional[str] = typer.Option(None, "--tissue", "-t", help="Tissue context"),
+    species: str | None = typer.Option(None, "--species", "-s", help="Species"),
+    tissue: str | None = typer.Option(None, "--tissue", "-t", help="Tissue context"),
 ):
     """Deep-review a specific cluster flagged by the critic."""
-    from .data_adapter import load_h5ad, detect_species, detect_tissue, load_marker_atlas
-    from .marker_scorer import compute_marker_scores, generate_annotation_summary
     from .critic import run_critic
+    from .data_adapter import detect_species, detect_tissue, load_h5ad, load_marker_atlas
+    from .marker_scorer import compute_marker_scores, generate_annotation_summary
 
     adata = load_h5ad(input)
     if species is None:
@@ -155,6 +171,7 @@ def critic(
 
     atlas = load_marker_atlas(species)
     from .data_adapter import get_all_markers_for_tissue
+
     markers = get_all_markers_for_tissue(atlas, tissue)
 
     scores = compute_marker_scores(adata, cluster_key, markers)
@@ -183,8 +200,10 @@ def critic(
     console.print(f"\n[bold]Top 5 Candidates for Cluster {focus}:[/bold]")
     cluster_scores = scores[scores["cluster"] == focus].head(5)
     for _, row in cluster_scores.iterrows():
-        console.print(f"  #{int(row['rank'])} {row['cell_type']} (score={row['combined_score']:.3f}, "
-                      f"overlap={row['pct_overlap']:.0%}, neg_conflict={row['neg_conflict']:.0%})")
+        console.print(
+            f"  #{int(row['rank'])} {row['cell_type']} (score={row['combined_score']:.3f}, "
+            f"overlap={row['pct_overlap']:.0%}, neg_conflict={row['neg_conflict']:.0%})"
+        )
 
 
 # ──────────────────────────────────────────────
@@ -192,12 +211,12 @@ def critic(
 # ──────────────────────────────────────────────
 @app.command()
 def markers(
-    tissue: Optional[str] = typer.Option(None, "--tissue", "-t", help="Tissue to list markers for"),
+    tissue: str | None = typer.Option(None, "--tissue", "-t", help="Tissue to list markers for"),
     species: str = typer.Option("human", "--species", "-s", help="Species: human/mouse"),
     json_output: bool = typer.Option(False, "--json", help="Output as JSON"),
 ):
     """List available cell types and markers in the knowledge graph."""
-    from .data_adapter import load_marker_atlas, get_all_markers_for_tissue
+    from .data_adapter import get_all_markers_for_tissue, load_marker_atlas
 
     atlas = load_marker_atlas(species)
     available_tissues = list(atlas.get("tissues", {}).keys())
@@ -236,28 +255,33 @@ def markers(
 @app.command()
 def literature(
     cell_type: str = typer.Option(..., "--cell-type", "-c", help="Cell type to search"),
-    markers: Optional[str] = typer.Option(None, "--markers", "-m", help="Comma-separated marker genes"),
+    markers: str | None = typer.Option(
+        None, "--markers", "-m", help="Comma-separated marker genes"
+    ),
     max_refs: int = typer.Option(5, "--max-refs", help="Max references per query"),
     json_output: bool = typer.Option(False, "--json", help="Output as JSON"),
 ):
     """Search literature for marker validation (PubMed/bioRxiv)."""
     from .literature import (
-        validate_marker_in_literature,
-        validate_annotation_with_literature,
         check_mcp_availability,
         generate_mcp_search_queries,
+        validate_annotation_with_literature,
     )
 
     # Check MCP availability
     mcp_status = check_mcp_availability()
     if not mcp_status.get("pubmed_direct"):
-        console.print("[yellow]Warning: PubMed direct access not available. Check network.[/yellow]")
+        console.print(
+            "[yellow]Warning: PubMed direct access not available. Check network.[/yellow]"
+        )
 
     marker_list = [m.strip() for m in markers.split(",")] if markers else []
 
     if marker_list:
         # Validate specific markers for a cell type
-        results = validate_annotation_with_literature(cell_type, marker_list, max_refs_per_marker=max_refs)
+        results = validate_annotation_with_literature(
+            cell_type, marker_list, max_refs_per_marker=max_refs
+        )
 
         if json_output:
             console.print(json.dumps(results, indent=2))
@@ -269,10 +293,14 @@ def literature(
             console.print(f"  Assessment: {results['overall_assessment']}\n")
 
             for ev in results.get("positive_evidence", []):
-                status = "[green]OK[/green]" if ev["consensus"] == "supported" else "[yellow]?[/yellow]"
+                status = (
+                    "[green]OK[/green]" if ev["consensus"] == "supported" else "[yellow]?[/yellow]"
+                )
                 console.print(f"  {status} {ev['gene']}: {ev['total_refs']} refs")
                 for hit in ev.get("top_hits", []):
-                    console.print(f"      - {hit['authors']} ({hit['year']}). {hit['title'][:60]}...")
+                    console.print(
+                        f"      - {hit['authors']} ({hit['year']}). {hit['title'][:60]}..."
+                    )
     else:
         # Generate search queries for manual MCP use
         queries = generate_mcp_search_queries(cell_type, [])
@@ -282,7 +310,7 @@ def literature(
             console.print(f"\n[bold]Suggested search queries for '{cell_type}':[/bold]\n")
             for i, q in enumerate(queries, 1):
                 console.print(f"  {i}. {q}")
-            console.print(f"\n[bold]MCP Status:[/bold]")
+            console.print("\n[bold]MCP Status:[/bold]")
             for tool, available in mcp_status.items():
                 status = "[green]available[/green]" if available else "[red]not available[/red]"
                 console.print(f"  {tool}: {status}")
@@ -294,7 +322,9 @@ def literature(
 @app.command()
 def inspect_web(
     output_dir: Path = typer.Option(
-        "./ctp_output", "--output", "-o",
+        "./ctp_output",
+        "--output",
+        "-o",
         help="Path to CellTypePilot output directory",
     ),
     host: str = typer.Option("127.0.0.1", "--host", help="Host to bind to"),
@@ -308,7 +338,7 @@ def inspect_web(
         console.print("Run 'celltypepilot annotate' first to generate output.")
         raise typer.Exit(1)
 
-    console.print(f"[bold]Launching Web Inspector...[/bold]")
+    console.print("[bold]Launching Web Inspector...[/bold]")
     console.print(f"  Output dir: {output_dir}")
     console.print(f"  URL: http://{host}:{port}")
     console.print()
@@ -319,7 +349,7 @@ def inspect_web(
         console.print("\n[yellow]Web Inspector stopped.[/yellow]")
     except Exception as e:
         console.print(f"[red]Error: {e}[/red]")
-        raise typer.Exit(1)
+        raise typer.Exit(1) from e
 
 
 # ──────────────────────────────────────────────
@@ -328,10 +358,10 @@ def inspect_web(
 @app.command()
 def convert_rds(
     input_rds: Path = typer.Option(..., "--input", "-i", help="Path to Seurat .rds file"),
-    output_h5ad: Optional[Path] = typer.Option(None, "--output", "-o", help="Output .h5ad path"),
+    output_h5ad: Path | None = typer.Option(None, "--output", "-o", help="Output .h5ad path"),
 ):
     """Convert Seurat .rds to .h5ad for CellTypePilot annotation."""
-    from .seurat_adapter import seurat_to_h5ad, check_seurat_support
+    from .seurat_adapter import check_seurat_support, seurat_to_h5ad
 
     # Check support
     support = check_seurat_support()
@@ -345,7 +375,7 @@ def convert_rds(
     if output_h5ad is None:
         output_h5ad = input_rds.with_suffix(".h5ad")
 
-    console.print(f"[bold]Converting Seurat .rds to .h5ad...[/bold]")
+    console.print("[bold]Converting Seurat .rds to .h5ad...[/bold]")
     console.print(f"  Input:  {input_rds}")
     console.print(f"  Output: {output_h5ad}")
 
@@ -355,7 +385,7 @@ def convert_rds(
         console.print(f"\nNow run: celltypepilot annotate --input {result_path}")
     except Exception as e:
         console.print(f"[red]Conversion failed: {e}[/red]")
-        raise typer.Exit(1)
+        raise typer.Exit(1) from e
 
 
 # ──────────────────────────────────────────────
@@ -364,15 +394,21 @@ def convert_rds(
 @app.command()
 def apply_overrides(
     output_dir: Path = typer.Option(
-        "./ctp_output", "--output", "-o",
+        "./ctp_output",
+        "--output",
+        "-o",
         help="CellTypePilot output directory containing data.annotated.h5ad",
     ),
     overrides_file: Path = typer.Option(
-        ..., "--overrides", "-f",
+        ...,
+        "--overrides",
+        "-f",
         help="Path to annotation_overrides.json",
     ),
     regenerate: bool = typer.Option(
-        False, "--regenerate", "-r",
+        False,
+        "--regenerate",
+        "-r",
         help="Regenerate figures after applying overrides",
     ),
 ):
@@ -386,7 +422,8 @@ def apply_overrides(
         celltypepilot apply-overrides -o ./ctp_output -f annotation_overrides.json
     """
     from .orchestrator import (
-        apply_overrides_to_h5ad, find_cluster_column,
+        apply_overrides_to_h5ad,
+        find_cluster_column,
         regenerate_figures_after_override,
     )
 
@@ -406,7 +443,7 @@ def apply_overrides(
         overrides = json.loads(overrides_file.read_text(encoding="utf-8"))
     except (json.JSONDecodeError, ValueError) as e:
         console.print(f"[red]Invalid overrides JSON: {e}[/red]")
-        raise typer.Exit(1)
+        raise typer.Exit(1) from e
 
     if not overrides:
         console.print("[yellow]No overrides to apply.[/yellow]")
@@ -430,24 +467,31 @@ def apply_overrides(
                 f"{detail.get('reason', detail['status'])}, skipped[/yellow]"
             )
 
-    console.print(f"\n[bold green]Applied {result['applied']} override(s)[/bold green], "
-                  f"{result['skipped']} skipped")
+    console.print(
+        f"\n[bold green]Applied {result['applied']} override(s)[/bold green], "
+        f"{result['skipped']} skipped"
+    )
 
     # Regenerate figures if requested
     if regenerate:
         console.print("\n[bold blue]Regenerating figures...[/bold blue]")
         try:
             import scanpy as sc
+
             adata = sc.read_h5ad(h5ad_path)
             cluster_col = find_cluster_column(adata.obs)
             if cluster_col is None:
-                console.print("  [yellow]No cluster column found, skipping figure regeneration[/yellow]")
+                console.print(
+                    "  [yellow]No cluster column found, skipping figure regeneration[/yellow]"
+                )
             else:
                 figure_paths = regenerate_figures_after_override(output_dir, adata, cluster_col)
                 if figure_paths:
                     console.print(f"  Regenerated {len(figure_paths)} figures")
                 else:
-                    console.print("  [yellow]No embedding found, skipping figure regeneration[/yellow]")
+                    console.print(
+                        "  [yellow]No embedding found, skipping figure regeneration[/yellow]"
+                    )
         except Exception as e:
             console.print(f"  [yellow]Figure regeneration failed: {e}[/yellow]")
 
@@ -461,15 +505,25 @@ def apply_overrides(
 def annotate_embedding(
     input: str = typer.Option(..., "--input", "-i", help="Path to .h5ad file"),
     cluster_key: str = typer.Option(..., "--cluster-key", "-k", help="Cluster key in obs"),
-    reference: Optional[str] = typer.Option(None, "--reference", "-r", help="Reference .h5ad with cell type labels"),
-    ref_label_key: str = typer.Option("cell_type", "--ref-label", help="Cell type column in reference.obs"),
-    model_path: Optional[str] = typer.Option(None, "--model", "-m", help="CellTypist model path (.pkl)"),
-    backend: str = typer.Option("auto", "--backend", "-b", help="Backend: auto/celltypist/scanvi/knn/correlation"),
+    reference: str | None = typer.Option(
+        None, "--reference", "-r", help="Reference .h5ad with cell type labels"
+    ),
+    ref_label_key: str = typer.Option(
+        "cell_type", "--ref-label", help="Cell type column in reference.obs"
+    ),
+    model_path: str | None = typer.Option(
+        None, "--model", "-m", help="CellTypist model path (.pkl)"
+    ),
+    backend: str = typer.Option(
+        "auto", "--backend", "-b", help="Backend: auto/celltypist/scanvi/knn/correlation"
+    ),
     output_dir: str = typer.Option(".", "--output", "-o", help="Output directory"),
-    species: Optional[str] = typer.Option(None, "--species", "-s", help="Species: human/mouse"),
-    tissue: Optional[str] = typer.Option(None, "--tissue", "-t", help="Tissue context"),
+    species: str | None = typer.Option(None, "--species", "-s", help="Species: human/mouse"),
+    tissue: str | None = typer.Option(None, "--tissue", "-t", help="Tissue context"),
     marker_weight: float = typer.Option(0.5, "--marker-weight", help="Base marker weight (0-1)"),
-    no_ensemble: bool = typer.Option(False, "--no-ensemble", help="Skip ensemble, use reference only"),
+    no_ensemble: bool = typer.Option(
+        False, "--no-ensemble", help="Skip ensemble, use reference only"
+    ),
     json_output: bool = typer.Option(False, "--json", help="Output as JSON"),
 ):
     """Annotate using reference embedding + marker ensemble.
@@ -488,10 +542,20 @@ def annotate_embedding(
         # Force correlation backend (no extra deps)
         celltypepilot annotate-embedding -i data.h5ad -k leiden -r ref.h5ad -b correlation
     """
-    from .data_adapter import load_h5ad, detect_species, detect_tissue, load_marker_atlas, get_all_markers_for_tissue
+    from .data_adapter import (
+        detect_species,
+        detect_tissue,
+        get_all_markers_for_tissue,
+        load_h5ad,
+        load_marker_atlas,
+    )
+    from .ensemble_scorer import analyze_disagreements, ensemble_scores, generate_ensemble_summary
     from .marker_scorer import compute_marker_scores, generate_annotation_summary
-    from .reference_scorer import score_by_reference, detect_transitional_states, check_reference_backends
-    from .ensemble_scorer import ensemble_scores, generate_ensemble_summary, analyze_disagreements
+    from .reference_scorer import (
+        check_reference_backends,
+        detect_transitional_states,
+        score_by_reference,
+    )
 
     output_path = Path(output_dir)
     output_path.mkdir(parents=True, exist_ok=True)
@@ -527,7 +591,8 @@ def annotate_embedding(
         ref_adata = load_h5ad(reference)
 
     ref_scores = score_by_reference(
-        adata, cluster_key,
+        adata,
+        cluster_key,
         reference=ref_adata,
         ref_label_key=ref_label_key,
         model_path=model_path,
@@ -542,7 +607,8 @@ def annotate_embedding(
     else:
         console.print("[bold blue]Step 4/5:[/bold blue] Ensemble fusion...")
         final_df = ensemble_scores(
-            marker_scores, ref_scores,
+            marker_scores,
+            ref_scores,
             marker_weight=marker_weight,
             adaptive=True,
         )
@@ -562,11 +628,13 @@ def annotate_embedding(
     console.print(f"  Transitional candidates: {n_transitional}")
 
     if not disagreements.empty:
-        console.print(f"\n  [bold]Disagreements (potential novel/transitional states):[/bold]")
+        console.print("\n  [bold]Disagreements (potential novel/transitional states):[/bold]")
         for _, row in disagreements.head(5).iterrows():
-            console.print(f"    Cluster {row['cluster']}: "
-                          f"marker→{row['marker_type']} ({row['marker_score']:.2f}) "
-                          f"vs ref→{row['ref_type']} ({row['ref_score']:.2f})")
+            console.print(
+                f"    Cluster {row['cluster']}: "
+                f"marker→{row['marker_type']} ({row['marker_score']:.2f}) "
+                f"vs ref→{row['ref_type']} ({row['ref_score']:.2f})"
+            )
             console.print(f"      → {row['interpretation'][:80]}...")
 
     # Save outputs
@@ -588,11 +656,13 @@ def annotate_embedding(
         output_json = {
             "ensemble": final_df.to_dict(orient="records"),
             "transitional": transitions.to_dict(orient="records") if not transitions.empty else [],
-            "disagreements": disagreements.to_dict(orient="records") if not disagreements.empty else [],
+            "disagreements": disagreements.to_dict(orient="records")
+            if not disagreements.empty
+            else [],
         }
         console.print(json.dumps(output_json, indent=2, default=str))
 
-    console.print(f"\n[bold green]Done![/bold green] Ensemble annotation complete.")
+    console.print("\n[bold green]Done![/bold green] Ensemble annotation complete.")
 
 
 # ──────────────────────────────────────────────
@@ -602,6 +672,7 @@ def annotate_embedding(
 def backends():
     """Show available reference scoring backends."""
     from .reference_scorer import check_reference_backends
+
     status = check_reference_backends()
 
     console.print("[bold]Reference Scoring Backends:[/bold]\n")
@@ -621,38 +692,47 @@ def backends():
 @app.command()
 def license(
     action: str = typer.Argument(..., help="Action: status, activate, deactivate"),
-    key: Optional[str] = typer.Option(None, "--key", "-k", help="License key (for activate)"),
+    key: str | None = typer.Option(None, "--key", "-k", help="License key (for activate)"),
     holder: str = typer.Option("", "--holder", help="License holder name"),
     email: str = typer.Option("", "--email", help="License holder email"),
     json_output: bool = typer.Option(False, "--json", help="Output as JSON"),
 ):
     """Manage CellTypePilot license."""
     from .license_manager import (
-        load_license, activate_license, LicenseTier,
-        FREE_FEATURES, ACADEMIC_FEATURES, COMMERCIAL_FEATURES,
+        ACADEMIC_FEATURES,
+        COMMERCIAL_FEATURES,
+        FREE_FEATURES,
+        LicenseTier,
+        activate_license,
+        load_license,
     )
 
     if action == "status":
         lic = load_license()
         if json_output:
             from dataclasses import asdict
+
             data = asdict(lic)
             data["tier"] = lic.tier.value
             console.print(json.dumps(data, indent=2))
         else:
-            console.print(f"[bold]CellTypePilot License[/bold]")
+            console.print("[bold]CellTypePilot License[/bold]")
             console.print(f"  Tier:      {lic.tier.value}")
             console.print(f"  Holder:    {lic.holder or 'N/A'}")
             console.print(f"  Email:     {lic.email or 'N/A'}")
             console.print(f"  Expires:   {lic.expires_at or 'Never'}")
             console.print(f"  Features:  {len(lic.features)} enabled")
             if lic.is_expired():
-                console.print(f"  [red]EXPIRED[/red]")
+                console.print("  [red]EXPIRED[/red]")
             console.print()
-            console.print(f"[bold]Tier comparison:[/bold]")
+            console.print("[bold]Tier comparison:[/bold]")
             console.print(f"  Free:      {len(FREE_FEATURES)} features (basic atlas, 11 tissues)")
-            console.print(f"  Academic:  {len(ACADEMIC_FEATURES)} features (extended atlas, disease states)")
-            console.print(f"  Commercial:{len(COMMERCIAL_FEATURES)} features (full atlas, custom panels, API)")
+            console.print(
+                f"  Academic:  {len(ACADEMIC_FEATURES)} features (extended atlas, disease states)"
+            )
+            console.print(
+                f"  Commercial:{len(COMMERCIAL_FEATURES)} features (full atlas, custom panels, API)"
+            )
 
     elif action == "activate":
         if not key:
@@ -666,7 +746,8 @@ def license(
             raise typer.Exit(1)
 
     elif action == "deactivate":
-        from .license_manager import save_license, LicenseInfo
+        from .license_manager import LicenseInfo, save_license
+
         save_license(LicenseInfo(tier=LicenseTier.FREE))
         console.print("[yellow]License deactivated. Reverted to free tier.[/yellow]")
 

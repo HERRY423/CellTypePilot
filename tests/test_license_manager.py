@@ -6,16 +6,20 @@ from datetime import datetime, timedelta
 from pathlib import Path
 from unittest.mock import patch
 
-import pytest
-
 from celltypepilot.license_manager import (
-    LicenseTier, LicenseInfo,
-    FREE_FEATURES, ACADEMIC_FEATURES, COMMERCIAL_FEATURES, TRIAL_FEATURES,
-    get_machine_id, validate_license_key,
-    save_license, load_license,
-    check_feature_access, get_atlas_access,
+    ACADEMIC_FEATURES,
+    COMMERCIAL_FEATURES,
+    FREE_FEATURES,
+    TRIAL_FEATURES,
+    LicenseInfo,
+    LicenseTier,
     _compute_file_hmac,
-    DEFAULT_LICENSE_DIR,
+    check_feature_access,
+    get_atlas_access,
+    get_machine_id,
+    load_license,
+    save_license,
+    validate_license_key,
 )
 
 
@@ -154,8 +158,9 @@ class TestLicenseSaveLoad:
             holder="Test User",
             email="test@example.com",
         )
-        with patch("celltypepilot.license_manager.DEFAULT_LICENSE_DIR",
-                    new=Path(tempfile.mkdtemp())):
+        with patch(
+            "celltypepilot.license_manager.DEFAULT_LICENSE_DIR", new=Path(tempfile.mkdtemp())
+        ):
             saved_path = save_license(info)
             assert saved_path.exists()
 
@@ -165,14 +170,16 @@ class TestLicenseSaveLoad:
             assert loaded.email == "test@example.com"
 
     def test_load_nonexistent_returns_free(self):
-        with patch("celltypepilot.license_manager.DEFAULT_LICENSE_DIR",
-                    new=Path(tempfile.mkdtemp())):
+        with patch(
+            "celltypepilot.license_manager.DEFAULT_LICENSE_DIR", new=Path(tempfile.mkdtemp())
+        ):
             info = load_license()
             assert info.tier == LicenseTier.FREE
 
     def test_tamper_detection(self):
-        with patch("celltypepilot.license_manager.DEFAULT_LICENSE_DIR",
-                    new=Path(tempfile.mkdtemp())) as lic_dir:
+        with patch(
+            "celltypepilot.license_manager.DEFAULT_LICENSE_DIR", new=Path(tempfile.mkdtemp())
+        ) as lic_dir:
             info = LicenseInfo(tier=LicenseTier.ACADEMIC, holder="Hacker")
             save_license(info)
 
@@ -200,42 +207,54 @@ class TestFileHmac:
 
 class TestAtlasAccess:
     def test_basic_tissue_free_tier(self):
-        with patch("celltypepilot.license_manager.load_license",
-                    return_value=LicenseInfo(tier=LicenseTier.FREE)):
+        with patch(
+            "celltypepilot.license_manager.load_license",
+            return_value=LicenseInfo(tier=LicenseTier.FREE),
+        ):
             ok, msg = get_atlas_access("blood")
             assert ok
 
     def test_extended_tissue_free_tier_denied(self):
-        with patch("celltypepilot.license_manager.load_license",
-                    return_value=LicenseInfo(tier=LicenseTier.FREE)):
+        with patch(
+            "celltypepilot.license_manager.load_license",
+            return_value=LicenseInfo(tier=LicenseTier.FREE),
+        ):
             ok, msg = get_atlas_access("tumor_microenvironment")
             assert not ok
 
     def test_extended_tissue_academic_allowed(self):
-        with patch("celltypepilot.license_manager.load_license",
-                    return_value=LicenseInfo(tier=LicenseTier.ACADEMIC)):
+        with patch(
+            "celltypepilot.license_manager.load_license",
+            return_value=LicenseInfo(tier=LicenseTier.ACADEMIC),
+        ):
             ok, msg = get_atlas_access("tumor_microenvironment")
             assert ok
 
 
 class TestCheckFeatureAccess:
     def test_free_feature_available(self):
-        with patch("celltypepilot.license_manager.load_license",
-                    return_value=LicenseInfo(tier=LicenseTier.FREE)):
+        with patch(
+            "celltypepilot.license_manager.load_license",
+            return_value=LicenseInfo(tier=LicenseTier.FREE),
+        ):
             ok, msg = check_feature_access("basic_atlas")
             assert ok
 
     def test_academic_feature_blocked_free(self):
-        with patch("celltypepilot.license_manager.load_license",
-                    return_value=LicenseInfo(tier=LicenseTier.FREE)):
+        with patch(
+            "celltypepilot.license_manager.load_license",
+            return_value=LicenseInfo(tier=LicenseTier.FREE),
+        ):
             ok, msg = check_feature_access("extended_atlas")
             assert not ok
             assert "Academic" in msg
 
     def test_expired_license_blocked(self):
         past = (datetime.now() - timedelta(days=1)).isoformat()
-        with patch("celltypepilot.license_manager.load_license",
-                    return_value=LicenseInfo(tier=LicenseTier.ACADEMIC, expires_at=past)):
+        with patch(
+            "celltypepilot.license_manager.load_license",
+            return_value=LicenseInfo(tier=LicenseTier.ACADEMIC, expires_at=past),
+        ):
             ok, msg = check_feature_access("basic_atlas")
             assert not ok
             assert "expired" in msg.lower()

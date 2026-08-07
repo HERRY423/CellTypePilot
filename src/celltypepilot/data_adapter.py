@@ -2,22 +2,26 @@
 
 from __future__ import annotations
 
-import json
 import hashlib
+import json
 import logging
 from pathlib import Path
-from typing import Optional
 
 import anndata as ad
 import numpy as np
 import pandas as pd
-import scanpy as sc
 from rich.console import Console
 
 from .constants import (
-    SPECIES_HUMAN, SPECIES_MOUSE, MIN_CLUSTER_SIZE, ATLAS_PATH,
-    ENSEMBL_PREFIX_SPECIES, SPECIES_DOMINANCE_RATIO, SPECIES_SYMBOL_RATIO,
-    TISSUE_COLUMN_SYNONYMS, TISSUE_COLUMN_KEYWORDS,
+    ATLAS_PATH,
+    ENSEMBL_PREFIX_SPECIES,
+    MIN_CLUSTER_SIZE,
+    SPECIES_DOMINANCE_RATIO,
+    SPECIES_HUMAN,
+    SPECIES_MOUSE,
+    SPECIES_SYMBOL_RATIO,
+    TISSUE_COLUMN_KEYWORDS,
+    TISSUE_COLUMN_SYNONYMS,
 )
 
 logger = logging.getLogger(__name__)
@@ -46,7 +50,7 @@ def compute_data_hash(path: str | Path) -> str:
     return h.hexdigest()
 
 
-def match_ensembl_species(gene: str) -> Optional[str]:
+def match_ensembl_species(gene: str) -> str | None:
     """Map a single gene ID to a species via Ensembl prefix, or None."""
     for prefix, species in ENSEMBL_PREFIX_SPECIES:
         if gene.startswith(prefix):
@@ -97,9 +101,9 @@ def detect_species(adata: ad.AnnData) -> str:
     # Exclude ALL-CAPS genes — they match this shape too but are the human
     # convention, so counting them here would bias mixed datasets to mouse.
     mouse_pattern = sum(
-        1 for g in var_names
-        if g and g[0].isupper() and (len(g) < 2 or g[1].islower())
-        and g != g.upper()
+        1
+        for g in var_names
+        if g and g[0].isupper() and (len(g) < 2 or g[1].islower()) and g != g.upper()
     )
 
     if human_pattern > mouse_pattern * SPECIES_SYMBOL_RATIO:
@@ -111,12 +115,14 @@ def detect_species(adata: ad.AnnData) -> str:
     logger.warning(
         "Species detection ambiguous (human-like=%d, mouse-like=%d of %d genes); "
         "defaulting to human. Pass --species explicitly to override.",
-        human_pattern, mouse_pattern, n_sampled,
+        human_pattern,
+        mouse_pattern,
+        n_sampled,
     )
     return SPECIES_HUMAN
 
 
-def _first_nonempty_value(series: pd.Series) -> Optional[str]:
+def _first_nonempty_value(series: pd.Series) -> str | None:
     """Return the first non-null, non-empty value of an obs column."""
     vals = series.dropna().unique()
     for v in vals:
@@ -126,7 +132,7 @@ def _first_nonempty_value(series: pd.Series) -> Optional[str]:
     return None
 
 
-def detect_tissue(adata: ad.AnnData) -> Optional[str]:
+def detect_tissue(adata: ad.AnnData) -> str | None:
     """Try to detect tissue from obs metadata.
 
     Matching is case-insensitive: first an exact synonym lookup
@@ -170,7 +176,7 @@ def find_embedding_keys(adata: ad.AnnData) -> list[str]:
     """Find candidate embedding keys in obsm."""
     embedding_keywords = ["umap", "tsne", "pca", "embedding", "x_", "spatial"]
     found = []
-    for key in adata.obsm.keys():
+    for key in adata.obsm:
         key_lower = key.lower()
         for kw in embedding_keywords:
             if kw in key_lower:
@@ -184,7 +190,7 @@ def find_layer_keys(adata: ad.AnnData) -> dict:
     result = {"counts": None, "lognorm": None}
     if adata.X is not None:
         # Check if X looks like raw counts (non-negative integers or sparse)
-        x_sample = adata.X[:min(100, adata.n_obs), :min(100, adata.n_vars)]
+        x_sample = adata.X[: min(100, adata.n_obs), : min(100, adata.n_vars)]
         if hasattr(x_sample, "toarray"):
             x_sample = x_sample.toarray()
         x_arr = np.asarray(x_sample)
@@ -209,8 +215,8 @@ def find_layer_keys(adata: ad.AnnData) -> dict:
 
 def inspect_adata(
     path: str | Path,
-    cluster_key: Optional[str] = None,
-    embedding_key: Optional[str] = None,
+    cluster_key: str | None = None,
+    embedding_key: str | None = None,
 ) -> dict:
     """Full inspection report of an h5ad file.
 
@@ -251,14 +257,14 @@ def inspect_adata(
     elif not cluster_key:
         candidates = find_cluster_keys(adata)
         if candidates:
-            report["warnings"].append(
-                f"No --cluster-key specified. Candidates found: {candidates}"
-            )
+            report["warnings"].append(f"No --cluster-key specified. Candidates found: {candidates}")
         else:
-            report["fatal"].append("No cluster key found in obs. Cannot proceed without clustering.")
+            report["fatal"].append(
+                "No cluster key found in obs. Cannot proceed without clustering."
+            )
 
     # Embedding info
-    if embedding_key and embedding_key in adata.obsm.keys():
+    if embedding_key and embedding_key in adata.obsm:
         report["embedding_shape"] = list(adata.obsm[embedding_key].shape)
     elif not embedding_key:
         candidates = find_embedding_keys(adata)
@@ -313,15 +319,24 @@ def format_inspect_report(report: dict) -> str:
         f"Gene IDs:    {report['gene_id_convention']}",
         f"Has .raw:    {report['has_raw']}",
         "",
-        "Layers:      " + (", ".join(str(l) for l in report["layers"]) if report["layers"] else "(none)"),
+        "Layers:      "
+        + (", ".join(str(name) for name in report["layers"]) if report["layers"] else "(none)"),
         f"  Counts:    {report['layer_info']['counts'] or '(not found)'}",
         f"  LogNorm:   {report['layer_info']['lognorm'] or '(not found)'}",
         "",
         "Obs columns: " + ", ".join(report["obs_columns"][:20]),
         "Obsm keys:   " + ", ".join(str(k) for k in report["obsm_keys"]),
         "",
-        ("Cluster keys:    " + ", ".join(report["cluster_keys"]) if report["cluster_keys"] else "Cluster keys:    (none found)"),
-        ("Embedding keys:   " + ", ".join(report["embedding_keys"]) if report["embedding_keys"] else "Embedding keys:   (none found)"),
+        (
+            "Cluster keys:    " + ", ".join(report["cluster_keys"])
+            if report["cluster_keys"]
+            else "Cluster keys:    (none found)"
+        ),
+        (
+            "Embedding keys:   " + ", ".join(report["embedding_keys"])
+            if report["embedding_keys"]
+            else "Embedding keys:   (none found)"
+        ),
     ]
 
     if report["cluster_sizes"]:
@@ -348,7 +363,7 @@ def format_inspect_report(report: dict) -> str:
 
 def load_marker_atlas(species: str = "human") -> dict:
     """Load the built-in marker knowledge graph."""
-    with open(ATLAS_PATH, "r", encoding="utf-8") as f:
+    with open(ATLAS_PATH, encoding="utf-8") as f:
         atlas = json.load(f)
 
     if species == SPECIES_MOUSE:
@@ -361,6 +376,7 @@ def load_marker_atlas(species: str = "human") -> dict:
 def _convert_atlas_to_mouse(atlas: dict) -> dict:
     """Convert human gene symbols in atlas to mouse conventions."""
     import copy
+
     mouse_atlas = copy.deepcopy(atlas)
     gene_map = atlas.get("mouse_gene_map", {}).get("exceptions", {})
 
@@ -372,18 +388,22 @@ def _convert_atlas_to_mouse(atlas: dict) -> dict:
             return gene[0].upper() + gene[1:].lower()
         return gene
 
-    for tissue_key, tissue_data in mouse_atlas.get("tissues", {}).items():
-        for ct_key, ct_data in tissue_data.get("cell_types", {}).items():
+    for _tissue_key, tissue_data in mouse_atlas.get("tissues", {}).items():
+        for _ct_key, ct_data in tissue_data.get("cell_types", {}).items():
             if "positive_markers" in ct_data:
                 ct_data["positive_markers"] = [convert_gene(g) for g in ct_data["positive_markers"]]
             if "negative_markers" in ct_data:
                 ct_data["negative_markers"] = [convert_gene(g) for g in ct_data["negative_markers"]]
             # Recurse into subtypes
-            for sub_key, sub_data in ct_data.get("subtypes", {}).items():
+            for _sub_key, sub_data in ct_data.get("subtypes", {}).items():
                 if "positive_markers" in sub_data:
-                    sub_data["positive_markers"] = [convert_gene(g) for g in sub_data["positive_markers"]]
+                    sub_data["positive_markers"] = [
+                        convert_gene(g) for g in sub_data["positive_markers"]
+                    ]
                 if "negative_markers" in sub_data:
-                    sub_data["negative_markers"] = [convert_gene(g) for g in sub_data["negative_markers"]]
+                    sub_data["negative_markers"] = [
+                        convert_gene(g) for g in sub_data["negative_markers"]
+                    ]
 
     return mouse_atlas
 
@@ -412,7 +432,11 @@ def get_all_markers_for_tissue(atlas: dict, tissue: str) -> dict[str, dict]:
             sub_pos = list(sub_info.get("positive_markers", []))
             sub_neg = list(sub_info.get("negative_markers", []))
             sub_cl = sub_info.get("cl_id", "")
-            result[sub_name] = {"positive_markers": sub_pos, "negative_markers": sub_neg, "cl_id": sub_cl}
+            result[sub_name] = {
+                "positive_markers": sub_pos,
+                "negative_markers": sub_neg,
+                "cl_id": sub_cl,
+            }
 
     return result
 

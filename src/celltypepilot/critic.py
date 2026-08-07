@@ -6,21 +6,23 @@ it performs a skeptical, evidence-based review of each annotation.
 
 from __future__ import annotations
 
-from typing import Optional
-import json
-
+import anndata as ad
 import numpy as np
 import pandas as pd
-import anndata as ad
 from scipy import sparse
 
 from .constants import (
-    CONFIDENCE_HIGH, CONFIDENCE_MEDIUM, CONFIDENCE_LOW, CONFIDENCE_REVIEW,
-    CRITIC_NEG_MARKER_PCT_THRESHOLD, CRITIC_DOUBLET_COEXPR_THRESHOLD,
-    CRITIC_LOW_COVERAGE_THRESHOLD, MARKER_PCT_THRESHOLD,
+    CONFIDENCE_HIGH,
+    CONFIDENCE_LOW,
+    CONFIDENCE_MEDIUM,
+    CONFIDENCE_REVIEW,
+    CRITIC_DOUBLET_COEXPR_THRESHOLD,
+    CRITIC_LOW_COVERAGE_THRESHOLD,
+    CRITIC_NEG_MARKER_PCT_THRESHOLD,
     ENSEMBLE_AGREEMENT_THRESHOLD,
+    MARKER_PCT_THRESHOLD,
 )
-from .data_adapter import load_marker_atlas, get_all_markers_for_tissue
+from .data_adapter import get_all_markers_for_tissue
 
 
 def run_critic(
@@ -29,7 +31,7 @@ def run_critic(
     annotations: pd.DataFrame,
     atlas: dict,
     tissue: str,
-    ensemble_info: Optional[pd.DataFrame] = None,
+    ensemble_info: pd.DataFrame | None = None,
 ) -> pd.DataFrame:
     """Run the full critic pipeline on annotations.
 
@@ -85,9 +87,7 @@ def run_critic(
         neg_markers = ct_info.get("negative_markers", [])
 
         # 1. Evidence sufficiency check
-        sufficiency_result = _check_evidence_sufficiency(
-            adata, cluster, cluster_key, pos_markers
-        )
+        sufficiency_result = _check_evidence_sufficiency(adata, cluster, cluster_key, pos_markers)
         if sufficiency_result["flag"]:
             flags.append(sufficiency_result["flag"])
         evidence_parts.append(sufficiency_result["evidence"])
@@ -95,9 +95,7 @@ def run_critic(
             notes.append(sufficiency_result["note"])
 
         # 2. Negative marker conflict check
-        neg_result = _check_negative_markers(
-            adata, cluster, cluster_key, neg_markers
-        )
+        neg_result = _check_negative_markers(adata, cluster, cluster_key, neg_markers)
         if neg_result["flag"]:
             flags.append(neg_result["flag"])
         evidence_parts.append(neg_result["evidence"])
@@ -105,9 +103,7 @@ def run_critic(
             notes.append(neg_result["note"])
 
         # 3. Doublet / mixed signal heuristic
-        doublet_result = _check_doublet_signal(
-            adata, cluster, cluster_key, markers
-        )
+        doublet_result = _check_doublet_signal(adata, cluster, cluster_key, markers)
         if doublet_result["flag"]:
             flags.append(doublet_result["flag"])
         evidence_parts.append(doublet_result["evidence"])
@@ -122,9 +118,7 @@ def run_critic(
             notes.append(onto_result["note"])
 
         # 5. Ensemble agreement check
-        ens_result = _check_ensemble_agreement(
-            cluster, cell_type, ensemble_lookup
-        )
+        ens_result = _check_ensemble_agreement(cluster, cell_type, ensemble_lookup)
         if ens_result["flag"]:
             flags.append(ens_result["flag"])
         evidence_parts.append(ens_result["evidence"])
@@ -176,10 +170,7 @@ def _check_evidence_sufficiency(
     for gene in detected:
         idx = list(adata.var_names).index(gene)
         expr = subset.X[:, idx]
-        if sparse.issparse(expr):
-            expr = expr.toarray().flatten()
-        else:
-            expr = np.asarray(expr).flatten()
+        expr = expr.toarray().flatten() if sparse.issparse(expr) else np.asarray(expr).flatten()
 
         pct = np.mean(expr > 0)
         mean_expr = np.mean(expr)
@@ -188,7 +179,9 @@ def _check_evidence_sufficiency(
         total_expr_details.append(f"{gene}: {pct:.0%} cells, mean={mean_expr:.2f}")
 
     coverage = expressed_count / max(len(detected), 1)
-    evidence = f"Coverage: {expressed_count}/{len(detected)} ({coverage:.0%}) positive markers expressed"
+    evidence = (
+        f"Coverage: {expressed_count}/{len(detected)} ({coverage:.0%}) positive markers expressed"
+    )
 
     if coverage < CRITIC_LOW_COVERAGE_THRESHOLD:
         return {
@@ -224,10 +217,7 @@ def _check_negative_markers(
     for gene in detected:
         idx = list(adata.var_names).index(gene)
         expr = subset.X[:, idx]
-        if sparse.issparse(expr):
-            expr = expr.toarray().flatten()
-        else:
-            expr = np.asarray(expr).flatten()
+        expr = expr.toarray().flatten() if sparse.issparse(expr) else np.asarray(expr).flatten()
 
         pct = np.mean(expr > 0)
         if pct > CRITIC_NEG_MARKER_PCT_THRESHOLD:
@@ -269,10 +259,7 @@ def _check_doublet_signal(
         for gene in detected:
             idx = list(adata.var_names).index(gene)
             expr = subset.X[:, idx]
-            if sparse.issparse(expr):
-                expr = expr.toarray().flatten()
-            else:
-                expr = np.asarray(expr).flatten()
+            expr = expr.toarray().flatten() if sparse.issparse(expr) else np.asarray(expr).flatten()
             pct = np.mean(expr > 0)
             if pct >= MARKER_PCT_THRESHOLD:
                 n_expressed += 1
@@ -289,11 +276,14 @@ def _check_doublet_signal(
         top2, top2_cov = active_types[1]
 
         # Check if these are from different lineages (not subtypes)
-        if top1_cov >= CRITIC_DOUBLET_COEXPR_THRESHOLD and top2_cov >= CRITIC_DOUBLET_COEXPR_THRESHOLD:
+        if (
+            top1_cov >= CRITIC_DOUBLET_COEXPR_THRESHOLD
+            and top2_cov >= CRITIC_DOUBLET_COEXPR_THRESHOLD
+        ):
             return {
                 "flag": "POSSIBLE_DOUBLET",
                 "evidence": f"Co-expression of {top1} ({top1_cov:.0%}) and {top2} ({top2_cov:.0%}) markers",
-                "note": f"Two distinct lineage signatures co-expressed — possible doublet or transitional state. Consider sub-clustering.",
+                "note": "Two distinct lineage signatures co-expressed — possible doublet or transitional state. Consider sub-clustering.",
             }
 
     return {"flag": "", "evidence": "No doublet signal detected", "note": ""}
@@ -336,15 +326,11 @@ def _recalibrate_confidence(
 
     # Downgrade based on flags
     for flag in flags:
-        if flag == "NO_MARKERS":
-            level = min(level, 1)
-        elif flag == "LOW_EVIDENCE":
+        if flag == "NO_MARKERS" or flag == "LOW_EVIDENCE":
             level = min(level, 1)
         elif flag == "PARTIAL_EVIDENCE":
             level = min(level, 2)
-        elif flag == "NEG_MARKER_CONFLICT":
-            level = min(level, 1)
-        elif flag == "POSSIBLE_DOUBLET":
+        elif flag == "NEG_MARKER_CONFLICT" or flag == "POSSIBLE_DOUBLET":
             level = min(level, 1)
 
     return reverse_order.get(level, CONFIDENCE_REVIEW)
@@ -416,7 +402,9 @@ def generate_critic_summary(critic_results: pd.DataFrame) -> dict:
         conf = row.get("critic_confidence", CONFIDENCE_REVIEW)
 
         # Confidence distribution
-        summary["confidence_distribution"][conf] = summary["confidence_distribution"].get(conf, 0) + 1
+        summary["confidence_distribution"][conf] = (
+            summary["confidence_distribution"].get(conf, 0) + 1
+        )
 
         if flags == "PASS":
             summary["pass"] += 1

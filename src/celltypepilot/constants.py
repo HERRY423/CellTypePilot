@@ -23,27 +23,27 @@ MIN_CLUSTER_SIZE = 10
 
 # Marker scoring thresholds
 MARKER_PCT_THRESHOLD = 0.25  # marker expressed in ≥25% of cluster cells
-MARKER_FC_THRESHOLD = 0.5   # log2 fold change ≥ 0.5
+MARKER_FC_THRESHOLD = 0.5  # log2 fold change ≥ 0.5
 MARKER_SPECIFICITY_THRESHOLD = 0.3  # specificity score ≥ 0.3
 
 # Critic thresholds
 CRITIC_NEG_MARKER_PCT_THRESHOLD = 0.15  # negative marker expressed in >15% → flag
-CRITIC_DOUBLET_COEXPR_THRESHOLD = 0.3   # two mutually exclusive lineages co-expressed >30% → flag
-CRITIC_LOW_COVERAGE_THRESHOLD = 0.2     # <20% of expected markers detected → low confidence
+CRITIC_DOUBLET_COEXPR_THRESHOLD = 0.3  # two mutually exclusive lineages co-expressed >30% → flag
+CRITIC_LOW_COVERAGE_THRESHOLD = 0.2  # <20% of expected markers detected → low confidence
 
 # Reference scoring thresholds
-REF_MIN_SHARED_GENES = 100              # min shared genes for KNN/correlation
-REF_CORR_MIN_GENES = 100               # min genes for correlation backend
-REF_SCANVI_MIN_GENES = 200             # min genes for scANVI backend
-REF_CELLTYPIST_MIN_GENES = 50          # min genes for CellTypist backend
-REF_KNN_DEFAULT_K = 15                 # default K for KNN label transfer
-REF_KNN_MAX_K = 100                    # max K for KNN label transfer
+REF_MIN_SHARED_GENES = 100  # min shared genes for KNN/correlation
+REF_CORR_MIN_GENES = 100  # min genes for correlation backend
+REF_SCANVI_MIN_GENES = 200  # min genes for scANVI backend
+REF_CELLTYPIST_MIN_GENES = 50  # min genes for CellTypist backend
+REF_KNN_DEFAULT_K = 15  # default K for KNN label transfer
+REF_KNN_MAX_K = 100  # max K for KNN label transfer
 
 # Ensemble scoring thresholds
-ENSEMBLE_AGREEMENT_THRESHOLD = 0.2     # score diff < 0.2 = agreement
-ENSEMBLE_MARKER_HIGH = 0.6             # marker score ≥ this → marker-heavy weight
-ENSEMBLE_MARKER_LOW = 0.3              # marker score ≤ this → reference-heavy weight
-ENSEMBLE_REF_OVERRIDE = 0.5            # ref score ≥ this + marker low → ref override
+ENSEMBLE_AGREEMENT_THRESHOLD = 0.2  # score diff < 0.2 = agreement
+ENSEMBLE_MARKER_HIGH = 0.6  # marker score ≥ this → marker-heavy weight
+ENSEMBLE_MARKER_LOW = 0.3  # marker score ≤ this → reference-heavy weight
+ENSEMBLE_REF_OVERRIDE = 0.5  # ref score ≥ this + marker low → ref override
 
 # Default output filenames
 OUTPUT_ANNOTATED = "data.annotated.h5ad"
@@ -85,12 +85,24 @@ SPECIES_SYMBOL_RATIO = 2.0
 
 # obs column names that may carry tissue context (matched case-insensitively)
 TISSUE_COLUMN_SYNONYMS = [
-    "tissue", "tissue_type", "tissue_origin", "tissue_source",
-    "sample_tissue", "organ", "organ_system",
-    "anatomy", "anatomical_site", "anatomy_site",
-    "body_site", "body_part",
-    "source", "sample_source", "sample_type",
-    "location", "site", "origin",
+    "tissue",
+    "tissue_type",
+    "tissue_origin",
+    "tissue_source",
+    "sample_tissue",
+    "organ",
+    "organ_system",
+    "anatomy",
+    "anatomical_site",
+    "anatomy_site",
+    "body_site",
+    "body_part",
+    "source",
+    "sample_source",
+    "sample_type",
+    "location",
+    "site",
+    "origin",
 ]
 
 # Fallback keywords scanned as substrings of obs column names

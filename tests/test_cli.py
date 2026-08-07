@@ -2,7 +2,6 @@
 
 import json
 
-import pytest
 from typer.testing import CliRunner
 
 from celltypepilot.cli import app
@@ -75,42 +74,66 @@ class TestCLIInspect:
 
 class TestCLIAnnotate:
     def test_annotate_basic(self, h5ad_path, tmp_output_dir):
-        result = runner.invoke(app, [
-            "annotate",
-            "-i", str(h5ad_path),
-            "-k", "leiden",
-            "-o", str(tmp_output_dir),
-            "--species", "human",
-            "--tissue", "blood",
-            "--no-figures",
-        ])
+        result = runner.invoke(
+            app,
+            [
+                "annotate",
+                "-i",
+                str(h5ad_path),
+                "-k",
+                "leiden",
+                "-o",
+                str(tmp_output_dir),
+                "--species",
+                "human",
+                "--tissue",
+                "blood",
+                "--no-figures",
+            ],
+        )
         assert result.exit_code == 0
         assert "Done" in result.output
 
     def test_annotate_json_output(self, h5ad_path, tmp_output_dir):
-        result = runner.invoke(app, [
-            "annotate",
-            "-i", str(h5ad_path),
-            "-k", "leiden",
-            "-o", str(tmp_output_dir),
-            "--species", "human",
-            "--tissue", "blood",
-            "--no-figures",
-            "--json",
-        ])
+        result = runner.invoke(
+            app,
+            [
+                "annotate",
+                "-i",
+                str(h5ad_path),
+                "-k",
+                "leiden",
+                "-o",
+                str(tmp_output_dir),
+                "--species",
+                "human",
+                "--tissue",
+                "blood",
+                "--no-figures",
+                "--json",
+            ],
+        )
         assert result.exit_code == 0
         assert "annotations" in result.output
 
     def test_annotate_bad_cluster_key(self, h5ad_path, tmp_output_dir):
-        result = runner.invoke(app, [
-            "annotate",
-            "-i", str(h5ad_path),
-            "-k", "nonexistent_key",
-            "-o", str(tmp_output_dir),
-            "--species", "human",
-            "--tissue", "blood",
-            "--no-figures",
-        ])
+        result = runner.invoke(
+            app,
+            [
+                "annotate",
+                "-i",
+                str(h5ad_path),
+                "-k",
+                "nonexistent_key",
+                "-o",
+                str(tmp_output_dir),
+                "--species",
+                "human",
+                "--tissue",
+                "blood",
+                "--no-figures",
+            ],
+        )
         assert result.exit_code == 1
 
 
@@ -118,7 +141,11 @@ class TestCLILiterature:
     def test_literature_no_markers(self):
         result = runner.invoke(app, ["literature", "-c", "T cell"])
         assert result.exit_code == 0
-        assert "queries" in result.output.lower() or "query" in result.output.lower() or "search" in result.output.lower()
+        assert (
+            "queries" in result.output.lower()
+            or "query" in result.output.lower()
+            or "search" in result.output.lower()
+        )
 
     def test_literature_json(self):
         result = runner.invoke(app, ["literature", "-c", "T cell", "--json"])

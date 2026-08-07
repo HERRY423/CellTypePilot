@@ -10,28 +10,26 @@ When MCP tools are available, they provide richer evidence.
 from __future__ import annotations
 
 import json
-import urllib.request
-import urllib.parse
 import urllib.error
+import urllib.parse
+import urllib.request
 from dataclasses import dataclass, field
-from typing import Optional
-
-from .constants import MARKER_PCT_THRESHOLD
-
 
 # ──────────────────────────────────────────────
 # Data classes
 # ──────────────────────────────────────────────
 
+
 @dataclass
 class LiteratureHit:
     """A literature search result."""
+
     title: str
     authors: str
     journal: str
     year: int
-    pmid: Optional[str] = None
-    doi: Optional[str] = None
+    pmid: str | None = None
+    doi: str | None = None
     abstract_snippet: str = ""
     relevance_score: float = 0.0
     source: str = "pubmed"  # pubmed / biorxiv / cell_ontology
@@ -53,6 +51,7 @@ class LiteratureHit:
 @dataclass
 class MarkerLiteratureEvidence:
     """Literature evidence for a specific marker gene."""
+
     gene: str
     cell_type: str
     hits: list[LiteratureHit] = field(default_factory=list)
@@ -159,15 +158,17 @@ def search_pubmed(
             pub_date = article.get("pubdate", "")
             year = int(pub_date[:4]) if pub_date and pub_date[:4].isdigit() else 0
 
-            hits.append(LiteratureHit(
-                title=title,
-                authors=authors,
-                journal=source,
-                year=year,
-                pmid=pmid,
-                source="pubmed",
-                relevance_score=1.0,
-            ))
+            hits.append(
+                LiteratureHit(
+                    title=title,
+                    authors=authors,
+                    journal=source,
+                    year=year,
+                    pmid=pmid,
+                    source="pubmed",
+                    relevance_score=1.0,
+                )
+            )
 
         return hits
 
@@ -244,6 +245,7 @@ def search_biorxiv(
 # Marker-literature validation
 # ──────────────────────────────────────────────
 
+
 def validate_marker_in_literature(
     gene: str,
     cell_type: str,
@@ -292,7 +294,7 @@ def validate_marker_in_literature(
 def validate_annotation_with_literature(
     cell_type: str,
     positive_markers: list[str],
-    negative_markers: Optional[list[str]] = None,
+    negative_markers: list[str] | None = None,
     max_refs_per_marker: int = 2,
 ) -> dict:
     """Validate an entire annotation against literature.
@@ -331,8 +333,10 @@ def validate_annotation_with_literature(
         "positive_evidence": positive_evidence,
         "negative_evidence": negative_evidence,
         "overall_assessment": (
-            "well_supported" if supported_markers >= len(positive_evidence) * 0.6
-            else "partially_supported" if supported_markers > 0
+            "well_supported"
+            if supported_markers >= len(positive_evidence) * 0.6
+            else "partially_supported"
+            if supported_markers > 0
             else "not_validated"
         ),
     }
@@ -341,6 +345,7 @@ def validate_annotation_with_literature(
 # ──────────────────────────────────────────────
 # MCP tool integration (for Claude Code / Codex)
 # ──────────────────────────────────────────────
+
 
 def generate_mcp_search_queries(
     cell_type: str,
@@ -387,34 +392,47 @@ def format_literature_for_report(
         return "<p>No literature evidence found. Manual validation recommended.</p>"
 
     html_parts = []
-    html_parts.append(f'<div class="literature-section">')
-    html_parts.append(f'<h4>Literature Validation</h4>')
-    html_parts.append(f'<p>Found <strong>{literature_results["total_literature_refs"]}</strong> '
-                      f'references supporting {literature_results["positive_markers_supported"]}/'
-                      f'{literature_results["positive_markers_checked"]} positive markers.</p>')
+    html_parts.append('<div class="literature-section">')
+    html_parts.append("<h4>Literature Validation</h4>")
+    html_parts.append(
+        f"<p>Found <strong>{literature_results['total_literature_refs']}</strong> "
+        f"references supporting {literature_results['positive_markers_supported']}/"
+        f"{literature_results['positive_markers_checked']} positive markers.</p>"
+    )
 
     assessment = literature_results.get("overall_assessment", "unknown")
-    color = {"well_supported": "#2ecc71", "partially_supported": "#f39c12", "not_validated": "#e74c3c"}
-    html_parts.append(f'<p>Assessment: <span style="color: {color.get(assessment, "#95a5a6")}; '
-                      f'font-weight: bold;">{assessment}</span></p>')
+    color = {
+        "well_supported": "#2ecc71",
+        "partially_supported": "#f39c12",
+        "not_validated": "#e74c3c",
+    }
+    html_parts.append(
+        f'<p>Assessment: <span style="color: {color.get(assessment, "#95a5a6")}; '
+        f'font-weight: bold;">{assessment}</span></p>'
+    )
 
     # Top references
     for ev in literature_results.get("positive_evidence", []):
         if ev["total_refs"] > 0:
-            html_parts.append(f'<p><strong>{ev["gene"]}</strong>: {ev["total_refs"]} refs '
-                              f'(consensus: {ev["consensus"]})</p>')
+            html_parts.append(
+                f"<p><strong>{ev['gene']}</strong>: {ev['total_refs']} refs "
+                f"(consensus: {ev['consensus']})</p>"
+            )
             for hit in ev.get("top_hits", []):
-                html_parts.append(f'<p class="ref">- {hit["authors"]} ({hit["year"]}). '
-                                  f'<em>{hit["title"]}</em>. {hit["journal"]}. '
-                                  f'PMID: {hit.get("pmid", "N/A")}</p>')
+                html_parts.append(
+                    f'<p class="ref">- {hit["authors"]} ({hit["year"]}). '
+                    f"<em>{hit['title']}</em>. {hit['journal']}. "
+                    f"PMID: {hit.get('pmid', 'N/A')}</p>"
+                )
 
-    html_parts.append('</div>')
+    html_parts.append("</div>")
     return "\n".join(html_parts)
 
 
 # ──────────────────────────────────────────────
 # Check MCP availability
 # ──────────────────────────────────────────────
+
 
 def check_mcp_availability() -> dict:
     """Check which MCP tools are available.

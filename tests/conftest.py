@@ -3,11 +3,11 @@
 import tempfile
 from pathlib import Path
 
+import anndata as ad
 import numpy as np
 import pandas as pd
-import anndata as ad
-import scanpy as sc
 import pytest
+import scanpy as sc
 
 
 @pytest.fixture
@@ -51,7 +51,6 @@ def synthetic_pbmc(rng):
     X = np.vstack(X_list)
     X_log = np.log1p(X)
 
-    var = pd.DataFrame(index=all_genes)
     obs = pd.DataFrame({"true_cell_type": labels})
 
     adata = ad.AnnData(X=X_log.astype(np.float32))
@@ -91,6 +90,7 @@ def h5ad_path(synthetic_pbmc, tmp_output_dir):
 def blood_atlas():
     """Load the human blood marker atlas."""
     from celltypepilot.data_adapter import load_marker_atlas
+
     return load_marker_atlas("human")
 
 
@@ -98,6 +98,7 @@ def blood_atlas():
 def blood_markers(blood_atlas):
     """Get blood tissue markers from atlas."""
     from celltypepilot.data_adapter import get_all_markers_for_tissue
+
     return get_all_markers_for_tissue(blood_atlas, "blood")
 
 
@@ -105,6 +106,7 @@ def blood_markers(blood_atlas):
 def marker_scores(synthetic_pbmc, blood_markers):
     """Pre-computed marker scores for synthetic data."""
     from celltypepilot.marker_scorer import compute_marker_scores
+
     return compute_marker_scores(synthetic_pbmc, "leiden", blood_markers)
 
 
@@ -112,6 +114,7 @@ def marker_scores(synthetic_pbmc, blood_markers):
 def annotation_summary(marker_scores):
     """Pre-computed annotation summary."""
     from celltypepilot.marker_scorer import generate_annotation_summary
+
     return generate_annotation_summary(marker_scores, "leiden")
 
 

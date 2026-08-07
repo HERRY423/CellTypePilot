@@ -1,27 +1,23 @@
 """Tests for data_adapter edge cases — error handling, boundary conditions."""
 
-import tempfile
-from pathlib import Path
-
+import anndata as ad
 import numpy as np
 import pandas as pd
-import anndata as ad
 import pytest
 
 from celltypepilot.data_adapter import (
-    load_h5ad,
     compute_data_hash,
     detect_species,
     detect_tissue,
     find_cluster_keys,
     find_embedding_keys,
     find_layer_keys,
-    inspect_adata,
     format_inspect_report,
-    load_marker_atlas,
-    get_all_markers_for_tissue,
     get_all_markers_flat,
-    _convert_atlas_to_mouse,
+    get_all_markers_for_tissue,
+    inspect_adata,
+    load_h5ad,
+    load_marker_atlas,
 )
 
 
@@ -108,11 +104,13 @@ class TestFindClusterKeys:
     def test_multiple_cluster_keys(self):
         adata = ad.AnnData(X=np.zeros((10, 5)))
         adata.var_names = [f"G{i}" for i in range(5)]
-        adata.obs = pd.DataFrame({
-            "leiden": range(10),
-            "louvain": range(10),
-            "cluster_id": range(10),
-        })
+        adata.obs = pd.DataFrame(
+            {
+                "leiden": range(10),
+                "louvain": range(10),
+                "cluster_id": range(10),
+            }
+        )
         keys = find_cluster_keys(adata)
         assert len(keys) >= 3
 
@@ -204,6 +202,6 @@ class TestGetAllMarkersForTissue:
 class TestGetAllMarkersFlat:
     def test_flat_format(self, blood_atlas):
         flat = get_all_markers_flat(blood_atlas, "blood")
-        for ct, markers in flat.items():
+        for markers in flat.values():
             assert isinstance(markers, list)
             assert all(isinstance(m, str) for m in markers)

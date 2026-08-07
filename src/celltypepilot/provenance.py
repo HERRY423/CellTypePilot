@@ -2,13 +2,12 @@
 
 from __future__ import annotations
 
-import json
 import hashlib
+import json
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Optional
 
-from . import __version__, MKG_VERSION
+from . import MKG_VERSION, __version__
 from .constants import OUTPUT_MANIFEST
 
 
@@ -67,7 +66,7 @@ def save_manifest(manifest: dict, output_dir: str | Path) -> Path:
 
 def load_manifest(path: str | Path) -> dict:
     """Load a previously saved manifest."""
-    with open(path, "r", encoding="utf-8") as f:
+    with open(path, encoding="utf-8") as f:
         return json.load(f)
 
 
