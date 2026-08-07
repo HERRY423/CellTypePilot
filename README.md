@@ -72,6 +72,11 @@ guide Claude Code / Codex through the full workflow automatically.
 CellTypePilot **parasitizes** on the coding agent you already use. It does not ask you to
 switch to a new app, learn a new UI, or configure a new environment.
 
+> **Why "plugin" and not "skill"?** "Plugin" is the product concept — a self-contained
+> intelligence layer that attaches to a host agent. Each host platform has its own native
+> extension format: Claude Code calls them "skills" (`SKILL.md`), Codex CLI uses
+> `AGENTS.md`. CellTypePilot ships both formats, but the *product* is a plugin.
+
 ```
 ┌──────────────────────────────────────────────────────────────────┐
 │  Host agent:  Claude Code (SKILL.md)  │  Codex CLI (AGENTS.md)  │
@@ -97,13 +102,14 @@ switch to a new app, learn a new UI, or configure a new environment.
 
 ### Dual-platform, single backend
 
-| Platform | Entry point | How it works |
-|---|---|---|
-| **Claude Code** | `skills/celltypepilot/SKILL.md` | YAML frontmatter + 4-stage orchestration |
-| **Codex CLI** | `AGENTS.md` (repo root) | Pure markdown instructions, auto-discovered |
+| Platform | Native format | Entry point | What it does |
+|---|---|---|---|
+| **Claude Code** | skill (`SKILL.md`) | `~/.claude/skills/celltypepilot/` | Agent discovers plugin via Claude Code's skill registry |
+| **Codex CLI** | agent instructions (`AGENTS.md`) | repo root | Agent discovers plugin when working in the repo directory |
+| **Standalone** | CLI | `celltypepilot` command | Direct terminal usage, no agent needed |
 
-Both platforms call the same `celltypepilot` CLI. The only difference is how the agent
-discovers and orchestrates the workflow.
+All three modes call the same Python backend. The "skill" directory is just Claude Code's
+conventional location for discovering plugins — the plugin itself is the full Python package.
 
 ### Installation
 
