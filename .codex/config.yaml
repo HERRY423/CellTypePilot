@@ -1,0 +1,14 @@
+# Codex CLI configuration for CellTypePilot
+# See: https://github.com/openai/codex
+
+model: o4-mini
+approval_policy: suggest
+
+# CellTypePilot commands are safe to auto-approve:
+# - doctor: read-only environment check
+# - inspect: read-only data inspection
+# - annotate: writes to user-specified output directory only
+# - critic: read-only deep review
+# - markers: read-only knowledge graph query
+#
+# The original .h5ad is never modified; outputs go to a separate directory.

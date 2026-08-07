@@ -1,0 +1,11 @@
+{
+  "name": "celltypepilot",
+  "version": "0.1.0",
+  "description": "Single-cell annotation intelligence layer — marker evidence, critic review, and publication-ready output. Dual-platform: Claude Code (SKILL.md) + Codex CLI (AGENTS.md).",
+  "platforms": ["claude-code", "codex-cli"],
+  "skills": {
+    "celltypepilot": {
+      "path": "skills/celltypepilot"
+    }
+  }
+}

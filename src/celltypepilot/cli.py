@@ -1,0 +1,397 @@
+"""CellTypePilot CLI — command-line interface."""
+
+from __future__ import annotations
+
+import json
+from pathlib import Path
+from typing import Optional
+
+import typer
+from rich.console import Console
+
+from . import __version__
+
+console = Console()
+app = typer.Typer(
+    name="celltypepilot",
+    help="CellTypePilot — Single-cell annotation intelligence layer",
+    add_completion=False,
+)
+
+
+def version_callback(value: bool):
+    if value:
+        console.print(f"CellTypePilot v{__version__}")
+        raise typer.Exit()
+
+
+@app.callback()
+def main(
+    version: bool = typer.Option(
+        False, "--version", "-v", callback=version_callback,
+        is_eager=True, help="Show version and exit.",
+    ),
+):
+    """CellTypePilot — Single-cell annotation intelligence layer."""
+    pass
+
+
+# ──────────────────────────────────────────────
+# doctor command
+# ──────────────────────────────────────────────
+@app.command()
+def doctor():
+    """Check environment: Python version, dependencies, capability level."""
+    from .doctor import print_doctor
+    print_doctor()
+
+
+# ──────────────────────────────────────────────
+# inspect command
+# ──────────────────────────────────────────────
+@app.command()
+def inspect(
+    input: str = typer.Option(..., "--input", "-i", help="Path to .h5ad file"),
+    cluster_key: Optional[str] = typer.Option(None, "--cluster-key", "-k", help="Cluster key in obs"),
+    embedding_key: Optional[str] = typer.Option(None, "--embedding-key", "-e", help="Embedding key in obsm"),
+    json_output: bool = typer.Option(False, "--json", help="Output as JSON"),
+):
+    """Inspect an h5ad file: detect species, tissue, clusters, embeddings, layers."""
+    from .data_adapter import inspect_adata, format_inspect_report
+
+    report = inspect_adata(input, cluster_key, embedding_key)
+
+    if json_output:
+        console.print(json.dumps(report, indent=2))
+    else:
+        console.print(format_inspect_report(report))
+
+
+# ──────────────────────────────────────────────
+# annotate command (main pipeline)
+# ──────────────────────────────────────────────
+@app.command()
+def annotate(
+    input: str = typer.Option(..., "--input", "-i", help="Path to .h5ad file"),
+    cluster_key: str = typer.Option(..., "--cluster-key", "-k", help="Cluster key in obs"),
+    output_dir: str = typer.Option(".", "--output", "-o", help="Output directory"),
+    species: Optional[str] = typer.Option(None, "--species", "-s", help="Species: human/mouse (auto-detect if omitted)"),
+    tissue: Optional[str] = typer.Option(None, "--tissue", "-t", help="Tissue context (e.g., blood, lung, brain)"),
+    embedding_key: Optional[str] = typer.Option(None, "--embedding-key", "-e", help="Embedding key in obsm"),
+    layer: Optional[str] = typer.Option(None, "--layer", help="Layer to use for expression (default: X)"),
+    json_output: bool = typer.Option(False, "--json", help="Output results as JSON"),
+    no_figures: bool = typer.Option(False, "--no-figures", help="Skip figure generation"),
+):
+    """Run the full annotation pipeline: marker scoring → critic → report."""
+    from .data_adapter import (
+        load_h5ad, compute_data_hash, detect_species, detect_tissue,
+        load_marker_atlas, get_all_markers_for_tissue,
+    )
+    from .marker_scorer import compute_marker_scores, generate_annotation_summary
+    from .critic import run_critic, generate_critic_summary
+    from .visualizer import generate_all_figures
+    from .reporter import save_evidence_table, generate_html_report, generate_methodology_text
+    from .provenance import create_manifest, update_manifest_outputs, save_manifest, format_manifest_summary
+
+    output_path = Path(output_dir)
+    output_path.mkdir(parents=True, exist_ok=True)
+
+    # Step 1: Load data
+    console.print("[bold blue]Step 1/6:[/bold blue] Loading data...")
+    adata = load_h5ad(input)
+    data_hash = compute_data_hash(input)
+
+    # Step 2: Detect/auto-set parameters
+    console.print("[bold blue]Step 2/6:[/bold blue] Detecting parameters...")
+    if species is None:
+        species = detect_species(adata)
+        console.print(f"  Detected species: [cyan]{species}[/cyan]")
+    if tissue is None:
+        tissue = detect_tissue(adata)
+        if tissue:
+            console.print(f"  Detected tissue: [cyan]{tissue}[/cyan]")
+        else:
+            tissue = "general"
+            console.print(f"  Tissue not detected, using [cyan]general[/cyan] marker set")
+    if embedding_key is None:
+        from .data_adapter import find_embedding_keys
+        candidates = find_embedding_keys(adata)
+        if candidates:
+            embedding_key = candidates[0]
+            console.print(f"  Using embedding: [cyan]{embedding_key}[/cyan]")
+        else:
+            console.print("[yellow]  Warning: No embedding found. Figures will be skipped.[/yellow]")
+
+    # Validate cluster key
+    if cluster_key not in adata.obs.columns:
+        console.print(f"[red]Error: cluster key '{cluster_key}' not found in obs.[/red]")
+        console.print(f"Available columns: {list(adata.obs.columns)}")
+        raise typer.Exit(1)
+
+    # Step 3: Load marker atlas and score
+    console.print("[bold blue]Step 3/6:[/bold blue] Computing marker scores...")
+    atlas = load_marker_atlas(species)
+    markers = get_all_markers_for_tissue(atlas, tissue)
+    console.print(f"  Using {len(markers)} cell types from '{tissue}' tissue atlas")
+
+    scores = compute_marker_scores(adata, cluster_key, markers, layer=layer)
+    summary = generate_annotation_summary(scores, cluster_key)
+
+    if summary.empty:
+        console.print("[red]Error: No annotations generated. Check marker gene overlap with your data.[/red]")
+        raise typer.Exit(1)
+
+    console.print(f"  Annotated {len(summary)} clusters")
+
+    # Step 4: Run critic
+    console.print("[bold blue]Step 4/6:[/bold blue] Running Annotation Critic...")
+    critic_results = run_critic(adata, cluster_key, summary, atlas, tissue)
+    critic_summary = generate_critic_summary(critic_results)
+
+    console.print(f"  Passed: [green]{critic_summary['pass']}[/green] | "
+                  f"Flagged: [red]{critic_summary['flagged']}[/red]")
+
+    # Step 5: Generate figures
+    figure_paths = []
+    if not no_figures and embedding_key:
+        console.print("[bold blue]Step 5/6:[/bold blue] Generating figures...")
+        figure_paths = generate_all_figures(
+            adata, cluster_key, embedding_key, critic_results, output_path, tissue
+        )
+        console.print(f"  Generated {len(figure_paths)} figures")
+    else:
+        console.print("[bold blue]Step 5/6:[/bold blue] Skipping figures")
+
+    # Step 6: Save outputs
+    console.print("[bold blue]Step 6/6:[/bold blue] Saving outputs...")
+
+    # Evidence table
+    evidence_path = save_evidence_table(critic_results, output_path)
+    console.print(f"  Evidence table: {evidence_path}")
+
+    # Manifest
+    manifest = create_manifest(
+        input_path=input,
+        data_hash=data_hash,
+        cluster_key=cluster_key,
+        species=species,
+        tissue=tissue,
+        parameters={
+            "embedding_key": embedding_key,
+            "layer": layer,
+        },
+        output_dir=output_path,
+    )
+
+    # HTML report
+    report_path = generate_html_report(
+        critic_results, critic_results, critic_summary, manifest, figure_paths, output_path
+    )
+    console.print(f"  HTML report: {report_path}")
+
+    # Methodology text
+    method_text = generate_methodology_text(manifest, critic_summary, critic_results)
+    method_path = output_path / "methodology_draft.txt"
+    with open(method_path, "w") as f:
+        f.write(method_text)
+    console.print(f"  Methodology draft: {method_path}")
+
+    # Update and save manifest
+    manifest = update_manifest_outputs(manifest, output_path)
+    manifest_path = save_manifest(manifest, output_path)
+    console.print(f"  Manifest: {manifest_path}")
+
+    # Write annotations back to adata
+    _write_annotations_to_adata(adata, critic_results, cluster_key, output_path)
+
+    # JSON output
+    if json_output:
+        output_json = {
+            "annotations": critic_results.to_dict(orient="records"),
+            "critic_summary": critic_summary,
+            "manifest": manifest,
+        }
+        console.print(json.dumps(output_json, indent=2, default=str))
+
+    console.print("\n[bold green]Done![/bold green] CellTypePilot annotation complete.")
+    console.print(f"Output directory: {output_path.resolve()}")
+
+
+def _write_annotations_to_adata(
+    adata, critic_results: "pd.DataFrame", cluster_key: str, output_dir: Path
+):
+    """Write annotation results back into adata obs and save."""
+    import anndata as ad
+
+    # Map cluster → annotation
+    cluster_to_ct = dict(zip(critic_results["cluster"], critic_results["cell_type"]))
+    cluster_to_cl = dict(zip(critic_results["cluster"], critic_results.get("cl_id", [""] * len(critic_results))))
+    cluster_to_conf = dict(zip(critic_results["cluster"], critic_results.get("critic_confidence", [""] * len(critic_results))))
+
+    adata.obs["ctp_cell_type"] = adata.obs[cluster_key].map(cluster_to_ct).fillna("Unknown")
+    adata.obs["ctp_cl_id"] = adata.obs[cluster_key].map(cluster_to_cl).fillna("")
+    adata.obs["ctp_confidence"] = adata.obs[cluster_key].map(cluster_to_conf).fillna("unknown")
+
+    output_path = output_dir / "data.annotated.h5ad"
+    adata.write(output_path)
+
+
+# ──────────────────────────────────────────────
+# critic command (re-review a specific cluster)
+# ──────────────────────────────────────────────
+@app.command()
+def critic(
+    input: str = typer.Option(..., "--input", "-i", help="Path to .h5ad file"),
+    cluster_key: str = typer.Option(..., "--cluster-key", "-k", help="Cluster key in obs"),
+    focus: str = typer.Option(..., "--focus", "-f", help="Cluster ID to deep-review"),
+    species: Optional[str] = typer.Option(None, "--species", "-s", help="Species"),
+    tissue: Optional[str] = typer.Option(None, "--tissue", "-t", help="Tissue context"),
+):
+    """Deep-review a specific cluster flagged by the critic."""
+    from .data_adapter import load_h5ad, detect_species, detect_tissue, load_marker_atlas
+    from .marker_scorer import compute_marker_scores, generate_annotation_summary
+    from .critic import run_critic
+
+    adata = load_h5ad(input)
+    if species is None:
+        species = detect_species(adata)
+    if tissue is None:
+        tissue = detect_tissue(adata) or "general"
+
+    atlas = load_marker_atlas(species)
+    from .data_adapter import get_all_markers_for_tissue
+    markers = get_all_markers_for_tissue(atlas, tissue)
+
+    scores = compute_marker_scores(adata, cluster_key, markers)
+    summary = generate_annotation_summary(scores, cluster_key)
+
+    # Filter to focus cluster
+    focus_rows = summary[summary["cluster"] == focus]
+    if focus_rows.empty:
+        console.print(f"[red]Cluster '{focus}' not found in annotations.[/red]")
+        raise typer.Exit(1)
+
+    critic_results = run_critic(adata, cluster_key, focus_rows, atlas, tissue)
+
+    console.print(f"\n[bold]Deep Review: Cluster {focus}[/bold]")
+    console.print("=" * 50)
+    for _, row in critic_results.iterrows():
+        console.print(f"  Cell Type:   {row.get('cell_type', 'N/A')}")
+        console.print(f"  CL ID:       {row.get('cl_id', 'N/A')}")
+        console.print(f"  Score:       {row.get('combined_score', 0):.3f}")
+        console.print(f"  Confidence:  {row.get('critic_confidence', 'N/A')}")
+        console.print(f"  Flags:       {row.get('critic_flags', 'PASS')}")
+        console.print(f"  Evidence:    {row.get('critic_evidence', '')}")
+        console.print(f"  Notes:       {row.get('critic_notes', '')}")
+
+    # Show top-5 candidates
+    console.print(f"\n[bold]Top 5 Candidates for Cluster {focus}:[/bold]")
+    cluster_scores = scores[scores["cluster"] == focus].head(5)
+    for _, row in cluster_scores.iterrows():
+        console.print(f"  #{int(row['rank'])} {row['cell_type']} (score={row['combined_score']:.3f}, "
+                      f"overlap={row['pct_overlap']:.0%}, neg_conflict={row['neg_conflict']:.0%})")
+
+
+# ──────────────────────────────────────────────
+# markers command (list available markers)
+# ──────────────────────────────────────────────
+@app.command()
+def markers(
+    tissue: Optional[str] = typer.Option(None, "--tissue", "-t", help="Tissue to list markers for"),
+    species: str = typer.Option("human", "--species", "-s", help="Species: human/mouse"),
+    json_output: bool = typer.Option(False, "--json", help="Output as JSON"),
+):
+    """List available cell types and markers in the knowledge graph."""
+    from .data_adapter import load_marker_atlas, get_all_markers_for_tissue
+
+    atlas = load_marker_atlas(species)
+    available_tissues = list(atlas.get("tissues", {}).keys())
+
+    if tissue is None:
+        console.print("[bold]Available tissues:[/bold]")
+        for t in available_tissues:
+            n_types = len(atlas["tissues"][t].get("cell_types", {}))
+            console.print(f"  {t}: {n_types} cell types")
+        return
+
+    markers_dict = get_all_markers_for_tissue(atlas, tissue)
+    if not markers_dict:
+        console.print(f"[yellow]No markers found for tissue '{tissue}'.[/yellow]")
+        console.print(f"Available: {available_tissues}")
+        return
+
+    if json_output:
+        console.print(json.dumps(markers_dict, indent=2))
+    else:
+        console.print(f"\n[bold]Cell types and markers for '{tissue}':[/bold]\n")
+        for ct_name, info in markers_dict.items():
+            pos = info.get("positive_markers", [])
+            neg = info.get("negative_markers", [])
+            cl_id = info.get("cl_id", "")
+            console.print(f"  [cyan]{ct_name}[/cyan] ({cl_id})")
+            console.print(f"    + markers: {', '.join(pos[:8])}{'...' if len(pos) > 8 else ''}")
+            if neg:
+                console.print(f"    - markers: {', '.join(neg[:5])}{'...' if len(neg) > 5 else ''}")
+            console.print()
+
+
+# ──────────────────────────────────────────────
+# literature command (MCP-backed literature search)
+# ──────────────────────────────────────────────
+@app.command()
+def literature(
+    cell_type: str = typer.Option(..., "--cell-type", "-c", help="Cell type to search"),
+    markers: Optional[str] = typer.Option(None, "--markers", "-m", help="Comma-separated marker genes"),
+    max_refs: int = typer.Option(5, "--max-refs", help="Max references per query"),
+    json_output: bool = typer.Option(False, "--json", help="Output as JSON"),
+):
+    """Search literature for marker validation (PubMed/bioRxiv)."""
+    from .literature import (
+        validate_marker_in_literature,
+        validate_annotation_with_literature,
+        check_mcp_availability,
+        generate_mcp_search_queries,
+    )
+
+    # Check MCP availability
+    mcp_status = check_mcp_availability()
+    if not mcp_status.get("pubmed_direct"):
+        console.print("[yellow]Warning: PubMed direct access not available. Check network.[/yellow]")
+
+    marker_list = [m.strip() for m in markers.split(",")] if markers else []
+
+    if marker_list:
+        # Validate specific markers for a cell type
+        results = validate_annotation_with_literature(cell_type, marker_list, max_refs_per_marker=max_refs)
+
+        if json_output:
+            console.print(json.dumps(results, indent=2))
+        else:
+            console.print(f"\n[bold]Literature Validation for '{cell_type}':[/bold]\n")
+            console.print(f"  Positive markers checked: {results['positive_markers_checked']}")
+            console.print(f"  Markers supported: {results['positive_markers_supported']}")
+            console.print(f"  Total refs found: {results['total_literature_refs']}")
+            console.print(f"  Assessment: {results['overall_assessment']}\n")
+
+            for ev in results.get("positive_evidence", []):
+                status = "[green]OK[/green]" if ev["consensus"] == "supported" else "[yellow]?[/yellow]"
+                console.print(f"  {status} {ev['gene']}: {ev['total_refs']} refs")
+                for hit in ev.get("top_hits", []):
+                    console.print(f"      - {hit['authors']} ({hit['year']}). {hit['title'][:60]}...")
+    else:
+        # Generate search queries for manual MCP use
+        queries = generate_mcp_search_queries(cell_type, [])
+        if json_output:
+            console.print(json.dumps({"queries": queries, "mcp_status": mcp_status}, indent=2))
+        else:
+            console.print(f"\n[bold]Suggested search queries for '{cell_type}':[/bold]\n")
+            for i, q in enumerate(queries, 1):
+                console.print(f"  {i}. {q}")
+            console.print(f"\n[bold]MCP Status:[/bold]")
+            for tool, available in mcp_status.items():
+                status = "[green]available[/green]" if available else "[red]not available[/red]"
+                console.print(f"  {tool}: {status}")
+
+
+if __name__ == "__main__":
+    app()

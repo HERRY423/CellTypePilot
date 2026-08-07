@@ -1,0 +1,38 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "celltypepilot"
+version = "0.1.0"
+description = "Single-cell annotation intelligence layer for coding agents"
+readme = "README.md"
+license = "MIT"
+requires-python = ">=3.10"
+authors = [{ name = "CellTypePilot Contributors" }]
+
+dependencies = [
+    "typer>=0.9.0",
+    "rich>=13.0.0",
+    "anndata>=0.10.0",
+    "scanpy>=1.10.0",
+    "numpy>=1.24.0",
+    "pandas>=2.0.0",
+    "scipy>=1.11.0",
+    "matplotlib>=3.7.0",
+    "seaborn>=0.12.0",
+]
+
+[project.optional-dependencies]
+gpu = ["cupy-cuda12x"]
+report = ["python-docx>=1.0.0"]
+dev = ["pytest>=7.0.0", "pytest-cov"]
+
+[project.scripts]
+celltypepilot = "celltypepilot.cli:app"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/celltypepilot"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
