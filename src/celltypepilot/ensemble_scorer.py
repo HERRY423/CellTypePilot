@@ -22,21 +22,11 @@ import pandas as pd
 
 from .constants import (
     CONFIDENCE_HIGH, CONFIDENCE_MEDIUM, CONFIDENCE_LOW, CONFIDENCE_REVIEW,
+    ENSEMBLE_AGREEMENT_THRESHOLD, ENSEMBLE_MARKER_HIGH,
+    ENSEMBLE_MARKER_LOW, ENSEMBLE_REF_OVERRIDE,
 )
 
 logger = logging.getLogger(__name__)
-
-
-# ──────────────────────────────────────────────
-# Adaptive weight schedule
-# ──────────────────────────────────────────────
-
-# When marker score is above this threshold, trust markers more
-MARKER_HIGH_CONFIDENCE = 0.6
-# When marker score is below this, trust reference more
-MARKER_LOW_CONFIDENCE = 0.3
-# Minimum reference score to trust reference override
-REF_OVERRIDE_THRESHOLD = 0.5
 
 
 def ensemble_scores(
@@ -111,10 +101,10 @@ def ensemble_scores(
 
             if has_marker and has_ref:
                 source = "both"
-                agreement = abs(m_score - r_score) < 0.2
+                agreement = abs(m_score - r_score) < ENSEMBLE_AGREEMENT_THRESHOLD
             elif has_marker:
                 source = "marker"
-                agreement = True  # No disagreement possible
+                agreement = True
             else:
                 source = "reference"
                 agreement = True
@@ -160,41 +150,38 @@ def _compute_adaptive_weights(
     if not adaptive:
         return base_marker_weight, 1.0 - base_marker_weight
 
-    # Get marker top-1 score
-    if not marker_cl.empty:
+    # Get marker top-1 score (rank column is guaranteed present)
+    m_top_score = 0.0
+    m_top_type = ""
+    if not marker_cl.empty and "rank" in marker_cl.columns:
         m_best = marker_cl.nsmallest(1, "rank")
-        m_top_score = float(m_best.iloc[0]["combined_score"])
-    else:
-        m_top_score = 0.0
+        if not m_best.empty:
+            m_top_score = float(m_best.iloc[0]["combined_score"])
+            m_top_type = str(m_best.iloc[0]["cell_type"])
 
     # Get reference top-1 score
-    if not ref_cl.empty:
+    r_top_score = 0.0
+    r_top_type = ""
+    if not ref_cl.empty and "ref_rank" in ref_cl.columns:
         r_best = ref_cl.nsmallest(1, "ref_rank")
-        r_top_score = float(r_best.iloc[0]["ref_score"])
-    else:
-        r_top_score = 0.0
+        if not r_best.empty:
+            r_top_score = float(r_best.iloc[0]["ref_score"])
+            r_top_type = str(r_best.iloc[0]["cell_type"])
 
-    # Adaptive schedule
-    if m_top_score >= MARKER_HIGH_CONFIDENCE:
-        # Marker is confident → trust it
+    # Adaptive schedule using constants
+    if m_top_score >= ENSEMBLE_MARKER_HIGH:
         m_weight = 0.7
-    elif m_top_score <= MARKER_LOW_CONFIDENCE:
-        # Marker is uncertain → lean on reference
-        if r_top_score >= REF_OVERRIDE_THRESHOLD:
+    elif m_top_score <= ENSEMBLE_MARKER_LOW:
+        if r_top_score >= ENSEMBLE_REF_OVERRIDE:
             m_weight = 0.2  # Reference override
         else:
-            m_weight = 0.3  # Both uncertain → slight marker preference
+            m_weight = 0.3  # Both uncertain
     else:
-        # Medium confidence → balanced
         m_weight = 0.5
 
     # Special case: strong disagreement with confident reference
-    if not ref_cl.empty and not marker_cl.empty:
-        m_top_type = marker_cl.nsmallest(1, "rank").iloc[0]["cell_type"]
-        r_top_type = ref_cl.nsmallest(1, "ref_rank").iloc[0]["cell_type"]
-
-        if m_top_type != r_top_type and r_top_score > 0.7 and m_top_score < 0.3:
-            # Reference strongly disagrees and is confident → trust reference
+    if m_top_type and r_top_type and m_top_type != r_top_type:
+        if r_top_score > 0.7 and m_top_score < 0.3:
             m_weight = 0.15
 
     r_weight = 1.0 - m_weight
@@ -223,7 +210,8 @@ def _marker_only_results(marker_scores: pd.DataFrame) -> pd.DataFrame:
     df["ref_weight_used"] = 0.0
     df["agreement"] = True
     df["source"] = "marker"
-    df["rank"] = df.get("rank", range(1, len(df) + 1))
+    if "rank" not in df.columns:
+        df["rank"] = range(1, len(df) + 1)
     return df
 
 
@@ -257,28 +245,24 @@ def _assign_ensemble_confidence(row: pd.Series) -> str:
     score = row.get("ensemble_score", 0)
     agreement = row.get("agreement", True)
     source = row.get("source", "marker")
-    m_score = row.get("marker_score", 0)
-    r_score = row.get("ref_score", 0)
 
-    # Both methods agree and score is high → high confidence
+    # Both methods agree and score is high
     if score >= 0.6 and agreement:
         return CONFIDENCE_HIGH
 
-    # Good score but some disagreement → medium
+    # Good score, agreement
     if score >= 0.5 and agreement:
         return CONFIDENCE_MEDIUM
 
-    # Disagreement between methods → needs review
+    # Disagreement between methods → reduced confidence
     if not agreement:
-        if score >= 0.4:
-            return CONFIDENCE_LOW
-        return CONFIDENCE_REVIEW
+        return CONFIDENCE_LOW if score >= 0.4 else CONFIDENCE_REVIEW
 
-    # Single-source results
+    # Single-source results get slightly lower confidence
     if source == "marker" and score >= 0.5:
         return CONFIDENCE_MEDIUM
     if source == "reference" and score >= 0.5:
-        return CONFIDENCE_LOW  # Reference-only → slightly lower confidence
+        return CONFIDENCE_LOW  # Reference-only → lower confidence
 
     if score >= 0.3:
         return CONFIDENCE_LOW
@@ -308,25 +292,26 @@ def analyze_disagreements(
     if ensemble_df.empty:
         return pd.DataFrame()
 
-    # Find top-1 from each source per cluster
     disagreements = []
     clusters = ensemble_df["cluster"].unique()
 
     for cl in clusters:
         cl_data = ensemble_df[ensemble_df["cluster"] == cl]
 
-        # Best marker cell type
-        m_best = cl_data.nsmallest(1, "rank") if "rank" in cl_data.columns else pd.DataFrame()
-        # Best reference cell type
-        r_best = cl_data.nsmallest(1, "ref_rank") if "ref_rank" in cl_data.columns else pd.DataFrame()
+        # Best from each source within this cluster's data
+        m_data = cl_data[cl_data["marker_score"] > 0.01]
+        r_data = cl_data[cl_data["ref_score"] > 0.01]
 
-        if m_best.empty or r_best.empty:
+        if m_data.empty or r_data.empty:
             continue
 
-        m_type = m_best.iloc[0]["cell_type"]
-        r_type = r_best.iloc[0]["cell_type"]
-        m_score = float(m_best.iloc[0]["marker_score"])
-        r_score = float(r_best.iloc[0]["ref_score"])
+        m_best = m_data.loc[m_data["marker_score"].idxmax()]
+        r_best = r_data.loc[r_data["ref_score"].idxmax()]
+
+        m_type = m_best["cell_type"]
+        r_type = r_best["cell_type"]
+        m_score = float(m_best["marker_score"])
+        r_score = float(r_best["ref_score"])
 
         if m_type != r_type:
             severity = abs(m_score - r_score)

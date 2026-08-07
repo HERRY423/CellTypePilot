@@ -298,3 +298,261 @@ class TestCLI:
             assert (output_dir / "evidence_table.csv").exists()
             assert (output_dir / "manifest.json").exists()
             assert (output_dir / "data.annotated.h5ad").exists()
+
+
+class TestReferenceScorer:
+    """Tests for the reference embedding scorer."""
+
+    def test_check_backends(self):
+        from celltypepilot.reference_scorer import check_reference_backends
+        backends = check_reference_backends()
+        assert "celltypist" in backends
+        assert "scanvi" in backends
+        assert "knn" in backends
+        assert "correlation" in backends
+        # knn and correlation are always available
+        assert backends["knn"] is True
+        assert backends["correlation"] is True
+
+    def test_score_correlation_backend(self):
+        from celltypepilot.reference_scorer import score_by_reference
+
+        # Need >100 genes for the threshold
+        base = make_synthetic_pbmc()
+        rng = np.random.RandomState(99)
+        n_extra = 50
+        extra_genes = [f"EXTRA_{i}" for i in range(n_extra)]
+        extra_X = rng.exponential(0.5, size=(base.n_obs, n_extra)).astype(np.float32)
+
+        new_X = np.hstack([base.X, extra_X])
+        new_genes = list(base.var_names) + extra_genes
+        query = ad.AnnData(X=new_X)
+        query.var_names = new_genes
+        query.obs = base.obs.copy()
+
+        # Use a subset as reference
+        mask = query.obs["true_cell_type"].isin(["T cell", "B cell"])
+        ref = query[mask].copy()
+        ref.obs["cell_type"] = ref.obs["true_cell_type"]
+
+        scores = score_by_reference(
+            query, "leiden",
+            reference=ref,
+            ref_label_key="cell_type",
+            backend="correlation",
+        )
+        assert not scores.empty
+        assert "ref_score" in scores.columns
+        assert "ref_rank" in scores.columns
+        assert "cluster" in scores.columns
+
+    def test_score_knn_backend(self):
+        from celltypepilot.reference_scorer import score_by_reference
+
+        # Need >100 genes for the threshold
+        base = make_synthetic_pbmc()
+        rng = np.random.RandomState(99)
+        n_extra = 50
+        extra_genes = [f"EXTRA_{i}" for i in range(n_extra)]
+        extra_X = rng.exponential(0.5, size=(base.n_obs, n_extra)).astype(np.float32)
+
+        new_X = np.hstack([base.X, extra_X])
+        new_genes = list(base.var_names) + extra_genes
+        query = ad.AnnData(X=new_X)
+        query.var_names = new_genes
+        query.obs = base.obs.copy()
+
+        mask = query.obs["true_cell_type"].isin(["T cell", "B cell", "NK cell"])
+        ref = query[mask].copy()
+        ref.obs["cell_type"] = ref.obs["true_cell_type"]
+
+        scores = score_by_reference(
+            query, "leiden",
+            reference=ref,
+            ref_label_key="cell_type",
+            backend="knn",
+            n_neighbors=5,
+        )
+        assert not scores.empty
+        assert "ref_score" in scores.columns
+        top1_per_cluster = scores[scores["ref_rank"] == 1]
+        assert len(top1_per_cluster) > 0
+
+    def test_detect_transitional_states(self):
+        from celltypepilot.reference_scorer import detect_transitional_states
+
+        # Create mock marker and ref scores
+        marker_scores = pd.DataFrame({
+            "cluster": ["0", "0", "1", "1"],
+            "cell_type": ["T cell", "B cell", "NK cell", "Monocyte"],
+            "combined_score": [0.7, 0.3, 0.4, 0.35],
+            "rank": [1, 2, 1, 2],
+        })
+        ref_scores = pd.DataFrame({
+            "cluster": ["0", "0", "1", "1"],
+            "cell_type": ["T cell", "B cell", "Monocyte", "NK cell"],
+            "ref_score": [0.6, 0.35, 0.5, 0.2],
+            "ref_rank": [1, 2, 1, 2],
+        })
+
+        transitions = detect_transitional_states(ref_scores, marker_scores)
+        assert not transitions.empty
+        assert "is_transitional" in transitions.columns
+        assert "transition_type" in transitions.columns
+
+    def test_auto_select_backend_with_reference(self):
+        from celltypepilot.reference_scorer import _auto_select_backend
+        # With reference but no scvi → should pick knn
+        backend = _auto_select_backend(reference="dummy", model_path=None)
+        assert backend == "knn"
+
+    def test_auto_select_backend_no_reference(self):
+        from celltypepilot.reference_scorer import _auto_select_backend
+        # Without reference → correlation (always available)
+        # But if celltypist is not installed, it falls through
+        # At minimum it should raise or return correlation
+        try:
+            backend = _auto_select_backend(reference=None, model_path=None)
+            assert backend in ("celltypist", "correlation")
+        except RuntimeError:
+            pass  # No backend available — acceptable in test env
+
+
+class TestEnsembleScorer:
+    """Tests for the ensemble scorer."""
+
+    def test_ensemble_scores_basic(self):
+        from celltypepilot.ensemble_scorer import ensemble_scores
+
+        marker_scores = pd.DataFrame({
+            "cluster": ["0", "0", "1", "1"],
+            "cell_type": ["T cell", "B cell", "NK cell", "Monocyte"],
+            "combined_score": [0.8, 0.2, 0.3, 0.6],
+            "rank": [1, 2, 1, 2],
+        })
+        ref_scores = pd.DataFrame({
+            "cluster": ["0", "0", "1", "1"],
+            "cell_type": ["T cell", "B cell", "NK cell", "Monocyte"],
+            "ref_score": [0.7, 0.3, 0.5, 0.4],
+            "ref_rank": [1, 2, 1, 2],
+        })
+
+        result = ensemble_scores(marker_scores, ref_scores, adaptive=True)
+        assert not result.empty
+        assert "ensemble_score" in result.columns
+        assert "marker_weight_used" in result.columns
+        assert "ref_weight_used" in result.columns
+        assert "rank" in result.columns
+
+        # Weights should sum to ~1
+        for _, row in result.iterrows():
+            assert abs(row["marker_weight_used"] + row["ref_weight_used"] - 1.0) < 0.01
+
+    def test_ensemble_scores_empty(self):
+        from celltypepilot.ensemble_scorer import ensemble_scores
+        result = ensemble_scores(pd.DataFrame(), pd.DataFrame())
+        assert result.empty
+
+    def test_ensemble_marker_only(self):
+        from celltypepilot.ensemble_scorer import ensemble_scores
+        marker_scores = pd.DataFrame({
+            "cluster": ["0"],
+            "cell_type": ["T cell"],
+            "combined_score": [0.8],
+            "rank": [1],
+        })
+        result = ensemble_scores(marker_scores, pd.DataFrame())
+        assert not result.empty
+        assert result.iloc[0]["source"] == "marker"
+
+    def test_ensemble_ref_only(self):
+        from celltypepilot.ensemble_scorer import ensemble_scores
+        ref_scores = pd.DataFrame({
+            "cluster": ["0"],
+            "cell_type": ["T cell"],
+            "ref_score": [0.7],
+            "ref_rank": [1],
+        })
+        result = ensemble_scores(pd.DataFrame(), ref_scores)
+        assert not result.empty
+        assert result.iloc[0]["source"] == "reference"
+
+    def test_generate_ensemble_summary(self):
+        from celltypepilot.ensemble_scorer import ensemble_scores, generate_ensemble_summary
+
+        marker_scores = pd.DataFrame({
+            "cluster": ["0", "0", "1", "1"],
+            "cell_type": ["T cell", "B cell", "NK cell", "Monocyte"],
+            "combined_score": [0.8, 0.2, 0.3, 0.6],
+            "rank": [1, 2, 1, 2],
+        })
+        ref_scores = pd.DataFrame({
+            "cluster": ["0", "0", "1", "1"],
+            "cell_type": ["T cell", "B cell", "NK cell", "Monocyte"],
+            "ref_score": [0.7, 0.3, 0.5, 0.4],
+            "ref_rank": [1, 2, 1, 2],
+        })
+
+        result = ensemble_scores(marker_scores, ref_scores)
+        summary = generate_ensemble_summary(result)
+        assert not summary.empty
+        assert "confidence" in summary.columns
+        assert len(summary) == 2  # 2 clusters
+
+    def test_analyze_disagreements(self):
+        from celltypepilot.ensemble_scorer import ensemble_scores, analyze_disagreements
+
+        # Create data where marker strongly supports T cell but ref
+        # strongly supports B cell, with asymmetric confidence
+        marker_scores = pd.DataFrame({
+            "cluster": ["0", "0"],
+            "cell_type": ["T cell", "B cell"],
+            "combined_score": [0.8, 0.1],
+            "rank": [1, 2],
+        })
+        ref_scores = pd.DataFrame({
+            "cluster": ["0", "0"],
+            "cell_type": ["B cell", "T cell"],
+            "ref_score": [0.2, 0.05],
+            "ref_rank": [1, 2],
+        })
+
+        result = ensemble_scores(marker_scores, ref_scores)
+        disagreements = analyze_disagreements(result)
+        # marker best: T cell (marker_score=0.8)
+        # ref best: B cell (ref_score=0.2)
+        # severity = |0.8 - 0.2| = 0.6 > 0.2 → flagged
+        assert not disagreements.empty
+        assert "interpretation" in disagreements.columns
+
+
+class TestCriticEnsemble:
+    """Tests for critic with ensemble integration."""
+
+    def test_critic_with_ensemble_info(self):
+        from celltypepilot.critic import run_critic
+        from celltypepilot.marker_scorer import compute_marker_scores, generate_annotation_summary
+        from celltypepilot.data_adapter import load_marker_atlas, get_all_markers_for_tissue
+
+        adata = make_synthetic_pbmc()
+        atlas = load_marker_atlas("human")
+        markers = get_all_markers_for_tissue(atlas, "blood")
+
+        scores = compute_marker_scores(adata, "leiden", markers)
+        summary = generate_annotation_summary(scores, "leiden")
+
+        # Create mock ensemble info
+        ensemble_info = pd.DataFrame({
+            "cluster": summary["cluster"].values,
+            "marker_score": [0.5] * len(summary),
+            "ref_score": [0.4] * len(summary),
+            "agreement": [True] * len(summary),
+            "source": ["both"] * len(summary),
+        })
+
+        critic_results = run_critic(
+            adata, "leiden", summary, atlas, "blood",
+            ensemble_info=ensemble_info,
+        )
+        assert "critic_flags" in critic_results.columns
+        assert "critic_confidence" in critic_results.columns

@@ -18,6 +18,7 @@ from .constants import (
     CONFIDENCE_HIGH, CONFIDENCE_MEDIUM, CONFIDENCE_LOW, CONFIDENCE_REVIEW,
     CRITIC_NEG_MARKER_PCT_THRESHOLD, CRITIC_DOUBLET_COEXPR_THRESHOLD,
     CRITIC_LOW_COVERAGE_THRESHOLD, MARKER_PCT_THRESHOLD,
+    ENSEMBLE_AGREEMENT_THRESHOLD,
 )
 from .data_adapter import load_marker_atlas, get_all_markers_for_tissue
 
@@ -28,6 +29,7 @@ def run_critic(
     annotations: pd.DataFrame,
     atlas: dict,
     tissue: str,
+    ensemble_info: Optional[pd.DataFrame] = None,
 ) -> pd.DataFrame:
     """Run the full critic pipeline on annotations.
 
@@ -36,13 +38,35 @@ def run_critic(
     2. Negative marker conflict check
     3. Doublet/mixed signal heuristic
     4. Ontology consistency check
-    5. Structured confidence recalibration
+    5. Ensemble agreement check (if ensemble_info provided)
+    6. Structured confidence recalibration
+
+    Args:
+        adata: AnnData object
+        cluster_key: Column in obs with cluster labels
+        annotations: Per-cluster annotations (from marker_scorer summary)
+        atlas: Marker atlas dict
+        tissue: Tissue context
+        ensemble_info: Optional ensemble scores DataFrame from ensemble_scorer
 
     Returns the annotations DataFrame with added critic columns:
         critic_flags, critic_evidence, critic_confidence, critic_notes
     """
     markers = get_all_markers_for_tissue(atlas, tissue)
     results = annotations.copy()
+
+    # Build ensemble lookup if provided
+    ensemble_lookup = {}
+    if ensemble_info is not None and not ensemble_info.empty:
+        for _, row in ensemble_info.iterrows():
+            cl = str(row.get("cluster", ""))
+            if cl not in ensemble_lookup:
+                ensemble_lookup[cl] = {
+                    "marker_score": row.get("marker_score", 0),
+                    "ref_score": row.get("ref_score", 0),
+                    "agreement": row.get("agreement", True),
+                    "source": row.get("source", ""),
+                }
 
     critic_flags_list = []
     critic_evidence_list = []
@@ -97,7 +121,17 @@ def run_critic(
         if onto_result["note"]:
             notes.append(onto_result["note"])
 
-        # 5. Recalibrate confidence
+        # 5. Ensemble agreement check
+        ens_result = _check_ensemble_agreement(
+            cluster, cell_type, ensemble_lookup
+        )
+        if ens_result["flag"]:
+            flags.append(ens_result["flag"])
+        evidence_parts.append(ens_result["evidence"])
+        if ens_result["note"]:
+            notes.append(ens_result["note"])
+
+        # 6. Recalibrate confidence
         new_confidence = _recalibrate_confidence(
             original_confidence=row.get("confidence", CONFIDENCE_LOW),
             flags=flags,
@@ -314,6 +348,56 @@ def _recalibrate_confidence(
             level = min(level, 1)
 
     return reverse_order.get(level, CONFIDENCE_REVIEW)
+
+
+def _check_ensemble_agreement(
+    cluster: str,
+    cell_type: str,
+    ensemble_lookup: dict,
+) -> dict:
+    """Check if ensemble scoring agrees with the marker-based annotation."""
+    if not ensemble_lookup:
+        return {"flag": "", "evidence": "Ensemble: not available", "note": ""}
+
+    ens = ensemble_lookup.get(str(cluster))
+    if not ens:
+        return {"flag": "", "evidence": "Ensemble: no data for this cluster", "note": ""}
+
+    m_score = ens.get("marker_score", 0)
+    r_score = ens.get("ref_score", 0)
+    agreement = ens.get("agreement", True)
+    source = ens.get("source", "")
+
+    evidence = f"Ensemble: marker={m_score:.2f}, ref={r_score:.2f}, source={source}"
+
+    # Flag if methods strongly disagree
+    if not agreement:
+        gap = abs(m_score - r_score)
+        if gap > ENSEMBLE_AGREEMENT_THRESHOLD * 2:
+            return {
+                "flag": "ENSEMBLE_DISAGREEMENT",
+                "evidence": evidence,
+                "note": (
+                    f"Marker ({m_score:.2f}) and reference ({r_score:.2f}) "
+                    f"strongly disagree — possible transitional state"
+                ),
+            }
+        else:
+            return {
+                "flag": "ENSEMBLE_MILD_DISAGREEMENT",
+                "evidence": evidence,
+                "note": f"Mild disagreement between methods (gap={gap:.2f})",
+            }
+
+    # Flag if single-source only (lower confidence)
+    if source == "reference" and r_score < 0.4:
+        return {
+            "flag": "WEAK_REFERENCE_ONLY",
+            "evidence": evidence,
+            "note": "Only reference embedding supports this annotation with low confidence",
+        }
+
+    return {"flag": "", "evidence": evidence, "note": ""}
 
 
 def generate_critic_summary(critic_results: pd.DataFrame) -> dict:

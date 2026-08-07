@@ -31,6 +31,20 @@ CRITIC_NEG_MARKER_PCT_THRESHOLD = 0.15  # negative marker expressed in >15% → 
 CRITIC_DOUBLET_COEXPR_THRESHOLD = 0.3   # two mutually exclusive lineages co-expressed >30% → flag
 CRITIC_LOW_COVERAGE_THRESHOLD = 0.2     # <20% of expected markers detected → low confidence
 
+# Reference scoring thresholds
+REF_MIN_SHARED_GENES = 100              # min shared genes for KNN/correlation
+REF_CORR_MIN_GENES = 100               # min genes for correlation backend
+REF_SCANVI_MIN_GENES = 200             # min genes for scANVI backend
+REF_CELLTYPIST_MIN_GENES = 50          # min genes for CellTypist backend
+REF_KNN_DEFAULT_K = 15                 # default K for KNN label transfer
+REF_KNN_MAX_K = 100                    # max K for KNN label transfer
+
+# Ensemble scoring thresholds
+ENSEMBLE_AGREEMENT_THRESHOLD = 0.2     # score diff < 0.2 = agreement
+ENSEMBLE_MARKER_HIGH = 0.6             # marker score ≥ this → marker-heavy weight
+ENSEMBLE_MARKER_LOW = 0.3              # marker score ≤ this → reference-heavy weight
+ENSEMBLE_REF_OVERRIDE = 0.5            # ref score ≥ this + marker low → ref override
+
 # Default output filenames
 OUTPUT_ANNOTATED = "data.annotated.h5ad"
 OUTPUT_EVIDENCE = "evidence_table.csv"

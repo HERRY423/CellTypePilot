@@ -611,7 +611,7 @@ def annotate_embedding(
     reference: Optional[str] = typer.Option(None, "--reference", "-r", help="Reference .h5ad with cell type labels"),
     ref_label_key: str = typer.Option("cell_type", "--ref-label", help="Cell type column in reference.obs"),
     model_path: Optional[str] = typer.Option(None, "--model", "-m", help="CellTypist model path (.pkl)"),
-    backend: str = typer.Option("auto", "--backend", "-b", help="Backend: auto/celltypist/scanvi/correlation"),
+    backend: str = typer.Option("auto", "--backend", "-b", help="Backend: auto/celltypist/scanvi/knn/correlation"),
     output_dir: str = typer.Option(".", "--output", "-o", help="Output directory"),
     species: Optional[str] = typer.Option(None, "--species", "-s", help="Species: human/mouse"),
     tissue: Optional[str] = typer.Option(None, "--tissue", "-t", help="Tissue context"),
@@ -759,7 +759,7 @@ def backends():
     console.print("\n[bold]Install backends:[/bold]")
     console.print("  pip install celltypist       # Pre-trained models (recommended)")
     console.print("  pip install scvi-tools        # Custom reference atlas (scANVI)")
-    console.print("  Or provide --reference .h5ad  # Correlation (no extra deps)")
+    console.print("  Or provide --reference .h5ad  # KNN/correlation (no extra deps)")
 
 
 # ──────────────────────────────────────────────
