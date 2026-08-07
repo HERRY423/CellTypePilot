@@ -81,6 +81,8 @@ def run_doctor() -> DoctorReport:
         ("cupy", "GPU acceleration", False),
         ("scvi_tools", "reference mapping (Phase 2)", False),
         ("decoupler", "pathway scoring (Phase 2)", False),
+        ("flask", "Web Inspector", False),
+        ("rpy2", "Seurat .rds support", False),
     ]
     for dep_name, desc, req in opt_deps:
         status = check_dependency(dep_name, required=req)
@@ -182,6 +184,24 @@ def format_doctor_report(report: DoctorReport) -> str:
             lines.append(f"  {tool}: {status_str}")
         if not any(report.mcp_status.values()):
             lines.append("  (Literature search requires network access to PubMed)")
+
+    # License status
+    try:
+        from .license_manager import load_license
+        lic = load_license()
+        lines.append("")
+        lines.append("License:")
+        tier_color = {"free": "yellow", "academic": "green", "commercial": "green", "trial": "yellow"}
+        color = tier_color.get(lic.tier.value, "white")
+        lines.append(f"  Tier: [{color}]{lic.tier.value}[/{color}]")
+        if lic.holder:
+            lines.append(f"  Holder: {lic.holder}")
+        if lic.is_expired():
+            lines.append("  [red]EXPIRED — renew at https://celltypepilot.io/license[/red]")
+        elif lic.tier.value == "free":
+            lines.append("  Upgrade: https://celltypepilot.io/license")
+    except Exception:
+        pass
 
     # Warnings
     if report.warnings:

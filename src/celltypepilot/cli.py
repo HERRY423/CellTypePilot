@@ -393,5 +393,135 @@ def literature(
                 console.print(f"  {tool}: {status}")
 
 
+# ──────────────────────────────────────────────
+# inspect-web command (Web Inspector)
+# ──────────────────────────────────────────────
+@app.command()
+def inspect_web(
+    output_dir: Path = typer.Option(
+        "./ctp_output", "--output", "-o",
+        help="Path to CellTypePilot output directory",
+    ),
+    host: str = typer.Option("127.0.0.1", "--host", help="Host to bind to"),
+    port: int = typer.Option(8765, "--port", "-p", help="Port to listen on"),
+):
+    """Launch the Web Inspector — interactive annotation review panel."""
+    from .web_inspector import run_inspector
+
+    if not output_dir.exists():
+        console.print(f"[red]Output directory not found: {output_dir}[/red]")
+        console.print("Run 'celltypepilot annotate' first to generate output.")
+        raise typer.Exit(1)
+
+    console.print(f"[bold]Launching Web Inspector...[/bold]")
+    console.print(f"  Output dir: {output_dir}")
+    console.print(f"  URL: http://{host}:{port}")
+    console.print()
+
+    try:
+        run_inspector(output_dir, host=host, port=port)
+    except KeyboardInterrupt:
+        console.print("\n[yellow]Web Inspector stopped.[/yellow]")
+    except Exception as e:
+        console.print(f"[red]Error: {e}[/red]")
+        raise typer.Exit(1)
+
+
+# ──────────────────────────────────────────────
+# convert-rds command (Seurat support)
+# ──────────────────────────────────────────────
+@app.command()
+def convert_rds(
+    input_rds: Path = typer.Option(..., "--input", "-i", help="Path to Seurat .rds file"),
+    output_h5ad: Optional[Path] = typer.Option(None, "--output", "-o", help="Output .h5ad path"),
+):
+    """Convert Seurat .rds to .h5ad for CellTypePilot annotation."""
+    from .seurat_adapter import seurat_to_h5ad, check_seurat_support
+
+    # Check support
+    support = check_seurat_support()
+    if not support["seurat_rds_supported"]:
+        console.print("[red]Seurat .rds support not available.[/red]")
+        console.print("Install one of:")
+        console.print("  pip install rpy2          # Option 1: rpy2 (requires R installed)")
+        console.print("  Or install R + SeuratDisk  # Option 2: Rscript in PATH")
+        raise typer.Exit(1)
+
+    if output_h5ad is None:
+        output_h5ad = input_rds.with_suffix(".h5ad")
+
+    console.print(f"[bold]Converting Seurat .rds to .h5ad...[/bold]")
+    console.print(f"  Input:  {input_rds}")
+    console.print(f"  Output: {output_h5ad}")
+
+    try:
+        result_path = seurat_to_h5ad(input_rds, output_h5ad)
+        console.print(f"[green]Conversion complete: {result_path}[/green]")
+        console.print(f"\nNow run: celltypepilot annotate --input {result_path}")
+    except Exception as e:
+        console.print(f"[red]Conversion failed: {e}[/red]")
+        raise typer.Exit(1)
+
+
+# ──────────────────────────────────────────────
+# license command
+# ──────────────────────────────────────────────
+@app.command()
+def license(
+    action: str = typer.Argument(..., help="Action: status, activate, deactivate"),
+    key: Optional[str] = typer.Option(None, "--key", "-k", help="License key (for activate)"),
+    holder: str = typer.Option("", "--holder", help="License holder name"),
+    email: str = typer.Option("", "--email", help="License holder email"),
+    json_output: bool = typer.Option(False, "--json", help="Output as JSON"),
+):
+    """Manage CellTypePilot license."""
+    from .license_manager import (
+        load_license, activate_license, LicenseTier,
+        FREE_FEATURES, ACADEMIC_FEATURES, COMMERCIAL_FEATURES,
+    )
+
+    if action == "status":
+        lic = load_license()
+        if json_output:
+            from dataclasses import asdict
+            data = asdict(lic)
+            data["tier"] = lic.tier.value
+            console.print(json.dumps(data, indent=2))
+        else:
+            console.print(f"[bold]CellTypePilot License[/bold]")
+            console.print(f"  Tier:      {lic.tier.value}")
+            console.print(f"  Holder:    {lic.holder or 'N/A'}")
+            console.print(f"  Email:     {lic.email or 'N/A'}")
+            console.print(f"  Expires:   {lic.expires_at or 'Never'}")
+            console.print(f"  Features:  {len(lic.features)} enabled")
+            if lic.is_expired():
+                console.print(f"  [red]EXPIRED[/red]")
+            console.print()
+            console.print(f"[bold]Tier comparison:[/bold]")
+            console.print(f"  Free:      {len(FREE_FEATURES)} features (basic atlas, 11 tissues)")
+            console.print(f"  Academic:  {len(ACADEMIC_FEATURES)} features (extended atlas, disease states)")
+            console.print(f"  Commercial:{len(COMMERCIAL_FEATURES)} features (full atlas, custom panels, API)")
+
+    elif action == "activate":
+        if not key:
+            console.print("[red]--key is required for activation[/red]")
+            raise typer.Exit(1)
+        success, message = activate_license(key, holder=holder, email=email)
+        if success:
+            console.print(f"[green]{message}[/green]")
+        else:
+            console.print(f"[red]{message}[/red]")
+            raise typer.Exit(1)
+
+    elif action == "deactivate":
+        from .license_manager import save_license, LicenseInfo
+        save_license(LicenseInfo(tier=LicenseTier.FREE))
+        console.print("[yellow]License deactivated. Reverted to free tier.[/yellow]")
+
+    else:
+        console.print(f"[red]Unknown action: {action}. Use: status, activate, deactivate[/red]")
+        raise typer.Exit(1)
+
+
 if __name__ == "__main__":
     app()

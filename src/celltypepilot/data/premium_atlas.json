@@ -1,0 +1,150 @@
+{
+  "version": "premium-atlas-2026.08",
+  "description": "CellTypePilot Premium Atlas — Extended cell types for academic and commercial users",
+  "license_required": "academic",
+  "tissues": {
+    "tumor_microenvironment": {
+      "name": "Tumor Microenvironment",
+      "organ_system": "oncology",
+      "cell_types": {
+        "cancer_associated_fibroblast": {
+          "cl_id": "CL:0000057-CAFs",
+          "synonyms": ["CAF", "tumor fibroblast", "myofibroblast"],
+          "positive_markers": ["ACTA2", "FAP", "PDGFRA", "THY1", "FNB1"],
+          "negative_markers": ["PECAM1", "PTPRC"],
+          "notes": "Activated fibroblasts in tumor stroma"
+        },
+        "tumor_associated_macrophage_M1": {
+          "cl_id": "CL:0000891-M1",
+          "synonyms": ["M1 TAM", "pro-inflammatory macrophage"],
+          "positive_markers": ["CD68", "NOS2", "IL1B", "TNF", "CXCL10"],
+          "negative_markers": ["CD163", "MRC1"],
+          "notes": "Pro-inflammatory tumor-associated macrophage"
+        },
+        "tumor_associated_macrophage_M2": {
+          "cl_id": "CL:0000891-M2",
+          "synonyms": ["M2 TAM", "anti-inflammatory macrophage"],
+          "positive_markers": ["CD68", "CD163", "MRC1", "IL10", "TGFB1", "VEGFA"],
+          "negative_markers": ["NOS2", "IL1B"],
+          "notes": "Immune-suppressive tumor-associated macrophage"
+        },
+        "regulatory_T_cell_tumor": {
+          "cl_id": "CL:0000417-Treg",
+          "synonyms": ["tumor Treg", "intratumoral Treg"],
+          "positive_markers": ["FOXP3", "IL2RA", "CTLA4", "IKZF2", "TIGIT"],
+          "negative_markers": ["IL7R", "SELL"],
+          "notes": "Immunosuppressive Tregs in tumor"
+        },
+        "myeloid_derived_suppressor_cell": {
+          "cl_id": "CL:0002393",
+          "synonyms": ["MDSC", "granulocytic MDSC", "monocytic MDSC"],
+          "positive_markers": ["S100A8", "S100A9", "ARG1", "NOS2", "IL4I1"],
+          "negative_markers": ["CD3E", "CD19", "NKGN7"],
+          "notes": "Immunosuppressive myeloid cells"
+        },
+        "exhausted_T_cell": {
+          "cl_id": "CL:0000417-exhausted",
+          "synonyms": ["Tex", "dysfunctional T cell", "PD1+ T cell"],
+          "positive_markers": ["PDCD1", "HAVCR2", "LAG3", "TOX", "TCF7"],
+          "negative_markers": ["IL7R", "SELL", "TCF7"],
+          "notes": "Chronically stimulated T cells with reduced effector function"
+        }
+      }
+    },
+    "developing_brain": {
+      "name": "Developing Brain",
+      "organ_system": "neuroscience_developmental",
+      "cell_types": {
+        "radial_glia": {
+          "cl_id": "CL:0000647",
+          "synonyms": ["neural progenitor", "RG"],
+          "positive_markers": ["SOX2", "PAX6", "HES1", "VIM", "NOTCH1"],
+          "negative_markers": ["NEUROD1", "DCX", "MAP2"],
+          "notes": "Neural stem cells in developing cortex"
+        },
+        "intermediate_progenitor": {
+          "cl_id": "CL:0000647-IPC",
+          "synonyms": ["IPC", "basal progenitor", "TBR2+ cell"],
+          "positive_markers": ["TBR2", "EOMES", "SOX2", "HES6"],
+          "negative_markers": ["PAX6", "NEUROD1", "DCX"],
+          "notes": "Transit-amplifying neural progenitors"
+        },
+        "migrating_neuroblast": {
+          "cl_id": "CL:0000053-neuroblast",
+          "synonyms": ["neuroblast", "migrating neuron"],
+          "positive_markers": ["DCX", "TUBB3", "STMN2", "CRMP1"],
+          "negative_markers": ["MAP2", "SYN1", "NEFL"],
+          "notes": "Immature neurons in migration"
+        },
+        "microglia_developing": {
+          "cl_id": "CL:0000129-dev",
+          "synonyms": ["fetal microglia", "ameboid microglia"],
+          "positive_markers": ["CX3CR1", "TMEM119", "P2RY12", "CSF1R", "APOE"],
+          "negative_markers": ["CD3E", "CD19", "OLIG2"],
+          "notes": "Developmental microglia with phagocytic phenotype"
+        }
+      }
+    },
+    "inflamed_tissue": {
+      "name": "Inflamed Tissue",
+      "organ_system": "immunology",
+      "cell_types": {
+        "inflammatory_macrophage": {
+          "cl_id": "CL:0000891-inflammatory",
+          "synonyms": ["activated macrophage", "M1-like"],
+          "positive_markers": ["CD68", "IL1B", "TNF", "IL6", "CCL2", "CXCL8"],
+          "negative_markers": ["CD163", "MRC1", "IL10"],
+          "notes": "Pro-inflammatory macrophages in inflamed tissue"
+        },
+        "plasma_cell_inflamed": {
+          "cl_id": "CL:0000786-inflamed",
+          "synonyms": ["activated plasma cell", "antibody-secreting cell"],
+          "positive_markers": ["CD38", "MZB1", "JCHAIN", "IGLL5", "SDC1"],
+          "negative_markers": ["CD19", "MS4A1", "CD27"],
+          "notes": "Antibody-secreting cells in inflamed tissue"
+        },
+        "activated_fibroblast": {
+          "cl_id": "CL:0000057-activated",
+          "synonyms": ["myofibroblast", "activated stromal cell"],
+          "positive_markers": ["ACTA2", "COL1A1", "COL3A1", "FN1", "MMP2"],
+          "negative_markers": ["PECAM1", "PTPRC"],
+          "notes": "Activated fibroblasts in fibrotic/inflamed tissue"
+        }
+      }
+    },
+    "immune_activation": {
+      "name": "Immune Activation States",
+      "organ_system": "immunology_advanced",
+      "cell_types": {
+        "activated_CD4_T_cell": {
+          "cl_id": "CL:0000417-activated",
+          "synonyms": ["activated helper T cell", "effector CD4"],
+          "positive_markers": ["CD3E", "CD4", "IL2RA", "CD69", "CD40LG", "ICOS"],
+          "negative_markers": ["FOXP3", "CXCR5"],
+          "notes": "Recently activated CD4 T cells"
+        },
+        "activated_CD8_T_cell": {
+          "cl_id": "CL:0000417-CD8-activated",
+          "synonyms": ["effector CTL", "cytotoxic T cell"],
+          "positive_markers": ["CD3E", "CD8A", "GZMB", "PRF1", "IFNG", "CD69"],
+          "negative_markers": ["CD4", "FOXP3", "PDCD1"],
+          "notes": "Cytotoxic effector T cells"
+        },
+        "germinal_center_B_cell": {
+          "cl_id": "CL:0000844-GC",
+          "synonyms": ["GC B cell", "centrocyte", "centroblast"],
+          "positive_markers": ["CD19", "MS4A1", "BCL6", "AICDA", "CXCR4", "LMO2"],
+          "negative_markers": ["CD27", "SDC1", "MZB1"],
+          "notes": "B cells in germinal center reaction"
+        },
+        "NK_cell_activated": {
+          "cl_id": "CL:0000623-activated",
+          "synonyms": ["activated NK", "cytotoxic NK"],
+          "positive_markers": ["NKGN7", "NCR1", "KLRD1", "GZMB", "PRF1", "IFNG"],
+          "negative_markers": ["CD3E", "CD4", "CD8A"],
+          "notes": "Activated natural killer cells"
+        }
+      }
+    }
+  }
+}
