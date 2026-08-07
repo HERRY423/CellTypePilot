@@ -34,3 +34,6 @@ Thumbs.db
 ctp_output/
 *.annotated.h5ad
 manifest.json
+
+# License private key (NEVER commit — kept offline for signing)
+.license_private_key.pem

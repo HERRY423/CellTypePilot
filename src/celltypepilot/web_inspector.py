@@ -3,11 +3,19 @@
 A minimal Flask app that serves an interactive dashboard for reviewing
 and correcting cell-type annotations. Designed for local use — runs
 on localhost, no authentication, no deployment complexity.
+
+Override workflow:
+1. User corrects a cell-type label in the browser
+2. POST /api/override — stores override in memory + server-side JSON
+3. POST /api/overrides/apply — writes overrides back to .h5ad file
+   and regenerates figures/reports
 """
 
 from __future__ import annotations
 
 import json
+import shutil
+from datetime import datetime
 from pathlib import Path
 from typing import Optional
 
@@ -21,6 +29,9 @@ app = Flask(__name__)
 _output_dir: Optional[Path] = None
 _adata_cache = None
 _evidence_cache = None
+
+# Server-side override store (persists across page reloads)
+_overrides: dict = {}  # {cluster_id: {new_type, reason, timestamp}}
 
 
 def _load_data():
@@ -45,7 +56,123 @@ def _load_data():
     else:
         _evidence_cache = pd.DataFrame()
 
+    # Load any existing overrides from disk
+    _load_overrides_from_disk()
+
     return _adata_cache, _evidence_cache
+
+
+def _overrides_path() -> Path:
+    """Path to the server-side overrides file."""
+    return _output_dir / "annotation_overrides.json"
+
+
+def _load_overrides_from_disk():
+    """Load existing overrides from disk if present."""
+    global _overrides
+    opath = _overrides_path()
+    if opath.exists():
+        try:
+            _overrides = json.loads(opath.read_text(encoding="utf-8"))
+        except (json.JSONDecodeError, ValueError):
+            _overrides = {}
+
+
+def _save_overrides_to_disk():
+    """Persist current overrides to disk."""
+    opath = _overrides_path()
+    opath.write_text(json.dumps(_overrides, indent=2), encoding="utf-8")
+
+
+def _apply_overrides_to_h5ad() -> dict:
+    """Apply all overrides to the .h5ad file and back up the original.
+
+    Returns:
+        Summary dict with counts and details.
+    """
+    import scanpy as sc
+
+    adata_path = _output_dir / "data.annotated.h5ad"
+    if not adata_path.exists():
+        raise FileNotFoundError(f"No annotated data at {adata_path}")
+
+    # Backup original
+    backup_path = _output_dir / f"data.annotated.backup_{datetime.now().strftime('%Y%m%d_%H%M%S')}.h5ad"
+    shutil.copy2(adata_path, backup_path)
+
+    # Reload fresh
+    adata = sc.read_h5ad(adata_path)
+    obs = adata.obs
+
+    applied = 0
+    skipped = 0
+    details = []
+
+    for cluster_id, override in _overrides.items():
+        new_type = override.get("new_type", "")
+        reason = override.get("reason", "")
+        if not new_type:
+            skipped += 1
+            continue
+
+        # Find cells in this cluster
+        cluster_col = "ctp_cl_id" if "ctp_cl_id" in obs.columns else None
+        if cluster_col is None:
+            # Try numeric cluster column
+            for col in obs.columns:
+                if "cluster" in col.lower() or "cl_id" in col.lower():
+                    cluster_col = col
+                    break
+
+        if cluster_col is None:
+            skipped += 1
+            details.append({"cluster": cluster_id, "status": "error", "reason": "No cluster column found"})
+            continue
+
+        mask = obs[cluster_col].astype(str) == str(cluster_id)
+        n_cells = mask.sum()
+
+        if n_cells == 0:
+            skipped += 1
+            details.append({"cluster": cluster_id, "status": "skipped", "reason": "No cells found"})
+            continue
+
+        old_type = obs.loc[mask, "ctp_cell_type"].iloc[0] if "ctp_cell_type" in obs.columns else "Unknown"
+
+        # Apply override
+        if "ctp_cell_type" in obs.columns:
+            adata.obs.loc[mask, "ctp_cell_type"] = new_type
+        if "ctp_override_reason" not in obs.columns:
+            adata.obs["ctp_override_reason"] = ""
+        adata.obs.loc[mask, "ctp_override_reason"] = reason
+        if "ctp_overridden" not in obs.columns:
+            adata.obs["ctp_overridden"] = False
+        adata.obs.loc[mask, "ctp_overridden"] = True
+
+        applied += 1
+        details.append({
+            "cluster": cluster_id,
+            "old_type": old_type,
+            "new_type": new_type,
+            "n_cells": int(n_cells),
+            "reason": reason,
+            "status": "applied",
+        })
+
+    # Save updated h5ad
+    adata.write(adata_path)
+
+    # Clear cache so next load gets fresh data
+    global _adata_cache
+    _adata_cache = None
+
+    return {
+        "applied": applied,
+        "skipped": skipped,
+        "total": len(_overrides),
+        "backup": str(backup_path),
+        "details": details,
+    }
 
 
 # ──────────────────────────────────────────────
@@ -190,6 +317,21 @@ DASHBOARD_HTML = """
             border: 1px solid var(--border);
             border-radius: 4px;
         }
+        .save-bar {
+            display: none;
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: var(--card);
+            border-top: 2px solid var(--accent);
+            padding: 12px 24px;
+            z-index: 999;
+            align-items: center;
+            justify-content: space-between;
+        }
+        .save-bar .info { font-weight: 600; }
+        .save-bar .actions { display: flex; gap: 8px; }
     </style>
 </head>
 <body>
@@ -227,7 +369,8 @@ DASHBOARD_HTML = """
         <div class="panel">
             <div class="panel-header">
                 <span>Annotation Results</span>
-                <button class="btn btn-primary" onclick="exportOverrides()">Export Corrections</button>
+                <button class="btn" onclick="exportOverrides()">Export JSON</button>
+                <button class="btn btn-primary" onclick="applyOverrides()" style="margin-left:8px">Apply to .h5ad</button>
             </div>
             <div class="panel-body">
                 <div class="filter-bar">
@@ -280,6 +423,16 @@ DASHBOARD_HTML = """
                     </tbody>
                 </table>
             </div>
+        </div>
+    </div>
+
+    <!-- Save Bar -->
+    <div class="save-bar" id="saveBar">
+        <div class="info"><span id="overrideCount">0</span> override(s) pending</div>
+        <div class="actions">
+            <button class="btn" onclick="exportOverrides()">Export JSON</button>
+            <button class="btn btn-primary" onclick="applyOverrides()">Apply to .h5ad</button>
+            <button class="btn" onclick="hideSaveBar()" style="color:var(--muted)">Dismiss</button>
         </div>
     </div>
 
@@ -366,13 +519,55 @@ DASHBOARD_HTML = """
             const newType = document.getElementById('newCellType').value;
             const reason = document.getElementById('overrideReason').value;
             if (!newType) { alert('Please enter a new cell type'); return; }
-            overrides[cluster] = { new_type: newType, reason: reason };
-            closeModal('overrideModal');
-            alert('Override saved for cluster ' + cluster + '. Click "Export Corrections" to save.');
+
+            // Send to server (not just browser memory)
+            fetch('/api/override', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({cluster: cluster, new_type: newType, reason: reason})
+            })
+            .then(r => r.json())
+            .then(data => {
+                if (data.ok) {
+                    overrides[cluster] = { new_type: newType, reason: reason };
+                    closeModal('overrideModal');
+                    showSaveBar();
+                } else {
+                    alert('Error: ' + (data.error || 'Unknown error'));
+                }
+            })
+            .catch(err => alert('Network error: ' + err));
         }
 
-        function closeModal(id) {
-            document.getElementById(id).style.display = 'none';
+        function showSaveBar() {
+            const bar = document.getElementById('saveBar');
+            const count = Object.keys(overrides).length;
+            bar.style.display = 'flex';
+            document.getElementById('overrideCount').textContent = count;
+        }
+
+        function hideSaveBar() {
+            document.getElementById('saveBar').style.display = 'none';
+        }
+
+        function applyOverrides() {
+            if (Object.keys(overrides).length === 0) {
+                alert('No overrides to apply.');
+                return;
+            }
+            if (!confirm('Apply ' + Object.keys(overrides).length + ' override(s) to .h5ad?\nThis will modify the data file and create a backup.')) return;
+
+            fetch('/api/overrides/apply', { method: 'POST' })
+            .then(r => r.json())
+            .then(data => {
+                if (data.ok) {
+                    alert('Applied ' + data.result.applied + ' override(s).\nBackup: ' + data.result.backup);
+                    location.reload();  // Reload to show updated data
+                } else {
+                    alert('Error: ' + (data.error || 'Apply failed'));
+                }
+            })
+            .catch(err => alert('Network error: ' + err));
         }
 
         function exportOverrides() {
@@ -380,18 +575,33 @@ DASHBOARD_HTML = """
                 alert('No overrides to export.');
                 return;
             }
-            const blob = new Blob([JSON.stringify(overrides, null, 2)], { type: 'application/json' });
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = 'annotation_overrides.json';
-            a.click();
-            URL.revokeObjectURL(url);
+            // Download from server (authoritative copy)
+            fetch('/api/overrides')
+            .then(r => r.json())
+            .then(data => {
+                const blob = new Blob([JSON.stringify(data.overrides, null, 2)], { type: 'application/json' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = 'annotation_overrides.json';
+                a.click();
+                URL.revokeObjectURL(url);
+            });
         }
 
         // Close modals on overlay click
         document.querySelectorAll('.modal-overlay').forEach(el => {
             el.addEventListener('click', e => { if (e.target === el) el.style.display = 'none'; });
+        });
+
+        function closeModal(id) {
+            document.getElementById(id).style.display = 'none';
+        }
+
+        // Load existing overrides from server on page load
+        fetch('/api/overrides').then(r => r.json()).then(data => {
+            Object.assign(overrides, data.overrides || {});
+            if (Object.keys(overrides).length > 0) showSaveBar();
         });
     </script>
 </body>
@@ -482,6 +692,94 @@ def api_stats():
     stats["total_cells"] = len(obs)
     stats["total_clusters"] = obs["ctp_cl_id"].nunique() if "ctp_cl_id" in obs.columns else 0
     return jsonify(stats)
+
+
+# ──────────────────────────────────────────────
+# Override API Routes
+# ──────────────────────────────────────────────
+
+@app.route("/api/overrides", methods=["GET"])
+def api_get_overrides():
+    """Get all current overrides."""
+    return jsonify({"ok": True, "overrides": _overrides, "count": len(_overrides)})
+
+
+@app.route("/api/override", methods=["POST"])
+def api_add_override():
+    """Add or update a single override.
+
+    Expected JSON body:
+        {"cluster": "5", "new_type": "CD4 naive T cell", "reason": "Manual review"}
+    """
+    global _overrides
+    data = request.get_json(force=True, silent=True)
+    if not data:
+        return jsonify({"ok": False, "error": "Invalid JSON body"}), 400
+
+    cluster = str(data.get("cluster", "")).strip()
+    new_type = data.get("new_type", "").strip()
+    reason = data.get("reason", "").strip()
+
+    if not cluster:
+        return jsonify({"ok": False, "error": "Missing 'cluster' field"}), 400
+    if not new_type:
+        return jsonify({"ok": False, "error": "Missing 'new_type' field"}), 400
+
+    _overrides[cluster] = {
+        "new_type": new_type,
+        "reason": reason,
+        "timestamp": datetime.now().isoformat(),
+    }
+
+    # Persist to disk immediately
+    _save_overrides_to_disk()
+
+    return jsonify({
+        "ok": True,
+        "cluster": cluster,
+        "new_type": new_type,
+        "total_overrides": len(_overrides),
+    })
+
+
+@app.route("/api/override/<cluster_id>", methods=["DELETE"])
+def api_delete_override(cluster_id):
+    """Remove a single override."""
+    global _overrides
+    if cluster_id in _overrides:
+        del _overrides[cluster_id]
+        _save_overrides_to_disk()
+        return jsonify({"ok": True, "removed": cluster_id})
+    return jsonify({"ok": False, "error": "Override not found"}), 404
+
+
+@app.route("/api/overrides/apply", methods=["POST"])
+def api_apply_overrides():
+    """Apply all overrides to the .h5ad file.
+
+    Creates a timestamped backup of the original file before modifying.
+    Returns a summary of applied/skipped overrides.
+    """
+    if not _overrides:
+        return jsonify({"ok": False, "error": "No overrides to apply"}), 400
+
+    try:
+        result = _apply_overrides_to_h5ad()
+        return jsonify({"ok": True, "result": result})
+    except FileNotFoundError as e:
+        return jsonify({"ok": False, "error": str(e)}), 404
+    except Exception as e:
+        return jsonify({"ok": False, "error": f"Apply failed: {e}"}), 500
+
+
+@app.route("/api/overrides/clear", methods=["POST"])
+def api_clear_overrides():
+    """Clear all overrides (does NOT revert .h5ad changes)."""
+    global _overrides
+    count = len(_overrides)
+    _overrides = {}
+    _save_overrides_to_disk()
+    return jsonify({"ok": True, "cleared": count})
 
 
 def run_inspector(output_dir: str | Path, host: str = "127.0.0.1", port: int = 8765):

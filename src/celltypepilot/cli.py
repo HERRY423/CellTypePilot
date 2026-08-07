@@ -464,6 +464,144 @@ def convert_rds(
 
 
 # ──────────────────────────────────────────────
+# apply-overrides command (write corrections to .h5ad)
+# ──────────────────────────────────────────────
+@app.command()
+def apply_overrides(
+    output_dir: Path = typer.Option(
+        "./ctp_output", "--output", "-o",
+        help="CellTypePilot output directory containing data.annotated.h5ad",
+    ),
+    overrides_file: Path = typer.Option(
+        ..., "--overrides", "-f",
+        help="Path to annotation_overrides.json",
+    ),
+    regenerate: bool = typer.Option(
+        False, "--regenerate", "-r",
+        help="Regenerate figures after applying overrides",
+    ),
+):
+    """Apply annotation overrides from Web Inspector to .h5ad file.
+
+    Reads the overrides JSON exported from the Web Inspector,
+    writes corrected labels back to the annotated .h5ad, and
+    creates a timestamped backup of the original file.
+
+    Example:
+        celltypepilot apply-overrides -o ./ctp_output -f annotation_overrides.json
+    """
+    import shutil
+    from datetime import datetime
+
+    h5ad_path = output_dir / "data.annotated.h5ad"
+    if not h5ad_path.exists():
+        console.print(f"[red]No annotated data found at {h5ad_path}[/red]")
+        console.print("Run 'celltypepilot annotate' first.")
+        raise typer.Exit(1)
+
+    if not overrides_file.exists():
+        console.print(f"[red]Overrides file not found: {overrides_file}[/red]")
+        console.print("Export overrides from the Web Inspector first.")
+        raise typer.Exit(1)
+
+    # Load overrides
+    try:
+        overrides = json.loads(overrides_file.read_text(encoding="utf-8"))
+    except (json.JSONDecodeError, ValueError) as e:
+        console.print(f"[red]Invalid overrides JSON: {e}[/red]")
+        raise typer.Exit(1)
+
+    if not overrides:
+        console.print("[yellow]No overrides to apply.[/yellow]")
+        return
+
+    console.print(f"[bold]Applying {len(overrides)} override(s)...[/bold]")
+
+    # Backup original
+    backup_name = f"data.annotated.backup_{datetime.now().strftime('%Y%m%d_%H%M%S')}.h5ad"
+    backup_path = output_dir / backup_name
+    shutil.copy2(h5ad_path, backup_path)
+    console.print(f"  Backup: {backup_path}")
+
+    # Load and modify
+    import scanpy as sc
+    adata = sc.read_h5ad(h5ad_path)
+    obs = adata.obs
+
+    applied = 0
+    skipped = 0
+
+    for cluster_id, override in overrides.items():
+        new_type = override.get("new_type", "")
+        reason = override.get("reason", "")
+        if not new_type:
+            skipped += 1
+            continue
+
+        # Find cluster column
+        cluster_col = None
+        for col in ["ctp_cl_id", "cluster", "cl_id"]:
+            if col in obs.columns:
+                cluster_col = col
+                break
+
+        if cluster_col is None:
+            console.print(f"  [yellow]Warning: No cluster column found, skipping[/yellow]")
+            skipped += 1
+            continue
+
+        mask = obs[cluster_col].astype(str) == str(cluster_id)
+        n_cells = mask.sum()
+
+        if n_cells == 0:
+            console.print(f"  [yellow]Cluster {cluster_id}: no cells found, skipped[/yellow]")
+            skipped += 1
+            continue
+
+        old_type = obs.loc[mask, "ctp_cell_type"].iloc[0] if "ctp_cell_type" in obs.columns else "Unknown"
+
+        # Apply
+        if "ctp_cell_type" in obs.columns:
+            adata.obs.loc[mask, "ctp_cell_type"] = new_type
+        if "ctp_override_reason" not in obs.columns:
+            adata.obs["ctp_override_reason"] = ""
+        adata.obs.loc[mask, "ctp_override_reason"] = reason
+        if "ctp_overridden" not in obs.columns:
+            adata.obs["ctp_overridden"] = False
+        adata.obs.loc[mask, "ctp_overridden"] = True
+
+        applied += 1
+        console.print(f"  [green]OK[/green] Cluster {cluster_id}: {old_type} → {new_type} ({n_cells} cells)")
+
+    # Save
+    adata.write(h5ad_path)
+    console.print(f"\n[bold green]Applied {applied} override(s)[/bold green], {skipped} skipped")
+
+    # Regenerate figures if requested
+    if regenerate:
+        console.print("\n[bold blue]Regenerating figures...[/bold blue]")
+        try:
+            from .visualizer import generate_all_figures
+            embedding_key = None
+            from .data_adapter import find_embedding_keys
+            candidates = find_embedding_keys(adata)
+            if candidates:
+                embedding_key = candidates[0]
+            if embedding_key:
+                tissue = "general"
+                figure_paths = generate_all_figures(
+                    adata, cluster_col, embedding_key, None, output_dir, tissue
+                )
+                console.print(f"  Regenerated {len(figure_paths)} figures")
+            else:
+                console.print("  [yellow]No embedding found, skipping figure regeneration[/yellow]")
+        except Exception as e:
+            console.print(f"  [yellow]Figure regeneration failed: {e}[/yellow]")
+
+    console.print(f"\nOutput: {h5ad_path.resolve()}")
+
+
+# ──────────────────────────────────────────────
 # license command
 # ──────────────────────────────────────────────
 @app.command()
