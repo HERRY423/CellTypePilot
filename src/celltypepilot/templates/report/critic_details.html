@@ -9,6 +9,7 @@
 {% for row in flagged_rows %}
 <div class="card">
   <div class="card-header">Cluster: {{ row.cluster }} → {{ row.cell_type }}</div>
+  {% if row.evidence_summary %}<p class="evidence-summary"><strong>Summary:</strong> {{ row.evidence_summary }}</p>{% endif %}
   <p><strong>Flags:</strong> {{ row.critic_flags }}</p>
   <p class="evidence-text"><strong>Evidence:</strong> {{ row.critic_evidence }}</p>
   <p class="evidence-text"><strong>Notes:</strong> {{ row.critic_notes }}</p>

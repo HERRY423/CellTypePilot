@@ -53,5 +53,7 @@ tr:nth-child(even) { background: var(--card-bg); }
   padding: 0.8rem; margin: 0.5rem 0; font-size: 0.85rem;
 }
 .evidence-text { font-size: 0.8rem; color: var(--muted); margin-top: 0.3rem; }
+.evidence-summary { font-size: 0.85rem; margin-top: 0.3rem; }
+.narrative-box { border-left: 3px solid var(--info); font-size: 0.9rem; }
 .report-footer { margin: 2rem 0 0; border: none; border-top: 1px solid var(--border); }
 .report-footer-text { text-align: center; color: var(--muted); font-size: 0.8rem; padding-top: 1rem; }

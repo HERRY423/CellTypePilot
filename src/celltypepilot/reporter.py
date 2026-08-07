@@ -93,6 +93,7 @@ def _html_overview(manifest: dict, critic_summary: dict) -> str:
         passed=critic_summary.get("pass", 0),
         flagged=critic_summary.get("flagged", 0),
         conf_dist=critic_summary.get("confidence_distribution", {}),
+        narrative=critic_summary.get("narrative", ""),
         params=params,
     )
 
@@ -119,6 +120,7 @@ def _annotation_rows(results: pd.DataFrame) -> list[dict]:
                 "badge_class": badge_class,
                 "flags": flags,
                 "flag_badge": flag_badge,
+                "evidence_summary": row.get("evidence_summary", ""),
             }
         )
     return rows
@@ -159,6 +161,7 @@ def _html_critic_details(results: pd.DataFrame) -> str:
                 "critic_flags": row.get("critic_flags", ""),
                 "critic_evidence": row.get("critic_evidence", ""),
                 "critic_notes": row.get("critic_notes", ""),
+                "evidence_summary": row.get("evidence_summary", ""),
             }
         )
     return _render("critic_details.html", flagged_rows=flagged_rows)

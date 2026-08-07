@@ -58,9 +58,10 @@ def write_annotations_to_adata(
         )
     )
 
-    adata.obs["ctp_cell_type"] = adata.obs[cluster_key].map(cluster_to_ct).fillna("Unknown")
-    adata.obs["ctp_cl_id"] = adata.obs[cluster_key].map(cluster_to_cl).fillna("")
-    adata.obs["ctp_confidence"] = adata.obs[cluster_key].map(cluster_to_conf).fillna("unknown")
+    cluster_series = adata.obs[cluster_key].astype(str)
+    adata.obs["ctp_cell_type"] = cluster_series.map(cluster_to_ct).fillna("Unknown")
+    adata.obs["ctp_cl_id"] = cluster_series.map(cluster_to_cl).fillna("")
+    adata.obs["ctp_confidence"] = cluster_series.map(cluster_to_conf).fillna("unknown")
 
     output_path = Path(output_dir) / OUTPUT_ANNOTATED
     adata.write(output_path)

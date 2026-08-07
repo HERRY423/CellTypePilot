@@ -445,3 +445,27 @@ def get_all_markers_flat(atlas: dict, tissue: str) -> dict[str, list[str]]:
     """Get a flat mapping of cell_type → positive markers for quick scoring."""
     markers = get_all_markers_for_tissue(atlas, tissue)
     return {ct: info["positive_markers"] for ct, info in markers.items()}
+
+
+def build_lineage_groups(atlas: dict, tissue: str) -> dict[str, str]:
+    """Map every cell type (including subtypes) to its root lineage.
+
+    A subtype belongs to the lineage of its parent cell type, e.g. in the
+    blood atlas "CD4+ T cell" → "T cell". This lets downstream checks
+    (notably the doublet heuristic) distinguish subtype refinement from
+    genuine cross-lineage co-expression.
+
+    Returns: {cell_type_name: root_cell_type_name}
+    """
+    tissue_data = atlas.get("tissues", {}).get(tissue)
+    if not tissue_data:
+        tissue_data = atlas.get("tissues", {}).get("general")
+    if not tissue_data:
+        return {}
+
+    groups: dict[str, str] = {}
+    for ct_name, ct_info in tissue_data.get("cell_types", {}).items():
+        groups[ct_name] = ct_name
+        for sub_name in ct_info.get("subtypes", {}):
+            groups[sub_name] = ct_name
+    return groups

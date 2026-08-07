@@ -27,8 +27,10 @@ MARKER_FC_THRESHOLD = 0.5  # log2 fold change ≥ 0.5
 MARKER_SPECIFICITY_THRESHOLD = 0.3  # specificity score ≥ 0.3
 
 # Critic thresholds
-CRITIC_NEG_MARKER_PCT_THRESHOLD = 0.15  # negative marker expressed in >15% → flag
-CRITIC_DOUBLET_COEXPR_THRESHOLD = 0.3  # two mutually exclusive lineages co-expressed >30% → flag
+CRITIC_NEG_MARKER_PCT_THRESHOLD = 0.20  # negative marker expressed in >20% → flag (tolerates dropout noise)
+CRITIC_DOUBLET_COEXPR_THRESHOLD = 0.3  # cross-lineage co-expression ≥30% → doublet candidate
+CRITIC_DOUBLET_ACTIVE_COVERAGE = 0.4  # a signature counts as "active" at ≥40% coverage
+CRITIC_DOUBLET_OVERLAP_JACCARD = 0.4  # marker Jaccard ≥0.4 → redundant signatures, not a doublet
 CRITIC_LOW_COVERAGE_THRESHOLD = 0.2  # <20% of expected markers detected → low confidence
 
 # Reference scoring thresholds

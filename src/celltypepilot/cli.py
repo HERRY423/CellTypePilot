@@ -130,6 +130,8 @@ def annotate(
         f"  Passed: [green]{critic_summary['pass']}[/green] | "
         f"Flagged: [red]{critic_summary['flagged']}[/red]"
     )
+    if critic_summary.get("narrative"):
+        console.print(f"  [dim]{critic_summary['narrative']}[/dim]")
     console.print(f"  Generated {len(result['figure_paths'])} figures")
     for label, path in result["paths"].items():
         console.print(f"  {label.replace('_', ' ').title()}: {path}")
@@ -193,6 +195,8 @@ def critic(
         console.print(f"  Score:       {row.get('combined_score', 0):.3f}")
         console.print(f"  Confidence:  {row.get('critic_confidence', 'N/A')}")
         console.print(f"  Flags:       {row.get('critic_flags', 'PASS')}")
+        if row.get("evidence_summary"):
+            console.print(f"  [bold]Summary:[/bold]    {row.get('evidence_summary')}")
         console.print(f"  Evidence:    {row.get('critic_evidence', '')}")
         console.print(f"  Notes:       {row.get('critic_notes', '')}")
 

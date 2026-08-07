@@ -1,0 +1,50 @@
+{
+  "celltypepilot_version": "0.1.0",
+  "mkg_version": "mkg-2026.08",
+  "timestamp": "2026-08-07T17:11:19.939515+00:00",
+  "input": {
+    "path": "demo_pbmc.h5ad",
+    "sha256": "7acd3c0e554d51dab6d92928edc73ce00d573fccab04fe5e02dc6faca69b9872"
+  },
+  "parameters": {
+    "cluster_key": "leiden",
+    "species": "human",
+    "tissue": "blood",
+    "embedding_key": "X_umap",
+    "layer": null
+  },
+  "outputs": {
+    "data.annotated.h5ad": {
+      "sha256": "fbcc61e74d34a2d9c929fed8e4167d499ed66d29cb66ab8da44714d2d08e2771",
+      "size_bytes": 675344
+    },
+    "evidence_table.csv": {
+      "sha256": "3b47d578d862666816631ec515d87794341ef5eb49b5462b6fc84e5180199058",
+      "size_bytes": 3048
+    },
+    "methodology_draft.txt": {
+      "sha256": "d2879653d2180917da1f9a8c055233a6924a8cc2d8aed9c8a649a741bd442b79",
+      "size_bytes": 857
+    },
+    "report_draft.html": {
+      "sha256": "88f63b5b7cca721eb734c08a528c859ed8b7549234c6385fe523256bc56c0473",
+      "size_bytes": 10170
+    },
+    "figures\\confidence_distribution.png": {
+      "sha256": "eed2d2599b04371833c52194e8708c254187b5bc01d32dcd02615da33295b30c",
+      "size_bytes": 26492
+    },
+    "figures\\umap_celltype.png": {
+      "sha256": "7888400456114e3c6f759170d417f8b9a04f9f6ec65e7a9a924bc382ac947d2c",
+      "size_bytes": 51318
+    },
+    "figures\\umap_clusters.png": {
+      "sha256": "d424173f614dc0e3388f411672c0832402cc9c1668c32f492a0c7bd47337a2ff",
+      "size_bytes": 45021
+    },
+    "figures\\umap_confidence.png": {
+      "sha256": "8233fa9bdd0d9e542f1646ca846feb8b3d4ba2f0a7e6bb57ba10ab948707e6d5",
+      "size_bytes": 53822
+    }
+  }
+}

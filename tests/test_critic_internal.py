@@ -1,5 +1,7 @@
 """Tests for critic internal functions — evidence, negative markers, doublet, ontology."""
 
+import anndata as ad
+import numpy as np
 import pandas as pd
 
 from celltypepilot.constants import (
@@ -15,8 +17,27 @@ from celltypepilot.critic import (
     _check_negative_markers,
     _check_ontology_consistency,
     _recalibrate_confidence,
+    format_evidence_summary,
+    format_run_narrative,
     generate_critic_summary,
+    run_critic,
 )
+
+
+def _make_expression_adata(high_genes: list[str], n_cells: int = 60) -> ad.AnnData:
+    """One-cluster AnnData where ``high_genes`` are expressed in all cells."""
+    X = np.zeros((n_cells, len(high_genes)), dtype=np.float32)
+    X[:, :] = 3.0
+    adata = ad.AnnData(X=X)
+    adata.var_names = list(high_genes)
+    adata.obs["leiden"] = "0"
+    return adata
+
+
+# Blood atlas marker sets used by the calibrated doublet tests
+_T_MARKERS = ["CD3D", "CD3E", "CD2", "TRAC", "CD7"]
+_CD4_MARKERS = ["CD4", "IL7R", "MAL", "TRAC"]
+_B_MARKERS = ["CD19", "MS4A1", "CD79A", "CD79B", "PAX5"]
 
 
 class TestCheckEvidenceSufficiency:
@@ -69,6 +90,99 @@ class TestCheckDoubletSignal:
         cluster = synthetic_pbmc.obs["leiden"].iloc[0]
         result = _check_doublet_signal(synthetic_pbmc, cluster, "leiden", {})
         assert result["flag"] == ""
+
+    def test_same_lineage_coexpression_not_flagged(self, blood_markers):
+        """T cell + CD4+ T cell co-expression is subtype refinement, not a doublet."""
+        from celltypepilot.data_adapter import build_lineage_groups, load_marker_atlas
+
+        atlas = load_marker_atlas("human")
+        lineages = build_lineage_groups(atlas, "blood")
+        adata = _make_expression_adata(_T_MARKERS + _CD4_MARKERS)
+        result = _check_doublet_signal(
+            adata, "0", "leiden", blood_markers, lineages
+        )
+        assert result["flag"] == ""
+
+    def test_cross_lineage_coexpression_flagged(self, blood_markers):
+        """T + B lineage markers co-expressed → genuine doublet signal."""
+        from celltypepilot.data_adapter import build_lineage_groups, load_marker_atlas
+
+        atlas = load_marker_atlas("human")
+        lineages = build_lineage_groups(atlas, "blood")
+        adata = _make_expression_adata(_T_MARKERS + _B_MARKERS)
+        result = _check_doublet_signal(
+            adata, "0", "leiden", blood_markers, lineages
+        )
+        assert result["flag"] == "POSSIBLE_DOUBLET"
+        assert "Cross-lineage" in result["evidence"]
+
+    def test_cross_lineage_without_lineage_map_still_flagged(self, blood_markers):
+        """Backward compat: no lineage map falls back to pairwise comparison."""
+        adata = _make_expression_adata(_T_MARKERS + _B_MARKERS)
+        result = _check_doublet_signal(adata, "0", "leiden", blood_markers)
+        assert result["flag"] == "POSSIBLE_DOUBLET"
+
+    def test_shared_gene_only_expression_not_flagged(self):
+        """Shared genes (e.g. GNLY in NK + CD8 panels) are weak evidence.
+
+        A cluster expressing only the shared gene of a second panel must not
+        count that panel as an active lineage signature.
+        """
+        markers = {
+            "NK cell": {
+                "positive_markers": ["NCAM1", "NKG7", "GNLY", "KLRD1", "PRF1", "GZMB"]
+            },
+            "CD8+ T cell": {
+                "positive_markers": ["CD8A", "CD8B", "GZMB", "PRF1", "GNLY"]
+            },
+        }
+        # NK program fully on; from the CD8 panel only the shared genes are on
+        adata = _make_expression_adata(["NCAM1", "NKG7", "GNLY", "KLRD1", "PRF1", "GZMB"])
+        result = _check_doublet_signal(adata, "0", "leiden", markers)
+        assert result["flag"] == ""
+
+    def test_specific_genes_override_shared_weighting(self):
+        """When panel-specific genes are also expressed the doublet still fires."""
+        markers = {
+            "NK cell": {
+                "positive_markers": ["NCAM1", "NKG7", "GNLY", "KLRD1", "PRF1", "GZMB"]
+            },
+            "CD8+ T cell": {
+                "positive_markers": ["CD8A", "CD8B", "GZMB", "PRF1", "GNLY"]
+            },
+        }
+        adata = _make_expression_adata(
+            ["NCAM1", "NKG7", "GNLY", "KLRD1", "PRF1", "GZMB", "CD8A", "CD8B"]
+        )
+        result = _check_doublet_signal(adata, "0", "leiden", markers)
+        assert result["flag"] == "POSSIBLE_DOUBLET"
+
+
+class TestBuildLineageGroups:
+    def test_subtype_maps_to_parent(self):
+        from celltypepilot.data_adapter import build_lineage_groups, load_marker_atlas
+
+        atlas = load_marker_atlas("human")
+        groups = build_lineage_groups(atlas, "blood")
+        assert groups["T cell"] == "T cell"
+        assert groups["CD4+ T cell"] == "T cell"
+        assert groups["CD8+ T cell"] == "T cell"
+        assert groups["B cell"] == "B cell"
+
+    def test_unknown_tissue_falls_back_to_general(self):
+        from celltypepilot.data_adapter import build_lineage_groups, load_marker_atlas
+
+        atlas = load_marker_atlas("human")
+        groups = build_lineage_groups(atlas, "nonexistent_tissue_xyz")
+        # Unknown tissues fall back to the general atlas, matching
+        # get_all_markers_for_tissue behaviour.
+        assert groups == build_lineage_groups(atlas, "general")
+        assert "Macrophage" in groups
+
+    def test_empty_atlas(self):
+        from celltypepilot.data_adapter import build_lineage_groups
+
+        assert build_lineage_groups({}, "blood") == {}
 
 
 class TestCheckOntologyConsistency:
@@ -185,3 +299,66 @@ class TestGenerateCriticSummary:
         assert "LOW_EVIDENCE" in summary["flag_types"]
         assert "NEG_MARKER_CONFLICT" in summary["flag_types"]
         assert "1" in summary["clusters_needing_review"]
+
+    def test_narrative_present(self):
+        results = pd.DataFrame(
+            {
+                "cluster": ["0", "1"],
+                "critic_flags": ["PASS", "POSSIBLE_DOUBLET"],
+                "critic_confidence": ["high", "needs_review"],
+            }
+        )
+        summary = generate_critic_summary(results)
+        assert "2 cluster(s) reviewed" in summary["narrative"]
+        assert "POSSIBLE_DOUBLET" in summary["narrative"]
+
+    def test_narrative_empty_run(self):
+        assert format_run_narrative({"total_clusters": 0}) == "No clusters were reviewed."
+
+
+class TestEvidenceSummary:
+    def test_pass_summary(self):
+        row = pd.Series(
+            {
+                "cluster": "3",
+                "cell_type": "T cell",
+                "critic_flags": "PASS",
+                "critic_confidence": "high",
+                "pct_overlap": 0.8,
+                "combined_score": 0.75,
+            }
+        )
+        summary = format_evidence_summary(row)
+        assert "Cluster 3" in summary
+        assert "T cell" in summary
+        assert "[HIGH]" in summary
+        assert "PASS" in summary
+        assert "marker overlap 80%" in summary
+        assert "Accept annotation" in summary
+
+    def test_flagged_summary_carries_action(self):
+        row = pd.Series(
+            {
+                "cluster": "5",
+                "cell_type": "B cell",
+                "critic_flags": "POSSIBLE_DOUBLET",
+                "critic_confidence": "needs_review",
+                "pct_overlap": 0.4,
+                "combined_score": 0.5,
+            }
+        )
+        summary = format_evidence_summary(row)
+        assert "FLAGGED (POSSIBLE_DOUBLET)" in summary
+        assert "Sub-cluster or mark as doublet" in summary
+
+    def test_run_critic_adds_evidence_summary_column(
+        self, synthetic_pbmc, annotation_summary
+    ):
+        from celltypepilot.data_adapter import load_marker_atlas
+
+        atlas = load_marker_atlas("human")
+        results = run_critic(synthetic_pbmc, "leiden", annotation_summary, atlas, "blood")
+        assert "evidence_summary" in results.columns
+        for _, row in results.iterrows():
+            assert row["evidence_summary"].startswith("Cluster ")
+            assert "|" in row["evidence_summary"]

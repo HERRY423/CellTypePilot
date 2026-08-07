@@ -16,13 +16,15 @@ from .constants import (
     CONFIDENCE_LOW,
     CONFIDENCE_MEDIUM,
     CONFIDENCE_REVIEW,
+    CRITIC_DOUBLET_ACTIVE_COVERAGE,
     CRITIC_DOUBLET_COEXPR_THRESHOLD,
+    CRITIC_DOUBLET_OVERLAP_JACCARD,
     CRITIC_LOW_COVERAGE_THRESHOLD,
     CRITIC_NEG_MARKER_PCT_THRESHOLD,
     ENSEMBLE_AGREEMENT_THRESHOLD,
     MARKER_PCT_THRESHOLD,
 )
-from .data_adapter import get_all_markers_for_tissue
+from .data_adapter import build_lineage_groups, get_all_markers_for_tissue
 
 
 def run_critic(
@@ -55,6 +57,8 @@ def run_critic(
         critic_flags, critic_evidence, critic_confidence, critic_notes
     """
     markers = get_all_markers_for_tissue(atlas, tissue)
+    lineage_groups = build_lineage_groups(atlas, tissue)
+    gene_idx = _gene_index_map(adata)
     results = annotations.copy()
 
     # Build ensemble lookup if provided
@@ -87,7 +91,9 @@ def run_critic(
         neg_markers = ct_info.get("negative_markers", [])
 
         # 1. Evidence sufficiency check
-        sufficiency_result = _check_evidence_sufficiency(adata, cluster, cluster_key, pos_markers)
+        sufficiency_result = _check_evidence_sufficiency(
+            adata, cluster, cluster_key, pos_markers, gene_idx
+        )
         if sufficiency_result["flag"]:
             flags.append(sufficiency_result["flag"])
         evidence_parts.append(sufficiency_result["evidence"])
@@ -95,7 +101,7 @@ def run_critic(
             notes.append(sufficiency_result["note"])
 
         # 2. Negative marker conflict check
-        neg_result = _check_negative_markers(adata, cluster, cluster_key, neg_markers)
+        neg_result = _check_negative_markers(adata, cluster, cluster_key, neg_markers, gene_idx)
         if neg_result["flag"]:
             flags.append(neg_result["flag"])
         evidence_parts.append(neg_result["evidence"])
@@ -103,7 +109,9 @@ def run_critic(
             notes.append(neg_result["note"])
 
         # 3. Doublet / mixed signal heuristic
-        doublet_result = _check_doublet_signal(adata, cluster, cluster_key, markers)
+        doublet_result = _check_doublet_signal(
+            adata, cluster, cluster_key, markers, lineage_groups, gene_idx
+        )
         if doublet_result["flag"]:
             flags.append(doublet_result["flag"])
         evidence_parts.append(doublet_result["evidence"])
@@ -143,7 +151,25 @@ def run_critic(
     results["critic_confidence"] = critic_confidence_list
     results["critic_notes"] = critic_notes_list
 
+    # Layer-1 evidence summary: one glanceable verdict line per cluster
+    results["evidence_summary"] = [
+        format_evidence_summary(row) for _, row in results.iterrows()
+    ]
+
     return results
+
+
+def _gene_index_map(adata: ad.AnnData) -> dict[str, int]:
+    """Precompute gene name → column index once per run."""
+    return {g: i for i, g in enumerate(adata.var_names)}
+
+
+def _expression_pct(adata: ad.AnnData, mask, gene: str, gene_idx: dict[str, int]) -> float:
+    """Fraction of masked cells with detectable expression of a gene."""
+    idx = gene_idx[gene]
+    expr = adata.X[mask][:, idx]
+    expr = expr.toarray().flatten() if sparse.issparse(expr) else np.asarray(expr).flatten()
+    return float(np.mean(expr > 0))
 
 
 def _check_evidence_sufficiency(
@@ -151,6 +177,7 @@ def _check_evidence_sufficiency(
     cluster: str,
     cluster_key: str,
     pos_markers: list[str],
+    gene_idx: dict[str, int] | None = None,
 ) -> dict:
     """Check if positive markers provide sufficient evidence for the annotation."""
     if not pos_markers:
@@ -160,23 +187,17 @@ def _check_evidence_sufficiency(
             "note": "Cannot validate without marker definitions",
         }
 
-    detected = [g for g in pos_markers if g in adata.var_names]
-    mask = adata.obs[cluster_key] == cluster
-    subset = adata[mask]
+    if gene_idx is None:
+        gene_idx = _gene_index_map(adata)
+
+    detected = [g for g in pos_markers if g in gene_idx]
+    mask = (adata.obs[cluster_key] == cluster).values
 
     expressed_count = 0
-    total_expr_details = []
-
     for gene in detected:
-        idx = list(adata.var_names).index(gene)
-        expr = subset.X[:, idx]
-        expr = expr.toarray().flatten() if sparse.issparse(expr) else np.asarray(expr).flatten()
-
-        pct = np.mean(expr > 0)
-        mean_expr = np.mean(expr)
+        pct = _expression_pct(adata, mask, gene, gene_idx)
         if pct >= MARKER_PCT_THRESHOLD:
             expressed_count += 1
-        total_expr_details.append(f"{gene}: {pct:.0%} cells, mean={mean_expr:.2f}")
 
     coverage = expressed_count / max(len(detected), 1)
     evidence = (
@@ -204,22 +225,21 @@ def _check_negative_markers(
     cluster: str,
     cluster_key: str,
     neg_markers: list[str],
+    gene_idx: dict[str, int] | None = None,
 ) -> dict:
     """Check for negative marker conflicts — markers that should NOT be expressed."""
     if not neg_markers:
         return {"flag": "", "evidence": "No negative markers defined", "note": ""}
 
-    detected = [g for g in neg_markers if g in adata.var_names]
-    mask = adata.obs[cluster_key] == cluster
-    subset = adata[mask]
+    if gene_idx is None:
+        gene_idx = _gene_index_map(adata)
+
+    detected = [g for g in neg_markers if g in gene_idx]
+    mask = (adata.obs[cluster_key] == cluster).values
 
     conflicts = []
     for gene in detected:
-        idx = list(adata.var_names).index(gene)
-        expr = subset.X[:, idx]
-        expr = expr.toarray().flatten() if sparse.issparse(expr) else np.asarray(expr).flatten()
-
-        pct = np.mean(expr > 0)
+        pct = _expression_pct(adata, mask, gene, gene_idx)
         if pct > CRITIC_NEG_MARKER_PCT_THRESHOLD:
             conflicts.append(f"{gene} ({pct:.0%})")
 
@@ -242,47 +262,91 @@ def _check_doublet_signal(
     cluster: str,
     cluster_key: str,
     all_markers: dict[str, dict],
+    lineage_groups: dict[str, str] | None = None,
+    gene_idx: dict[str, int] | None = None,
 ) -> dict:
-    """Check for doublet/mixed signal — two mutually exclusive lineage markers co-expressed."""
-    mask = adata.obs[cluster_key] == cluster
-    subset = adata[mask]
+    """Check for doublet/mixed signal — two mutually exclusive lineages co-expressed.
+
+    Calibrated to avoid the three main false-positive modes:
+    1. Same-lineage co-expression (e.g. "T cell" + "CD4+ T cell") is subtype
+       refinement, not a doublet — only pairs from different root lineages count.
+    2. Heavily overlapping marker sets are redundant signatures of one biology,
+       not independent lineages (Jaccard guard).
+    3. Genes shared across panels (e.g. the cytotoxic program GNLY/PRF1 shared
+       by NK and CD8+ T cells) are weak lineage evidence on their own, so they
+       are excluded from panel coverage (fractional weighting as fallback).
+    """
+    lineage_groups = lineage_groups or {}
+    if gene_idx is None:
+        gene_idx = _gene_index_map(adata)
+
+    mask = (adata.obs[cluster_key] == cluster).values
+
+    # Gene specificity: count how many panels list each gene. Genes shared
+    # across panels are weak lineage evidence and are excluded from coverage;
+    # a purely shared panel falls back to fractional weighting (1/n_panels).
+    panel_count: dict[str, int] = {}
+    for ct_info in all_markers.values():
+        for g in set(ct_info.get("positive_markers", [])):
+            panel_count[g] = panel_count.get(g, 0) + 1
 
     # Find which cell types have strong marker expression in this cluster
-    active_types = []
+    active_types: list[tuple[str, float]] = []
     for ct_name, ct_info in all_markers.items():
         pos = ct_info.get("positive_markers", [])
-        detected = [g for g in pos if g in adata.var_names]
+        detected = [g for g in pos if g in gene_idx]
         if not detected:
             continue
 
-        n_expressed = 0
-        for gene in detected:
-            idx = list(adata.var_names).index(gene)
-            expr = subset.X[:, idx]
-            expr = expr.toarray().flatten() if sparse.issparse(expr) else np.asarray(expr).flatten()
-            pct = np.mean(expr > 0)
-            if pct >= MARKER_PCT_THRESHOLD:
-                n_expressed += 1
-
-        coverage = n_expressed / max(len(detected), 1)
-        if coverage >= 0.4:
+        specific = [g for g in pos if panel_count.get(g, 1) == 1]
+        if specific:
+            n_expressed = sum(
+                1
+                for gene in specific
+                if gene in gene_idx
+                and _expression_pct(adata, mask, gene, gene_idx) >= MARKER_PCT_THRESHOLD
+            )
+            coverage = n_expressed / len(specific)
+        else:
+            weighted = sum(
+                1.0 / panel_count[gene]
+                for gene in detected
+                if _expression_pct(adata, mask, gene, gene_idx) >= MARKER_PCT_THRESHOLD
+            )
+            coverage = weighted / len(detected)
+        if coverage >= CRITIC_DOUBLET_ACTIVE_COVERAGE:
             active_types.append((ct_name, coverage))
 
     active_types.sort(key=lambda x: -x[1])
 
-    # Check for mutually exclusive lineages co-expressed
-    if len(active_types) >= 2:
-        top1, top1_cov = active_types[0]
-        top2, top2_cov = active_types[1]
+    if len(active_types) < 2:
+        return {"flag": "", "evidence": "No doublet signal detected", "note": ""}
 
-        # Check if these are from different lineages (not subtypes)
+    # Look for a strong co-active signature from a DIFFERENT root lineage.
+    # Same-lineage pairs (parent + subtype) are expected biology, not doublets.
+    top1, top1_cov = active_types[0]
+    top1_markers = set(all_markers[top1].get("positive_markers", []))
+
+    for top2, top2_cov in active_types[1:]:
+        if lineage_groups.get(top1, top1) == lineage_groups.get(top2, top2):
+            continue
+
+        overlap = top1_markers & set(all_markers[top2].get("positive_markers", []))
+        union = top1_markers | set(all_markers[top2].get("positive_markers", []))
+        jaccard = len(overlap) / len(union) if union else 0.0
+        if jaccard >= CRITIC_DOUBLET_OVERLAP_JACCARD:
+            continue  # redundant signatures, not independent lineages
+
         if (
             top1_cov >= CRITIC_DOUBLET_COEXPR_THRESHOLD
             and top2_cov >= CRITIC_DOUBLET_COEXPR_THRESHOLD
         ):
             return {
                 "flag": "POSSIBLE_DOUBLET",
-                "evidence": f"Co-expression of {top1} ({top1_cov:.0%}) and {top2} ({top2_cov:.0%}) markers",
+                "evidence": (
+                    f"Cross-lineage co-expression of {top1} ({top1_cov:.0%}) "
+                    f"and {top2} ({top2_cov:.0%}) markers"
+                ),
                 "note": "Two distinct lineage signatures co-expressed — possible doublet or transitional state. Consider sub-clustering.",
             }
 
@@ -414,4 +478,107 @@ def generate_critic_summary(critic_results: pd.DataFrame) -> dict:
             for flag in flags.split("; "):
                 summary["flag_types"][flag] = summary["flag_types"].get(flag, 0) + 1
 
+    # Narrative one-liner for reports / CLI / agent presentation
+    summary["narrative"] = format_run_narrative(summary)
+
     return summary
+
+
+# ──────────────────────────────────────────────
+# Evidence summary layer
+# ──────────────────────────────────────────────
+
+# Fixed action guidance per flag — turns a flag into a next step.
+FLAG_ACTIONS = {
+    "PASS": "Accept annotation.",
+    "LOW_EVIDENCE": "Manual review needed; consider sub-clustering.",
+    "PARTIAL_EVIDENCE": "Review; may be correct for rare/transitional states.",
+    "NEG_MARKER_CONFLICT": "Likely misannotation or doublet; verify markers.",
+    "POSSIBLE_DOUBLET": "Sub-cluster or mark as doublet.",
+    "NO_MARKERS": "Add marker definitions for this cell type.",
+    "NO_CL_ID": "Assign a Cell Ontology ID manually if needed.",
+    "INVALID_CL_FORMAT": "Correct the Cell Ontology ID format.",
+    "ENSEMBLE_DISAGREEMENT": "Review; scoring methods strongly disagree.",
+    "ENSEMBLE_MILD_DISAGREEMENT": "Minor method disagreement; usually acceptable.",
+    "WEAK_REFERENCE_ONLY": "Weak reference support; seek marker evidence.",
+}
+
+
+def format_evidence_summary(row) -> str:
+    """Render one glanceable evidence-summary line for a cluster.
+
+    Bridges the gap between the conclusion layer (confidence/flag) and the
+    full evidence layer (evidence_table.csv): verdict + key evidence + action.
+    """
+    cluster = row.get("cluster", "?")
+    cell_type = row.get("cell_type", "?")
+    conf = row.get("critic_confidence", "unknown")
+    flags = row.get("critic_flags", "PASS")
+    overlap = row.get("pct_overlap", None)
+    score = row.get("combined_score", None)
+
+    verdict = "PASS" if flags == "PASS" else f"FLAGGED ({flags})"
+
+    parts = [f"Cluster {cluster} → {cell_type} [{conf.upper()}] {verdict}"]
+
+    evidence_bits = []
+    if overlap is not None:
+        try:
+            evidence_bits.append(f"marker overlap {float(overlap):.0%}")
+        except (TypeError, ValueError):
+            pass
+    if score is not None:
+        try:
+            evidence_bits.append(f"score {float(score):.2f}")
+        except (TypeError, ValueError):
+            pass
+    if evidence_bits:
+        parts.append("Evidence: " + ", ".join(evidence_bits))
+
+    if flags == "PASS":
+        parts.append("Action: " + FLAG_ACTIONS["PASS"])
+    else:
+        actions = []
+        for flag in flags.split("; "):
+            action = FLAG_ACTIONS.get(flag)
+            if action and action not in actions:
+                actions.append(action)
+        if actions:
+            parts.append("Action: " + " ".join(actions))
+
+    return " | ".join(parts)
+
+
+def format_run_narrative(summary: dict) -> str:
+    """Render a one-paragraph narrative of a full critic run."""
+    total = summary.get("total_clusters", 0)
+    passed = summary.get("pass", 0)
+    flagged = summary.get("flagged", 0)
+    conf_dist = summary.get("confidence_distribution", {})
+    flag_types = summary.get("flag_types", {})
+
+    if total == 0:
+        return "No clusters were reviewed."
+
+    conf_parts = [
+        f"{count} {level}"
+        for level, count in sorted(
+            conf_dist.items(), key=lambda kv: -kv[1]
+        )
+    ]
+    narrative = (
+        f"{total} cluster(s) reviewed: {passed} passed critic checks, "
+        f"{flagged} flagged for review. Confidence distribution: "
+        + ", ".join(conf_parts)
+        + "."
+    )
+    if flag_types:
+        flag_desc = ", ".join(f"{flag} ×{count}" for flag, count in flag_types.items())
+        narrative += f" Flag breakdown: {flag_desc}."
+        narrative += (
+            " Flagged clusters need human adjudication before publication; "
+            "unflagged clusters carry full marker evidence in evidence_table.csv."
+        )
+    else:
+        narrative += " All annotations carry full marker evidence in evidence_table.csv."
+    return narrative

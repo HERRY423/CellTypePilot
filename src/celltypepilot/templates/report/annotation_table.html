@@ -3,7 +3,7 @@
 <thead>
 <tr>
   <th>Cluster</th><th>Cell Type</th><th>CL ID</th>
-  <th>Score</th><th>Confidence</th><th>Critic</th>
+  <th>Score</th><th>Confidence</th><th>Critic</th><th>Evidence Summary</th>
 </tr>
 </thead>
 <tbody>
@@ -15,6 +15,7 @@
   <td>{{ "%.3f"|format(row.score) }}</td>
   <td><span class="badge {{ row.badge_class }}">{{ row.confidence }}</span></td>
   <td><span class="badge {{ row.flag_badge }}">{{ row.flags[:40] }}</span></td>
+  <td class="evidence-text">{{ row.evidence_summary }}</td>
 </tr>
 {% endfor %}
 </tbody>
