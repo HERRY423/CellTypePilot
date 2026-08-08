@@ -118,7 +118,7 @@ def run_doctor() -> DoctorReport:
     if all_core_installed:
         report.capabilities["tier"] = "full"
         report.capabilities["description"] = (
-            "All core dependencies met. Full Phase 1 functionality available."
+            "All core dependencies met. Core local plugin functionality available."
         )
     else:
         missing = [d.name for d in report.dependencies if not d.installed]

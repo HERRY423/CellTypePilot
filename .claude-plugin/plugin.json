@@ -1,7 +1,7 @@
 {
   "name": "celltypepilot",
   "version": "0.2.0",
-  "description": "Single-cell annotation trust layer — evidence-based cell-type labeling with an independent Annotation Critic. Parasitizes on your coding agent; no standalone app needed.",
+  "description": "Single-cell annotation review plugin — evidence-based candidate labels, conservative abstention, and rules-based critic checks.",
   "author": {
     "name": "HERRY423"
   },

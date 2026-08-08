@@ -1,21 +1,22 @@
 ---
 name: celltypepilot
 description: >-
-  Single-cell cell-type annotation with evidence, critic review, and publication-ready output.
+  Single-cell cell-type annotation with evidence, conservative abstention, and reviewable drafts.
   Use this whenever the user wants to annotate, label, or identify cell types for pre-clustered
   single-cell or spatial transcriptomics data (.h5ad), or says things like "annotate my clusters",
   "what cell types are these?", "label my scRNA-seq", "figure out the cell types", or "run CellTypePilot".
-  CellTypePilot runs entirely inside the coding agent — no separate app, no MCP required for basic use.
-  It provides marker-based scoring, an independent Annotation Critic that flags doubtful calls,
+  CellTypePilot runs through the host coding workspace — no separate app, no MCP required for basic use.
+  It provides marker-based scoring, a rules-based Annotation Critic that flags doubtful calls,
   colorblind-friendly figures, and a draft methodology paragraph ready for papers.
 license: MIT
 ---
 
 # CellTypePilot
 
-Turn pre-clustered single-cell data into **trusted, publication-ready cell-type annotations** —
-with evidence, confidence levels, and an independent critic review. **You (the agent) are the annotator**;
-CellTypePilot's tools produce evidence; you weigh it.
+Turn pre-clustered single-cell data into **auditable draft cell-type annotations** —
+with evidence, confidence levels, and a rules-based critic review. CellTypePilot is a plugin,
+not an autonomous analysis agent: its deterministic backend produces candidates and durable
+artifacts; a qualified human remains responsible for final biological adjudication.
 
 ## Operating principles
 
@@ -23,7 +24,7 @@ CellTypePilot's tools produce evidence; you weigh it.
   conda environment to configure for the basic path. The `doctor` command tells users exactly
   what they have and what's missing, *before* anything fails.
 - **Evidence over black-box.** Every annotation comes with: which markers support it, what
-  fraction of cells express them, whether negative markers conflict, and an independent
+  fraction of cells express them, whether negative markers conflict, and a rules-based
   critic verdict. No label without evidence.
 - **Critic is the soul.** The Annotation Critic doesn't just score — it *doubts*. It checks
   evidence sufficiency, negative marker conflicts, doublet signals, and ontology consistency.
@@ -32,8 +33,8 @@ CellTypePilot's tools produce evidence; you weigh it.
   available as an optional second opinion, not a mandatory expense.
 - **Artifact-centric.** All heavy compute writes durable files (CSV, PNG, JSON). You reason
   over the files. Runs are resumable and auditable.
-- **Publication-ready output.** UMAP, dotplot, confidence figures, evidence table, and a
-  draft methodology paragraph — everything needed for a paper figure and methods section.
+- **Review-ready draft output.** UMAP, dotplot, confidence figures, evidence table, and a
+  draft methodology paragraph are generated for qualified human review and revision.
 
 ## The workflow: three stages
 
@@ -143,7 +144,7 @@ This searches PubMed for literature supporting each marker-cell_type association
 | `celltypepilot markers -t <tissue>` | List available cell types and markers |
 | `celltypepilot literature -c <type> -m <markers>` | Literature validation via PubMed |
 
-All commands support `--json` for structured output that the agent can parse and reason over.
+All commands support `--json` for structured output that the host integration can parse and present.
 
 ## Output files
 
@@ -183,8 +184,8 @@ Mouse gene symbols are auto-converted from human conventions.
 | Flag | Meaning | Action |
 |---|---|---|
 | `PASS` | All checks passed | Accept annotation |
-| `LOW_EVIDENCE` | <20% of expected markers detected | Manual review needed; consider sub-clustering |
-| `PARTIAL_EVIDENCE` | 20-50% marker coverage | Review; may be correct for rare/transitional types |
+| `LOW_EVIDENCE` | <20% of all expected markers expressed | Abstain as Unknown; manual review needed |
+| `PARTIAL_EVIDENCE` | 20-50% of all expected markers expressed | Abstain as Unknown pending review |
 | `NEG_MARKER_CONFLICT` | Negative markers unexpectedly expressed | Likely misannotation or doublet |
 | `POSSIBLE_DOUBLET` | Two lineage signatures co-expressed | Sub-cluster or mark as doublet |
 | `NO_CL_ID` | No Cell Ontology ID assigned | Non-critical; add manually if needed |
@@ -221,7 +222,7 @@ celltypepilot doctor
 ## Design philosophy
 
 CellTypePilot is **not** another cell-type annotation algorithm. It is a **trust layer** that
-sits on top of your existing coding agent workflow. The key insight: for individual researchers
+sits on top of your existing coding workspace. The key insight: for individual researchers
 and small labs, the bottleneck is not "getting labels" — it is **knowing whether to trust them**.
 CellTypePilot's Annotation Critic is designed to be the skeptical colleague who asks "but why
 do you think that cluster is a T cell? Show me the evidence."

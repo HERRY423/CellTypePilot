@@ -94,13 +94,13 @@ Self-contained HTML report with embedded CSS. Sections:
 
 A plain-text paragraph suitable for adaptation into a paper's Methods section. Example:
 
-> Cell type annotation was performed using CellTypePilot (v0.1.0), an evidence-driven
+> Cell type annotation was performed using CellTypePilot (v0.2.0), an evidence-driven
 > annotation pipeline with built-in critic review. Marker gene evidence was sourced from
 > the CellTypePilot Marker Knowledge Graph (MKG mkg-2026.08), a curated atlas integrating
 > PanglaoDB, CellMarker, and Cell Ontology resources. For each of the N clusters identified
 > by leiden clustering, marker gene overlap, expression specificity, fold-change magnitude,
 > and negative marker conflict were scored to generate candidate annotations with confidence
-> levels. An independent Annotation Critic module reviewed each assignment for evidence
+> levels. A rules-based Annotation Critic module reviewed each assignment for evidence
 > sufficiency, negative marker conflicts, potential doublet signatures, and ontology
 > consistency. Of N clusters, X were assigned high confidence, Y medium confidence, and
 > Z were flagged for manual review.

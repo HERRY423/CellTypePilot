@@ -114,6 +114,7 @@ def _annotation_rows(results: pd.DataFrame) -> list[dict]:
             {
                 "cluster": row.get("cluster", ""),
                 "cell_type": row.get("cell_type", ""),
+                "candidate_cell_type": row.get("candidate_cell_type", row.get("cell_type", "")),
                 "cl_id": row.get("cl_id", ""),
                 "score": float(row.get("combined_score", 0)),
                 "confidence": conf,
@@ -121,6 +122,8 @@ def _annotation_rows(results: pd.DataFrame) -> list[dict]:
                 "flags": flags,
                 "flag_badge": flag_badge,
                 "evidence_summary": row.get("evidence_summary", ""),
+                "decision": row.get("decision", "accepted"),
+                "abstain_reason": row.get("abstain_reason", ""),
             }
         )
     return rows
@@ -158,6 +161,9 @@ def _html_critic_details(results: pd.DataFrame) -> str:
             {
                 "cluster": row.get("cluster", "?"),
                 "cell_type": row.get("cell_type", "?"),
+                "candidate_cell_type": row.get("candidate_cell_type", "?"),
+                "decision": row.get("decision", "accepted"),
+                "abstain_reason": row.get("abstain_reason", ""),
                 "critic_flags": row.get("critic_flags", ""),
                 "critic_evidence": row.get("critic_evidence", ""),
                 "critic_notes": row.get("critic_notes", ""),
@@ -187,18 +193,32 @@ def generate_methodology_text(
     high = critic_summary.get("confidence_distribution", {}).get("high", 0)
     med = critic_summary.get("confidence_distribution", {}).get("medium", 0)
     flagged = critic_summary.get("flagged", 0)
+    evidence_summary = params.get("marker_evidence_summary", {})
+    primary_fraction = float(evidence_summary.get("primary_verified_fraction", 0.0) or 0.0)
+    calibration_policy = params.get("calibration_policy")
+    confidence_statement = (
+        "A downgrade-only abstention threshold fitted on a separately designated calibration "
+        "dataset was applied. "
+        if calibration_policy
+        else "Confidence categories were rule-based heuristics and were not probability-calibrated. "
+    )
 
     text = (
         f"Cell type annotation was performed using CellTypePilot (v{manifest.get('celltypepilot_version', '?')}), "
         f"an evidence-driven annotation pipeline with built-in critic review. "
         f"Marker gene evidence was sourced from the CellTypePilot Marker Knowledge Graph "
-        f"(MKG {manifest.get('mkg_version', '?')}), a curated atlas integrating PanglaoDB, "
-        f"CellMarker, and Cell Ontology resources. "
+        f"(MKG {manifest.get('mkg_version', '?')}), with structured source metadata from "
+        f"PanglaoDB, CellMarker, and Cell Ontology resources. "
+        f"The primary-source-verified marker-edge fraction in scope was {primary_fraction:.1%}; "
+        f"database-paper citations were not treated as marker-specific experimental validation. "
         f"For each of the {total} clusters identified by {params.get('cluster_key', 'clustering')} clustering, "
-        f"marker gene overlap, expression specificity, fold-change magnitude, and negative marker "
-        f"conflict were scored to generate candidate annotations with confidence levels. "
-        f"An independent Annotation Critic module reviewed each assignment for evidence sufficiency, "
+        f"positive markers were required to pass direction, adjusted-P, log-fold-change, and "
+        f"within-cluster expression gates; coverage used the complete expected marker panel. "
+        f"A rules-based Annotation Critic reviewed each candidate for evidence sufficiency, "
         f"negative marker conflicts, potential doublet signatures, and ontology consistency. "
+        f"Candidates with insufficient or conflicting evidence were explicitly reported as Unknown "
+        f"while retaining the best candidate label for human adjudication. "
+        f"{confidence_statement}"
         f"Of {total} clusters, {high} were assigned high confidence, {med} medium confidence, "
         f"and {flagged} were flagged for manual review. "
         f"Species: {params.get('species', 'N/A')}; tissue context: {params.get('tissue', 'N/A')}."

@@ -7,7 +7,6 @@ import anndata as ad
 import numpy as np
 import pandas as pd
 import pytest
-import scanpy as sc
 
 
 @pytest.fixture
@@ -22,6 +21,8 @@ def synthetic_pbmc(rng):
 
     Generates data with 5 cell types and known marker genes.
     """
+    import scanpy as sc
+
     cell_types = {
         "T cell": ["CD3D", "CD3E", "CD2", "TRAC", "IL7R"],
         "B cell": ["CD19", "MS4A1", "CD79A", "CD79B", "PAX5"],

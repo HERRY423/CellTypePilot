@@ -5,6 +5,7 @@ from __future__ import annotations
 import hashlib
 import json
 import logging
+from collections import Counter
 from pathlib import Path
 
 import anndata as ad
@@ -388,31 +389,50 @@ def _convert_atlas_to_mouse(atlas: dict) -> dict:
             return gene[0].upper() + gene[1:].lower()
         return gene
 
-    for _tissue_key, tissue_data in mouse_atlas.get("tissues", {}).items():
-        for _ct_key, ct_data in tissue_data.get("cell_types", {}).items():
-            if "positive_markers" in ct_data:
-                ct_data["positive_markers"] = [convert_gene(g) for g in ct_data["positive_markers"]]
-            if "negative_markers" in ct_data:
-                ct_data["negative_markers"] = [convert_gene(g) for g in ct_data["negative_markers"]]
-            # Recurse into subtypes
-            for _sub_key, sub_data in ct_data.get("subtypes", {}).items():
-                if "positive_markers" in sub_data:
-                    sub_data["positive_markers"] = [
-                        convert_gene(g) for g in sub_data["positive_markers"]
-                    ]
-                if "negative_markers" in sub_data:
-                    sub_data["negative_markers"] = [
-                        convert_gene(g) for g in sub_data["negative_markers"]
-                    ]
+    def convert_nodes(cell_types: dict) -> None:
+        for ct_data in cell_types.values():
+            for key in ("positive_markers", "negative_markers"):
+                ct_data[key] = [convert_gene(g) for g in ct_data.get(key, [])]
+            for evidence in ct_data.get("marker_evidence", []):
+                evidence["gene"] = convert_gene(evidence["gene"])
+                evidence["species"] = ["mouse"]
+            convert_nodes(ct_data.get("subtypes", {}))
+
+    for tissue_data in mouse_atlas.get("tissues", {}).values():
+        convert_nodes(tissue_data.get("cell_types", {}))
 
     return mouse_atlas
 
 
-def get_all_markers_for_tissue(atlas: dict, tissue: str) -> dict[str, dict]:
+EVIDENCE_POLICY_MINIMUM = {
+    "database": 0,
+    "edge_verified": 1,
+    "primary": 2,
+}
+
+EVIDENCE_STATUS_RANK = {
+    "aggregate_source_only_not_edge_verified": 0,
+    "database_record_verified": 1,
+    "primary_source_verified": 2,
+}
+
+
+def get_all_markers_for_tissue(
+    atlas: dict,
+    tissue: str,
+    evidence_policy: str = "database",
+) -> dict[str, dict]:
     """Get all cell type markers for a given tissue.
 
     Returns: {cell_type_name: {positive_markers: [...], negative_markers: [...], cl_id: ...}}
     """
+    if evidence_policy not in EVIDENCE_POLICY_MINIMUM:
+        raise ValueError(
+            f"Unknown evidence policy {evidence_policy!r}; "
+            f"choose from {sorted(EVIDENCE_POLICY_MINIMUM)}"
+        )
+    minimum_rank = EVIDENCE_POLICY_MINIMUM[evidence_policy]
+
     tissue_data = atlas.get("tissues", {}).get(tissue)
     if not tissue_data:
         # Fall back to general tissue
@@ -421,22 +441,51 @@ def get_all_markers_for_tissue(atlas: dict, tissue: str) -> dict[str, dict]:
         return {}
 
     result = {}
-    for ct_name, ct_info in tissue_data.get("cell_types", {}).items():
-        pos = list(ct_info.get("positive_markers", []))
-        neg = list(ct_info.get("negative_markers", []))
-        cl_id = ct_info.get("cl_id", "")
-        result[ct_name] = {"positive_markers": pos, "negative_markers": neg, "cl_id": cl_id}
 
-        # Also include subtypes
-        for sub_name, sub_info in ct_info.get("subtypes", {}).items():
-            sub_pos = list(sub_info.get("positive_markers", []))
-            sub_neg = list(sub_info.get("negative_markers", []))
-            sub_cl = sub_info.get("cl_id", "")
-            result[sub_name] = {
-                "positive_markers": sub_pos,
-                "negative_markers": sub_neg,
-                "cl_id": sub_cl,
+    def add_nodes(cell_types: dict) -> None:
+        for ct_name, ct_info in cell_types.items():
+            evidence_records = list(ct_info.get("marker_evidence", []))
+            status_by_edge = {
+                (record.get("gene"), record.get("polarity")): record.get(
+                    "verification_status", "aggregate_source_only_not_edge_verified"
+                )
+                for record in evidence_records
             }
+
+            def allowed(
+                gene: str,
+                polarity: str,
+                edge_status: dict = status_by_edge,
+            ) -> bool:
+                status = edge_status.get(
+                    (gene, polarity), "aggregate_source_only_not_edge_verified"
+                )
+                return EVIDENCE_STATUS_RANK.get(status, -1) >= minimum_rank
+
+            result[ct_name] = {
+                "positive_markers": [
+                    gene
+                    for gene in ct_info.get("positive_markers", [])
+                    if allowed(gene, "positive")
+                ],
+                "negative_markers": [
+                    gene
+                    for gene in ct_info.get("negative_markers", [])
+                    if allowed(gene, "negative")
+                ],
+                "cl_id": ct_info.get("cl_id", ""),
+                "marker_evidence": evidence_records,
+                "ontology_evidence": ct_info.get("ontology_evidence", {}),
+                "evidence_policy": evidence_policy,
+                "evidence_status_counts": dict(
+                    Counter(
+                        record.get("verification_status", "missing") for record in evidence_records
+                    )
+                ),
+            }
+            add_nodes(ct_info.get("subtypes", {}))
+
+    add_nodes(tissue_data.get("cell_types", {}))
 
     return result
 
@@ -464,8 +513,126 @@ def build_lineage_groups(atlas: dict, tissue: str) -> dict[str, str]:
         return {}
 
     groups: dict[str, str] = {}
-    for ct_name, ct_info in tissue_data.get("cell_types", {}).items():
-        groups[ct_name] = ct_name
-        for sub_name in ct_info.get("subtypes", {}):
-            groups[sub_name] = ct_name
+
+    def add_lineage(cell_types: dict, root: str | None = None) -> None:
+        for ct_name, ct_info in cell_types.items():
+            lineage = root or ct_name
+            groups[ct_name] = lineage
+            add_lineage(ct_info.get("subtypes", {}), lineage)
+
+    add_lineage(tissue_data.get("cell_types", {}))
     return groups
+
+
+def validate_atlas_provenance(atlas: dict) -> list[str]:
+    """Return schema violations for any marker relationship lacking provenance."""
+    required = {
+        "gene",
+        "polarity",
+        "species",
+        "tissue",
+        "state",
+        "atlas_version",
+        "sources",
+        "evidence_scope",
+        "verification_status",
+    }
+    issues: list[str] = []
+
+    def validate_nodes(cell_types: dict, tissue: str, path: str) -> None:
+        for cell_type, info in cell_types.items():
+            node_path = f"{path}/{cell_type}"
+            expected = {
+                (gene, polarity)
+                for polarity, key in (
+                    ("positive", "positive_markers"),
+                    ("negative", "negative_markers"),
+                )
+                for gene in info.get(key, [])
+            }
+            records = info.get("marker_evidence", [])
+            observed = {(record.get("gene"), record.get("polarity")) for record in records}
+            if expected != observed:
+                issues.append(f"{node_path}: marker relationships and evidence records differ")
+            for index, record in enumerate(records):
+                missing = required - set(record)
+                if missing:
+                    issues.append(f"{node_path}/marker_evidence/{index}: missing {sorted(missing)}")
+                if record.get("tissue") != tissue:
+                    issues.append(f"{node_path}/marker_evidence/{index}: tissue mismatch")
+                verification_status = record.get("verification_status")
+                if verification_status not in EVIDENCE_STATUS_RANK:
+                    issues.append(
+                        f"{node_path}/marker_evidence/{index}: invalid verification_status"
+                    )
+                if verification_status == "database_record_verified":
+                    for field in (
+                        "source_record_id",
+                        "source_record_url",
+                        "curator",
+                        "verified_at",
+                    ):
+                        if not record.get(field):
+                            issues.append(
+                                f"{node_path}/marker_evidence/{index}: "
+                                f"database record verification missing {field}"
+                            )
+                if verification_status == "primary_source_verified":
+                    for field in ("evidence_locator", "curator", "verified_at"):
+                        if not record.get(field):
+                            issues.append(
+                                f"{node_path}/marker_evidence/{index}: "
+                                f"primary verification missing {field}"
+                            )
+                    if not any(
+                        source.get("source_type") == "primary"
+                        for source in record.get("sources", [])
+                    ):
+                        issues.append(
+                            f"{node_path}/marker_evidence/{index}: primary source is not declared"
+                        )
+                for source in record.get("sources", []):
+                    for field in ("source_id", "name", "pmid", "doi", "url"):
+                        if not source.get(field):
+                            issues.append(
+                                f"{node_path}/marker_evidence/{index}: source missing {field}"
+                            )
+            validate_nodes(info.get("subtypes", {}), tissue, node_path)
+
+    for tissue, tissue_info in atlas.get("tissues", {}).items():
+        validate_nodes(tissue_info.get("cell_types", {}), tissue, tissue)
+    return issues
+
+
+def summarize_atlas_evidence(atlas: dict, tissue: str | None = None) -> dict:
+    """Count verification levels without upgrading database-level citations."""
+    counts = Counter()
+    tissues = atlas.get("tissues", {})
+    selected = {tissue: tissues.get(tissue, {})} if tissue else tissues
+
+    def visit(cell_types: dict) -> None:
+        for info in cell_types.values():
+            for record in info.get("marker_evidence", []):
+                counts[record.get("verification_status", "missing")] += 1
+            visit(info.get("subtypes", {}))
+
+    for tissue_info in selected.values():
+        visit(tissue_info.get("cell_types", {}))
+    total = sum(counts.values())
+    return {
+        "total_relationships": total,
+        "verification_counts": dict(counts),
+        "edge_verified_fraction": (
+            sum(
+                count
+                for status, count in counts.items()
+                if EVIDENCE_STATUS_RANK.get(status, -1) >= 1
+            )
+            / total
+            if total
+            else 0.0
+        ),
+        "primary_verified_fraction": counts.get("primary_source_verified", 0) / total
+        if total
+        else 0.0,
+    }

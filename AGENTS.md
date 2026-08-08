@@ -1,6 +1,6 @@
 # CellTypePilot — Codex Agent Instructions
 
-> Single-cell cell-type annotation with evidence, critic review, and publication-ready output.
+> Single-cell annotation plugin with evidence, conservative abstention, and reviewable draft output.
 
 ## When to use
 
@@ -9,7 +9,7 @@ Activate CellTypePilot when the user wants to:
 - Work with `.h5ad` files containing clustered single-cell data
 - Convert Seurat `.rds` files to `.h5ad` for analysis
 - Understand "what are these clusters?"
-- Get publication-ready cell-type annotations with evidence
+- Get auditable draft cell-type annotations with evidence for human review
 - Review annotations interactively in a web panel
 
 Trigger phrases: "annotate my clusters", "what cell types are these?", "label my scRNA-seq",
@@ -82,7 +82,7 @@ celltypepilot annotate \
 ```
 
 This produces:
-- `data.annotated.h5ad` — AnnData with `ctp_cell_type`, `ctp_cl_id`, `ctp_confidence` in obs
+- `data.annotated.h5ad` — AnnData with final label, candidate, decision, abstain reason, CL ID, and confidence in obs
 - `evidence_table.csv` — per-cluster evidence: scores, markers, critic flags, confidence
 - `figures/` — UMAP (clusters, cell types, confidence), dotplot, confidence distribution
 - `report_draft.html` — comprehensive HTML report with all figures embedded
@@ -126,6 +126,9 @@ Useful when the critic flags a cluster and you want additional validation.
 | `celltypepilot doctor` | Check environment, dependencies, MCP status, license |
 | `celltypepilot inspect -i <path>` | Inspect h5ad: species, tissue, clusters, embeddings |
 | `celltypepilot annotate -i <path> -k <key>` | Full annotation pipeline |
+| `celltypepilot benchmark -i <path> --truth-key <key> --study-key <key> --donor-key <key>` | Lock/evaluate independent holdouts |
+| `celltypepilot benchmark-run ...` | Execute fold-isolated CellTypePilot/CellTypist and configured SingleR/Azimuth/popV adapters |
+| `celltypepilot calibrate ...` | Fit a downgrade-only abstention policy on a separate calibration dataset |
 | `celltypepilot critic -i <path> -k <key> -f <cluster>` | Deep-review a specific cluster |
 | `celltypepilot markers -t <tissue>` | List available cell types and markers |
 | `celltypepilot literature -c <type> -m <markers>` | Literature validation via PubMed |
@@ -161,8 +164,8 @@ Premium atlas (requires academic/commercial license):
 | Flag | Meaning |
 |---|---|
 | `PASS` | All checks passed |
-| `LOW_EVIDENCE` | <20% markers detected — manual review needed |
-| `PARTIAL_EVIDENCE` | 20-50% coverage — consider review |
+| `LOW_EVIDENCE` | <20% of all expected markers expressed — abstain |
+| `PARTIAL_EVIDENCE` | 20-50% of all expected markers expressed — abstain pending review |
 | `NEG_MARKER_CONFLICT` | Negative markers expressed — likely misannotation |
 | `POSSIBLE_DOUBLET` | Two lineage signatures co-expressed — sub-cluster or mark doublet |
 
@@ -181,7 +184,9 @@ Premium atlas (requires academic/commercial license):
 2. **Critic is the soul** — it doubts, checks, and flags; a flagged cluster is a success
 3. **Cost-aware** — deterministic scoring is free; LLM reasoning is optional
 4. **Artifact-centric** — all compute writes durable files (CSV, PNG, JSON)
-5. **Publication-ready** — figures, evidence table, and methodology paragraph included
+5. **Review-ready drafts** — figures, evidence table, and draft methodology are included; human sign-off remains required
+6. **Plugin, not Agent** — keep orchestration deterministic and task-bounded; do not add autonomous planning, self-directed analysis, or multi-agent behavior
+6. **Fail closed** — insufficient/conflicting evidence writes `Unknown` and preserves a separate candidate
 
 ## Project layout
 
@@ -197,7 +202,6 @@ celltypepilot/
 │   ├── agents/openai.yaml       # Codex agent interface config
 │   └── reference/               # Reference docs
 ├── commands/                    # Claude Code slash commands (/annotate, /critic, etc.)
-├── agents/                      # Claude Code sub-agents
 ├── hooks/                       # Claude Code lifecycle hooks
 ├── rules/                       # Claude Code behavior rules
 ├── .mcp.json                    # MCP servers (PubMed, bioRxiv)
@@ -222,5 +226,5 @@ celltypepilot/
 │   ├── provenance.py            # manifest.json generation
 │   ├── reporter.py              # HTML report + methodology text
 │   └── doctor.py                # Environment check
-└── tests/                       # 266 tests (~75% coverage)
+└── tests/                       # Unit, contract, and scientific-boundary tests
 ```

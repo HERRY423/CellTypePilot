@@ -7,9 +7,9 @@ rare transitional states that pure marker overlap scoring misses.
 
 Four backends (auto-selected by availability):
 
-1. **CellTypist** (default) — pre-trained logistic regression models
-   on CellxGene Census. Fast, no GPU needed, 500+ tissue models.
-   Best for: standard human/mouse tissues.
+1. **CellTypist** — explicitly selected or registry-approved pre-trained
+   logistic-regression models. Fast and CPU-friendly. A model is used only
+   when its declared species and tissue scope match the query.
 
 2. **scANVI / scVI** — custom reference atlas with semi-supervised
    VAE. Projects query into shared latent space, KNN label transfer.
@@ -45,6 +45,12 @@ from .constants import (
     REF_KNN_DEFAULT_K,
     REF_MIN_SHARED_GENES,
     REF_SCANVI_MIN_GENES,
+)
+from .reference_registry import (
+    ReferenceContractError,
+    select_registered_celltypist_model,
+    validate_model_sidecar,
+    validate_reference_adata,
 )
 
 logger = logging.getLogger(__name__)
@@ -91,6 +97,9 @@ def score_by_reference(
     backend: str = "auto",
     n_neighbors: int = REF_KNN_DEFAULT_K,
     gene_map: dict[str, str] | None = None,
+    species: str | None = None,
+    tissue: str | None = None,
+    allow_unverified_reference: bool = False,
 ) -> pd.DataFrame:
     """Score clusters by reference embedding mapping.
 
@@ -111,23 +120,58 @@ def score_by_reference(
         DataFrame with columns:
             cluster, cell_type, ref_score, ref_rank, top5_types, top5_scores
     """
+    if (species is None) != (tissue is None):
+        raise ReferenceContractError("species and tissue must be supplied together")
+
     if backend == "auto":
         backend = _auto_select_backend(reference, model_path)
 
     logger.info(f"Using reference backend: {backend}")
 
+    contract: dict = {"status": "library_call_unchecked"}
+    registered_model_name: str | None = None
+    if species is not None and tissue is not None:
+        if reference is not None:
+            contract = validate_reference_adata(
+                reference,
+                species,
+                tissue,
+                ref_label_key,
+                allow_unverified=allow_unverified_reference,
+            )
+        elif backend == "celltypist" and model_path is not None:
+            contract = validate_model_sidecar(
+                model_path,
+                species,
+                tissue,
+                allow_unverified=allow_unverified_reference,
+            )
+        elif backend == "celltypist":
+            contract = select_registered_celltypist_model(species, tissue)
+            contract["status"] = "registry_approved"
+            registered_model_name = contract["model_name"]
+
     if backend == "celltypist":
-        return _score_celltypist(query, cluster_key, model_path, gene_map)
+        result = _score_celltypist(
+            query,
+            cluster_key,
+            model_path,
+            gene_map,
+            registered_model_name=registered_model_name,
+        )
     elif backend == "scanvi":
-        return _score_scanvi(query, cluster_key, reference, ref_label_key, gene_map)
+        result = _score_scanvi(query, cluster_key, reference, ref_label_key, gene_map)
     elif backend == "knn":
-        return _score_knn(query, cluster_key, reference, ref_label_key, gene_map, n_neighbors)
+        result = _score_knn(query, cluster_key, reference, ref_label_key, gene_map, n_neighbors)
     elif backend == "correlation":
-        return _score_correlation(query, cluster_key, reference, ref_label_key, gene_map)
+        result = _score_correlation(query, cluster_key, reference, ref_label_key, gene_map)
     else:
         raise ValueError(
             f"Unknown backend: {backend}. Use: celltypist, scanvi, knn, correlation, auto"
         )
+    result.attrs["reference_contract"] = contract
+    result.attrs["reference_backend"] = backend
+    return result
 
 
 def _auto_select_backend(
@@ -173,6 +217,7 @@ def _score_celltypist(
     cluster_key: str,
     model_path: str | None,
     gene_map: dict[str, str] | None,
+    registered_model_name: str | None = None,
 ) -> pd.DataFrame:
     """Score using CellTypist pre-trained models.
 
@@ -185,7 +230,7 @@ def _score_celltypist(
     query_work = _apply_gene_map(query, gene_map)
 
     # Load model
-    model = _load_celltypist_model(models, model_path)
+    model = _load_celltypist_model(models, model_path, registered_model_name)
 
     # Normalize query to match model expectations
     query_norm = query_work.copy()
@@ -216,22 +261,22 @@ def _score_celltypist(
     return _aggregate_cluster_probabilities(proba, query_work.obs[cluster_key], source="celltypist")
 
 
-def _load_celltypist_model(models, model_path: str | None):
-    """Load CellTypist model with fallback chain."""
+def _load_celltypist_model(
+    models,
+    model_path: str | None,
+    registered_model_name: str | None = None,
+):
+    """Load an explicit or registry-approved CellTypist model."""
     if model_path:
         return models.Model.load(model_path)
 
-    # Try common default models
-    for name in ["Immune_All_Low.pkl", "Pan_Immune_Low.pkl"]:
-        try:
-            return models.Model.load(model=name)
-        except Exception:
-            continue
+    if registered_model_name:
+        return models.Model.load(model=registered_model_name)
 
     raise RuntimeError(
-        "No CellTypist model found. Download models:\n"
+        "No registry-approved CellTypist model was selected. Download models:\n"
         "  python -c 'import celltypist; celltypist.models.download_models()'\n"
-        "Or specify --model-path."
+        "Then supply species/tissue for registry selection, or an explicit model with sidecar."
     )
 
 

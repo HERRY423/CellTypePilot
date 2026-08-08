@@ -8,7 +8,8 @@
 </div>
 {% for row in flagged_rows %}
 <div class="card">
-  <div class="card-header">Cluster: {{ row.cluster }} → {{ row.cell_type }}</div>
+  <div class="card-header">Cluster: {{ row.cluster }} | Final: {{ row.cell_type }} | Candidate: {{ row.candidate_cell_type }}</div>
+  <p><strong>Decision:</strong> {{ row.decision }}{% if row.abstain_reason %} ({{ row.abstain_reason }}){% endif %}</p>
   {% if row.evidence_summary %}<p class="evidence-summary"><strong>Summary:</strong> {{ row.evidence_summary }}</p>{% endif %}
   <p><strong>Flags:</strong> {{ row.critic_flags }}</p>
   <p class="evidence-text"><strong>Evidence:</strong> {{ row.critic_evidence }}</p>

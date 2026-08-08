@@ -102,7 +102,7 @@ def search_pubmed(
         }
         search_url = f"{PUBMED_BASE}/esearch.fcgi?{urllib.parse.urlencode(search_params)}"
 
-        req = urllib.request.Request(search_url, headers={"User-Agent": "CellTypePilot/0.1"})
+        req = urllib.request.Request(search_url, headers={"User-Agent": "CellTypePilot/0.2.0"})
         with urllib.request.urlopen(req, timeout=10) as resp:
             search_data = json.loads(resp.read().decode("utf-8"))
 
@@ -119,7 +119,7 @@ def search_pubmed(
         }
         fetch_url = f"{PUBMED_BASE}/efetch.fcgi?{urllib.parse.urlencode(fetch_params)}"
 
-        req = urllib.request.Request(fetch_url, headers={"User-Agent": "CellTypePilot/0.1"})
+        req = urllib.request.Request(fetch_url, headers={"User-Agent": "CellTypePilot/0.2.0"})
         with urllib.request.urlopen(req, timeout=10) as resp:
             # efetch returns XML, but we can parse basic info from esummary
             pass
@@ -133,7 +133,7 @@ def search_pubmed(
         }
         summary_url = f"{PUBMED_BASE}/esummary.fcgi?{urllib.parse.urlencode(summary_params)}"
 
-        req = urllib.request.Request(summary_url, headers={"User-Agent": "CellTypePilot/0.1"})
+        req = urllib.request.Request(summary_url, headers={"User-Agent": "CellTypePilot/0.2.0"})
         with urllib.request.urlopen(req, timeout=10) as resp:
             summary_data = json.loads(resp.read().decode("utf-8"))
 
@@ -200,7 +200,9 @@ def search_biorxiv(
 
         req = urllib.request.Request(
             url,
-            headers={"User-Agent": "CellTypePilot/0.1 (https://github.com/celltypepilot)"},
+            headers={
+                "User-Agent": "CellTypePilot/0.2.0 (https://github.com/HERRY423/CellTypePilot)"
+            },
         )
         with urllib.request.urlopen(req, timeout=10) as resp:
             data = json.loads(resp.read().decode("utf-8"))
@@ -452,7 +454,7 @@ def check_mcp_availability() -> dict:
         test_query = "test"
         params = {"db": "pubmed", "term": test_query, "retmax": "1", "retmode": "json"}
         url = f"{PUBMED_BASE}/esearch.fcgi?{urllib.parse.urlencode(params)}"
-        req = urllib.request.Request(url, headers={"User-Agent": "CellTypePilot/0.1"})
+        req = urllib.request.Request(url, headers={"User-Agent": "CellTypePilot/0.2.0"})
         with urllib.request.urlopen(req, timeout=5) as resp:
             data = json.loads(resp.read().decode("utf-8"))
             if "esearchresult" in data:

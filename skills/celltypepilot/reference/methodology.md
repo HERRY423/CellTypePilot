@@ -74,7 +74,7 @@ while penalizing negative marker violations.
 
 ## 2. Annotation Critic
 
-The Critic performs four independent checks on each annotation:
+The rules-based Critic performs four explicit checks on each annotation:
 
 ### 2.1 Evidence Sufficiency
 

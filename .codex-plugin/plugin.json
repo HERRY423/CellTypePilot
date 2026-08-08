@@ -1,7 +1,7 @@
 {
   "name": "celltypepilot",
   "version": "0.2.0",
-  "description": "Single-cell annotation trust layer — evidence-based cell-type labeling with an independent Annotation Critic. Parasitizes on your coding agent; no standalone app needed.",
+  "description": "Single-cell annotation review plugin — evidence-based candidate labels, conservative abstention, and rules-based critic checks.",
   "author": {
     "name": "HERRY423",
     "url": "https://github.com/HERRY423"
@@ -24,8 +24,8 @@
   "mcpServers": "./.mcp.json",
   "interface": {
     "displayName": "CellTypePilot",
-    "shortDescription": "Evidence-based single-cell annotation with independent critic review",
-    "longDescription": "CellTypePilot turns pre-clustered single-cell data into trusted, publication-ready cell-type annotations. It provides marker-based scoring across 80+ cell types and 11 tissues, an independent Annotation Critic that flags doubtful calls (evidence sufficiency, negative marker conflicts, doublet signals, ontology consistency), colorblind-friendly figures, and a draft methodology paragraph. The plugin parasitizes on your coding agent — no standalone app, no heavy infrastructure.",
+    "shortDescription": "Auditable single-cell annotation review with conservative abstention",
+    "longDescription": "CellTypePilot is a local-first annotation review plugin for pre-clustered single-cell data. It produces evidence-backed candidate labels, abstains when evidence is insufficient, runs rules-based critic checks, and writes reviewable figures, reports, and provenance artifacts. Outputs are drafts requiring qualified human adjudication; the critic is not an independent biological replicate.",
     "developerName": "HERRY423",
     "category": "Scientific Computing",
     "capabilities": [
@@ -34,7 +34,6 @@
       "Write"
     ],
     "websiteURL": "https://github.com/HERRY423/CellTypePilot",
-    "logo": "./assets/logo.png",
     "defaultPrompt": [
       "Annotate my single-cell clusters",
       "What cell types are in this h5ad?",

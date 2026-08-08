@@ -13,7 +13,7 @@ from . import __version__
 console = Console()
 app = typer.Typer(
     name="celltypepilot",
-    help="CellTypePilot — Single-cell annotation intelligence layer",
+    help="CellTypePilot — Local-first single-cell annotation review plugin",
     add_completion=False,
 )
 
@@ -35,7 +35,7 @@ def main(
         help="Show version and exit.",
     ),
 ):
-    """CellTypePilot — Single-cell annotation intelligence layer."""
+    """CellTypePilot — Local-first single-cell annotation review plugin."""
     pass
 
 
@@ -95,6 +95,35 @@ def annotate(
     ),
     json_output: bool = typer.Option(False, "--json", help="Output results as JSON"),
     no_figures: bool = typer.Option(False, "--no-figures", help="Skip figure generation"),
+    reference: str | None = typer.Option(
+        None, "--reference", "-r", help="Optional reference .h5ad with cell type labels"
+    ),
+    ref_label_key: str = typer.Option(
+        "cell_type", "--ref-label", help="Cell type column in reference.obs"
+    ),
+    model_path: str | None = typer.Option(
+        None, "--model", "-m", help="Optional CellTypist model path"
+    ),
+    backend: str = typer.Option(
+        "auto", "--backend", "-b", help="Reference backend: auto/celltypist/scanvi/knn/correlation"
+    ),
+    marker_weight: float = typer.Option(0.5, "--marker-weight", help="Marker ensemble weight"),
+    no_ensemble: bool = typer.Option(False, "--no-ensemble", help="Use reference scores only"),
+    allow_unverified_reference: bool = typer.Option(
+        False,
+        "--allow-unverified-reference",
+        help="Explicitly override the reference provenance safety gate; recorded in manifest",
+    ),
+    marker_evidence_policy: str = typer.Option(
+        "database",
+        "--marker-evidence-policy",
+        help="database, edge_verified, or primary; stricter policies exclude unverified edges",
+    ),
+    calibration_policy: str | None = typer.Option(
+        None,
+        "--calibration-policy",
+        help="Optional abstention policy JSON fitted on a separate calibration dataset",
+    ),
 ):
     """Run the full annotation pipeline: marker scoring → critic → report."""
     from .orchestrator import PipelineError, run_annotation_pipeline
@@ -112,6 +141,15 @@ def annotate(
             embedding_key=embedding_key,
             layer=layer,
             no_figures=no_figures,
+            reference_path=reference,
+            ref_label_key=ref_label_key,
+            model_path=model_path,
+            reference_backend=backend,
+            marker_weight=marker_weight,
+            no_ensemble=no_ensemble,
+            allow_unverified_reference=allow_unverified_reference,
+            marker_evidence_policy=marker_evidence_policy,
+            calibration_policy_path=calibration_policy,
             progress=_progress,
         )
     except PipelineError as e:
@@ -528,6 +566,21 @@ def annotate_embedding(
     no_ensemble: bool = typer.Option(
         False, "--no-ensemble", help="Skip ensemble, use reference only"
     ),
+    allow_unverified_reference: bool = typer.Option(
+        False,
+        "--allow-unverified-reference",
+        help="Explicitly override the reference provenance safety gate; recorded in manifest",
+    ),
+    marker_evidence_policy: str = typer.Option(
+        "database",
+        "--marker-evidence-policy",
+        help="database, edge_verified, or primary; stricter policies exclude unverified edges",
+    ),
+    calibration_policy: str | None = typer.Option(
+        None,
+        "--calibration-policy",
+        help="Optional abstention policy JSON fitted on a separate calibration dataset",
+    ),
     json_output: bool = typer.Option(False, "--json", help="Output as JSON"),
 ):
     """Annotate using reference embedding + marker ensemble.
@@ -546,6 +599,47 @@ def annotate_embedding(
         # Force correlation backend (no extra deps)
         celltypepilot annotate-embedding -i data.h5ad -k leiden -r ref.h5ad -b correlation
     """
+    # Compatibility wrapper: all scoring, critic review, writeback, report, and
+    # provenance now run through the single annotation orchestrator.
+    from .orchestrator import PipelineError, run_annotation_pipeline
+
+    try:
+        result = run_annotation_pipeline(
+            input_path=input,
+            cluster_key=cluster_key,
+            output_dir=output_dir,
+            species=species,
+            tissue=tissue,
+            reference_path=reference,
+            ref_label_key=ref_label_key,
+            model_path=model_path,
+            reference_backend=backend,
+            marker_weight=marker_weight,
+            no_ensemble=no_ensemble,
+            allow_unverified_reference=allow_unverified_reference,
+            marker_evidence_policy=marker_evidence_policy,
+            calibration_policy_path=calibration_policy,
+        )
+    except PipelineError as exc:
+        console.print(f"[red]Error: {exc}[/red]")
+        raise typer.Exit(1) from exc
+
+    if json_output:
+        console.print(
+            json.dumps(
+                {
+                    "annotations": result["critic_results"].to_dict(orient="records"),
+                    "critic_summary": result["critic_summary"],
+                    "manifest": result["manifest"],
+                },
+                indent=2,
+                default=str,
+            )
+        )
+    console.print("[bold green]Done![/bold green] Unified reference/ensemble annotation complete.")
+    console.print(f"Output directory: {result['output_path'].resolve()}")
+    return
+
     from .data_adapter import (
         detect_species,
         detect_tissue,
@@ -693,6 +787,233 @@ def backends():
 # ──────────────────────────────────────────────
 # license command
 # ──────────────────────────────────────────────
+@app.command()
+def benchmark(
+    input: str = typer.Option(..., "--input", "-i", help="Path to benchmark .h5ad"),
+    truth_key: str = typer.Option(..., "--truth-key", help="Ground-truth label column in obs"),
+    study_key: str = typer.Option(..., "--study-key", help="Study identifier column in obs"),
+    donor_key: str = typer.Option(..., "--donor-key", help="Donor identifier column in obs"),
+    output_dir: str = typer.Option("benchmark", "--output", "-o", help="Output directory"),
+    strategy: str = typer.Option("study", "--strategy", help="study or donor holdout"),
+    predictions: str | None = typer.Option(
+        None,
+        "--predictions",
+        help="Out-of-fold long CSV: cell_id,fold_id,method,predicted_label",
+    ),
+):
+    """Lock study/donor holdouts and optionally evaluate comparator predictions."""
+    import pandas as pd
+
+    from .benchmark import (
+        build_calibration_artifacts,
+        build_holdout_assignments,
+        evaluate_holdout_predictions,
+        save_benchmark_plan,
+    )
+    from .data_adapter import load_h5ad
+
+    adata = load_h5ad(input)
+    if truth_key not in adata.obs:
+        raise typer.BadParameter(f"truth key '{truth_key}' not found in obs")
+    assignments = build_holdout_assignments(adata.obs, study_key, donor_key, strategy)
+    paths = save_benchmark_plan(assignments, output_dir, study_key, donor_key, strategy)
+    console.print(f"Locked {assignments['fold_id'].nunique()} independent test folds")
+
+    if predictions is not None:
+        prediction_table = pd.read_csv(predictions, dtype={"cell_id": str, "fold_id": str})
+        aggregate, per_fold = evaluate_holdout_predictions(
+            adata.obs[truth_key], assignments, prediction_table
+        )
+        aggregate_path = Path(output_dir) / "benchmark_results.csv"
+        per_fold_path = Path(output_dir) / "benchmark_results_by_fold.csv"
+        aggregate.to_csv(aggregate_path, index=False)
+        per_fold.to_csv(per_fold_path, index=False)
+        paths.update({"results": aggregate_path, "per_fold": per_fold_path})
+        if "confidence" in prediction_table.columns:
+            bins, risk = build_calibration_artifacts(adata.obs[truth_key], prediction_table)
+            bins_path = Path(output_dir) / "calibration_bins.csv"
+            risk_path = Path(output_dir) / "risk_coverage.csv"
+            bins.to_csv(bins_path, index=False)
+            risk.to_csv(risk_path, index=False)
+            paths.update({"calibration_bins": bins_path, "risk_coverage": risk_path})
+        console.print(aggregate.to_string(index=False))
+    else:
+        console.print(
+            "No predictions supplied; comparator status remains not_provided until "
+            "out-of-fold predictions are generated."
+        )
+
+    for label, path in paths.items():
+        console.print(f"  {label}: {path}")
+
+
+@app.command()
+def calibrate(
+    input: str = typer.Option(..., "--input", "-i", help="Calibration .h5ad"),
+    truth_key: str = typer.Option(..., "--truth-key", help="Ground-truth label column"),
+    predictions: str = typer.Option(
+        ..., "--predictions", help="Calibration CSV with cell_id,method,predicted_label,confidence"
+    ),
+    method: str = typer.Option("celltypepilot", "--method", help="Method to calibrate"),
+    output: str = typer.Option(
+        "abstention_policy.json", "--output", "-o", help="Output policy JSON"
+    ),
+    max_selective_error: float = typer.Option(
+        0.1, "--max-selective-error", help="Maximum empirical error among retained predictions"
+    ),
+    min_coverage: float = typer.Option(
+        0.2, "--min-coverage", help="Minimum fraction of predictions retained"
+    ),
+):
+    """Fit an abstention threshold on a dataset explicitly reserved for calibration."""
+    import pandas as pd
+
+    from .calibration import CalibrationError, fit_abstention_policy, save_abstention_policy
+    from .data_adapter import load_h5ad
+
+    adata = load_h5ad(input)
+    if truth_key not in adata.obs:
+        raise typer.BadParameter(f"truth key '{truth_key}' not found in obs")
+    prediction_table = pd.read_csv(predictions, dtype={"cell_id": str})
+    try:
+        policy = fit_abstention_policy(
+            adata.obs[truth_key],
+            prediction_table,
+            method=method,
+            max_selective_error=max_selective_error,
+            min_coverage=min_coverage,
+            dataset_role="calibration",
+        )
+    except CalibrationError as exc:
+        console.print(f"[red]Calibration failed: {exc}[/red]")
+        raise typer.Exit(1) from exc
+    path = save_abstention_policy(policy, output)
+    console.print(f"Saved abstention policy: {path}")
+    console.print(
+        f"  threshold={policy['threshold']:.4f}  "
+        f"empirical_error={policy['empirical_selective_error']:.4f}  "
+        f"coverage={policy['empirical_coverage']:.4f}"
+    )
+
+
+@app.command("benchmark-run")
+def benchmark_run(
+    input: str = typer.Option(..., "--input", "-i", help="Benchmark .h5ad"),
+    truth_key: str = typer.Option(..., "--truth-key", help="Locked canonical truth column"),
+    study_key: str = typer.Option(..., "--study-key", help="Study identifier column"),
+    donor_key: str = typer.Option(..., "--donor-key", help="Globally unique donor column"),
+    cluster_key: str = typer.Option(..., "--cluster-key", "-k", help="Predeclared cluster column"),
+    species: str = typer.Option(..., "--species", "-s", help="Explicit species"),
+    tissue: str = typer.Option(..., "--tissue", "-t", help="Explicit tissue"),
+    output_dir: str = typer.Option("benchmark", "--output", "-o", help="Output directory"),
+    strategy: str = typer.Option("study", "--strategy", help="study or donor holdout"),
+    methods: str = typer.Option(
+        "celltypepilot,celltypist",
+        "--methods",
+        help="Comma-separated methods; external methods require comparator configs",
+    ),
+    comparator_config: list[str] = typer.Option(
+        [],
+        "--comparator-config",
+        help="Repeatable JSON argv adapter for SingleR, Azimuth, or popV",
+    ),
+    label_map: str | None = typer.Option(
+        None,
+        "--label-map",
+        help="Predeclared CSV: method,raw_label,canonical_label",
+    ),
+    continue_on_unavailable: bool = typer.Option(
+        False,
+        "--continue-on-unavailable",
+        help="Record unavailable comparators instead of failing the benchmark run",
+    ),
+):
+    """Execute locked-fold comparator runs; never expose test truth to adapters."""
+    import pandas as pd
+
+    from .benchmark import (
+        BenchmarkValidationError,
+        build_calibration_artifacts,
+        build_holdout_assignments,
+        evaluate_holdout_predictions,
+        save_benchmark_plan,
+    )
+    from .benchmark_runner import CommandComparator, run_benchmark_comparators
+    from .data_adapter import compute_data_hash, load_h5ad
+
+    adata = load_h5ad(input)
+    requested = tuple(value.strip().lower() for value in methods.split(",") if value.strip())
+    if not requested:
+        raise typer.BadParameter("At least one method is required")
+    assignments = build_holdout_assignments(adata.obs, study_key, donor_key, strategy)
+    paths = save_benchmark_plan(assignments, output_dir, study_key, donor_key, strategy)
+    specs = tuple(CommandComparator.from_json(path) for path in comparator_config)
+    map_frame = pd.read_csv(label_map, dtype=str) if label_map else None
+    benchmark_manifest = json.loads(paths["manifest"].read_text(encoding="utf-8"))
+    benchmark_manifest["execution"] = {
+        "input_sha256": compute_data_hash(input),
+        "truth_exposure_policy": "test_h5ad_strips_truth_and_label_like_obs_columns",
+        "cluster_key": cluster_key,
+        "species": species,
+        "tissue": tissue,
+        "methods": list(requested),
+        "comparator_config_sha256": {
+            str(path): compute_data_hash(path) for path in comparator_config
+        },
+        "label_map_sha256": compute_data_hash(label_map) if label_map else None,
+        "continue_on_unavailable": continue_on_unavailable,
+    }
+    paths["manifest"].write_text(json.dumps(benchmark_manifest, indent=2), encoding="utf-8")
+    try:
+        predictions, status = run_benchmark_comparators(
+            adata,
+            assignments,
+            truth_key,
+            cluster_key,
+            output_dir,
+            species,
+            tissue,
+            methods=requested,
+            command_specs=specs,
+            label_map=map_frame,
+            continue_on_unavailable=continue_on_unavailable,
+        )
+    except BenchmarkValidationError as exc:
+        console.print(f"[red]Benchmark execution failed: {exc}[/red]")
+        raise typer.Exit(1) from exc
+
+    status_path = Path(output_dir) / "comparator_status.csv"
+    status.to_csv(status_path, index=False)
+    paths["comparator_status"] = status_path
+    if not predictions.empty:
+        prediction_path = Path(output_dir) / "out_of_fold_predictions.csv"
+        predictions.to_csv(prediction_path, index=False)
+        aggregate, per_fold = evaluate_holdout_predictions(
+            adata.obs[truth_key], assignments, predictions, expected_methods=requested
+        )
+        result_path = Path(output_dir) / "benchmark_results.csv"
+        fold_path = Path(output_dir) / "benchmark_results_by_fold.csv"
+        aggregate.to_csv(result_path, index=False)
+        per_fold.to_csv(fold_path, index=False)
+        bins, risk = build_calibration_artifacts(adata.obs[truth_key], predictions)
+        bins_path = Path(output_dir) / "calibration_bins.csv"
+        risk_path = Path(output_dir) / "risk_coverage.csv"
+        bins.to_csv(bins_path, index=False)
+        risk.to_csv(risk_path, index=False)
+        paths.update(
+            {
+                "predictions": prediction_path,
+                "results": result_path,
+                "per_fold": fold_path,
+                "calibration_bins": bins_path,
+                "risk_coverage": risk_path,
+            }
+        )
+        console.print(aggregate.to_string(index=False))
+    for label, path in paths.items():
+        console.print(f"  {label}: {path}")
+
+
 @app.command()
 def license(
     action: str = typer.Argument(..., help="Action: status, activate, deactivate"),

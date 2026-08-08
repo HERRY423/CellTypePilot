@@ -16,6 +16,8 @@ from .constants import (
     CONFIDENCE_LOW,
     CONFIDENCE_MEDIUM,
     CONFIDENCE_REVIEW,
+    MARKER_FC_THRESHOLD,
+    MARKER_FDR_THRESHOLD,
     MARKER_PCT_THRESHOLD,
 )
 
@@ -41,7 +43,16 @@ def compute_marker_scores(
         neg_conflict, combined_score, rank
     """
     # Step 1: Compute DE genes per cluster
-    sc.tl.rank_genes_groups(adata, groupby=cluster_key, method="wilcoxon", n_genes=adata.n_vars)
+    rank_kwargs = {
+        "groupby": cluster_key,
+        "method": "wilcoxon",
+        "n_genes": adata.n_vars,
+        "pts": True,
+        "use_raw": False,
+    }
+    if layer is not None:
+        rank_kwargs["layer"] = layer
+    sc.tl.rank_genes_groups(adata, **rank_kwargs)
 
     # Extract DE results
     de_results = _extract_de_results(adata, cluster_key)
@@ -55,34 +66,63 @@ def compute_marker_scores(
         if cluster_de.empty:
             continue
 
-        de_genes = set(cluster_de["gene"].values)
-        de_genes_fc = dict(zip(cluster_de["gene"], cluster_de["logfoldchange"], strict=True))
+        significant_de = cluster_de[
+            (pd.to_numeric(cluster_de["pval_adj"], errors="coerce") <= MARKER_FDR_THRESHOLD)
+            & (pd.to_numeric(cluster_de["logfoldchange"], errors="coerce") >= MARKER_FC_THRESHOLD)
+        ].copy()
+        de_genes = set(significant_de["gene"].astype(str))
+        de_genes_fc = dict(
+            zip(
+                significant_de["gene"].astype(str),
+                pd.to_numeric(significant_de["logfoldchange"], errors="coerce"),
+                strict=True,
+            )
+        )
 
         for ct_name, ct_info in markers.items():
             pos_markers = ct_info.get("positive_markers", [])
             neg_markers = ct_info.get("negative_markers", [])
+            provenance_records = ct_info.get("marker_evidence", [])
+            provenance_sources = sorted(
+                {
+                    f"{source.get('source_id', '')}:PMID:{source.get('pmid', '')}"
+                    for record in provenance_records
+                    for source in record.get("sources", [])
+                }
+            )
 
             # Positive marker analysis
-            pos_detected = [g for g in pos_markers if g in adata.var_names]
-            pos_de = [g for g in pos_detected if g in de_genes]
-            pos_expressed = _get_expressed_markers(adata, cluster, cluster_key, pos_detected)
+            pos_present = [g for g in pos_markers if g in adata.var_names]
+            pos_missing = [g for g in pos_markers if g not in adata.var_names]
+            expression_pcts = _get_marker_expression_pcts(
+                adata, cluster, cluster_key, pos_present, layer=layer
+            )
+            pos_expressed = [g for g, pct in expression_pcts.items() if pct >= MARKER_PCT_THRESHOLD]
+            pos_silent = [g for g in pos_present if g not in pos_expressed]
+            # Supporting markers pass direction, logFC, FDR, and expression gates.
+            pos_de = [g for g in pos_expressed if g in de_genes]
 
-            pct_overlap = len(pos_de) / max(len(pos_detected), 1)
+            expected_denominator = max(len(pos_markers), 1)
+            pct_overlap = len(pos_de) / expected_denominator
             mean_fc = np.mean([de_genes_fc.get(g, 0) for g in pos_de]) if pos_de else 0.0
-            pct_expressed = len(pos_expressed) / max(len(pos_detected), 1)
+            pct_expressed = len(pos_expressed) / expected_denominator
 
             # Specificity: how specific are these markers to this cluster?
-            specificity = _compute_specificity(adata, cluster, cluster_key, pos_detected)
+            specificity = _compute_specificity(
+                adata, cluster, cluster_key, pos_present, layer=layer
+            )
 
             # Negative marker analysis
-            neg_detected = [g for g in neg_markers if g in adata.var_names]
-            neg_expressed = _get_expressed_markers(adata, cluster, cluster_key, neg_detected)
-            neg_conflict = len(neg_expressed) / max(len(neg_detected), 1) if neg_detected else 0.0
+            neg_present = [g for g in neg_markers if g in adata.var_names]
+            neg_expressed = _get_expressed_markers(
+                adata, cluster, cluster_key, neg_present, layer=layer
+            )
+            neg_conflict = len(neg_expressed) / max(len(neg_markers), 1) if neg_markers else 0.0
 
             # Combined score
             combined = (
                 0.35 * pct_overlap
-                + 0.25 * min(mean_fc / 2.0, 1.0)  # normalize FC to [0,1]
+                + 0.25 * max(0.0, min(mean_fc / 2.0, 1.0))  # normalize FC to [0,1]
                 + 0.20 * specificity
                 + 0.20 * pct_expressed
                 - 0.30 * neg_conflict  # penalty
@@ -94,15 +134,34 @@ def compute_marker_scores(
                     "cluster": str(cluster),
                     "cell_type": ct_name,
                     "cl_id": ct_info.get("cl_id", ""),
-                    "n_pos_markers": len(pos_detected),
+                    "n_pos_markers": len(pos_markers),
+                    "n_pos_present": len(pos_present),
+                    "n_pos_missing": len(pos_missing),
+                    "n_pos_silent": len(pos_silent),
                     "n_pos_de": len(pos_de),
+                    "pos_present_markers": ";".join(pos_present),
+                    "pos_missing_markers": ";".join(pos_missing),
+                    "pos_silent_markers": ";".join(pos_silent),
+                    "pos_supporting_markers": ";".join(pos_de),
                     "pct_overlap": round(pct_overlap, 4),
                     "mean_log2fc": round(mean_fc, 4),
                     "pct_expressed": round(pct_expressed, 4),
                     "specificity": round(specificity, 4),
-                    "n_neg_markers": len(neg_detected),
+                    "n_neg_markers": len(neg_markers),
+                    "n_neg_present": len(neg_present),
+                    "neg_expressed_markers": ";".join(neg_expressed),
                     "neg_conflict": round(neg_conflict, 4),
                     "combined_score": round(combined, 4),
+                    "n_provenance_relationships": len(provenance_records),
+                    "marker_provenance_status": ";".join(
+                        sorted(
+                            {
+                                record.get("verification_status", "missing")
+                                for record in provenance_records
+                            }
+                        )
+                    ),
+                    "marker_provenance_sources": ";".join(provenance_sources),
                 }
             )
 
@@ -127,13 +186,13 @@ def _extract_de_results(adata: ad.AnnData, cluster_key: str) -> dict[str, pd.Dat
     for cluster in clusters:
         cluster_str = str(cluster)
         try:
-            result = sc.get.rank_genes_groups(adata, group=cluster_str, key="rank_genes_groups")
+            result = sc.get.rank_genes_groups_df(adata, group=cluster_str, key="rank_genes_groups")
             df = pd.DataFrame(
                 {
-                    "gene": result["names"],
-                    "logfoldchange": result["logfoldchanges"],
-                    "pval": result["pvals"],
-                    "pval_adj": result["pvals_adj"],
+                    "gene": result["names"].to_numpy(),
+                    "logfoldchange": result["logfoldchanges"].to_numpy(),
+                    "pval": result["pvals"].to_numpy(),
+                    "pval_adj": result["pvals_adj"].to_numpy(),
                 }
             )
             results[cluster_str] = df
@@ -142,6 +201,8 @@ def _extract_de_results(adata: ad.AnnData, cluster_key: str) -> dict[str, pd.Dat
             try:
                 names = adata.uns["rank_genes_groups"]["names"]
                 lfc = adata.uns["rank_genes_groups"]["logfoldchanges"]
+                pvals = adata.uns["rank_genes_groups"]["pvals"]
+                pvals_adj = adata.uns["rank_genes_groups"]["pvals_adj"]
                 if (
                     isinstance(names, np.ndarray)
                     and names.dtype.names
@@ -151,6 +212,8 @@ def _extract_de_results(adata: ad.AnnData, cluster_key: str) -> dict[str, pd.Dat
                         {
                             "gene": names[cluster_str],
                             "logfoldchange": lfc[cluster_str],
+                            "pval": pvals[cluster_str],
+                            "pval_adj": pvals_adj[cluster_str],
                         }
                     )
                     results[cluster_str] = df
@@ -166,21 +229,36 @@ def _get_expressed_markers(
     cluster_key: str,
     markers: list[str],
     threshold: float = 0.0,
+    layer: str | None = None,
 ) -> list[str]:
     """Get markers expressed in >MARKER_PCT_THRESHOLD of cells in a cluster."""
-    mask = adata.obs[cluster_key] == cluster
-    subset = adata[mask]
-    expressed = []
+    pcts = _get_marker_expression_pcts(
+        adata, cluster, cluster_key, markers, threshold=threshold, layer=layer
+    )
+    return [gene for gene, pct in pcts.items() if pct >= MARKER_PCT_THRESHOLD]
+
+
+def _get_marker_expression_pcts(
+    adata: ad.AnnData,
+    cluster: str,
+    cluster_key: str,
+    markers: list[str],
+    threshold: float = 0.0,
+    layer: str | None = None,
+) -> dict[str, float]:
+    """Return within-cluster detectable-expression fractions for present markers."""
+    mask = adata.obs[cluster_key].astype(str) == str(cluster)
+    matrix = adata.layers[layer] if layer is not None else adata.X
+    gene_idx = {str(g): i for i, g in enumerate(adata.var_names)}
+    pcts: dict[str, float] = {}
     for gene in markers:
-        if gene not in adata.var_names:
+        idx = gene_idx.get(gene)
+        if idx is None:
             continue
-        idx = list(adata.var_names).index(gene)
-        expr = subset.X[:, idx]
-        expr = expr.toarray().flatten() if sparse.issparse(expr) else np.asarray(expr).flatten()
-        pct = np.mean(expr > threshold)
-        if pct >= MARKER_PCT_THRESHOLD:
-            expressed.append(gene)
-    return expressed
+        expr = matrix[mask.values, idx]
+        expr = expr.toarray().ravel() if sparse.issparse(expr) else np.asarray(expr).ravel()
+        pcts[gene] = float(np.mean(expr > threshold)) if expr.size else 0.0
+    return pcts
 
 
 def _compute_specificity(
@@ -188,19 +266,22 @@ def _compute_specificity(
     cluster: str,
     cluster_key: str,
     markers: list[str],
+    layer: str | None = None,
 ) -> float:
     """Compute how specific markers are to this cluster vs others."""
     if not markers:
         return 0.0
 
-    mask = adata.obs[cluster_key] == cluster
+    mask = adata.obs[cluster_key].astype(str) == str(cluster)
+    matrix = adata.layers[layer] if layer is not None else adata.X
+    gene_idx = {str(g): i for i, g in enumerate(adata.var_names)}
 
     specificities = []
     for gene in markers:
         if gene not in adata.var_names:
             continue
-        idx = list(adata.var_names).index(gene)
-        expr = adata.X[:, idx]
+        idx = gene_idx[gene]
+        expr = matrix[:, idx]
         expr = expr.toarray().flatten() if sparse.issparse(expr) else np.asarray(expr).flatten()
 
         n_expressing = np.sum(expr > 0)
@@ -244,16 +325,4 @@ def generate_annotation_summary(
     top1 = scores[scores["rank"] == 1].copy()
     top1["confidence"] = top1.apply(assign_confidence, axis=1)
 
-    return top1[
-        [
-            "cluster",
-            "cell_type",
-            "cl_id",
-            "combined_score",
-            "confidence",
-            "pct_overlap",
-            "mean_log2fc",
-            "specificity",
-            "neg_conflict",
-        ]
-    ].reset_index(drop=True)
+    return top1.drop(columns=["rank"], errors="ignore").reset_index(drop=True)

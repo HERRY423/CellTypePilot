@@ -1,21 +1,36 @@
 # CellTypePilot
 
 [![CI](https://github.com/HERRY423/CellTypePilot/actions/workflows/ci.yml/badge.svg)](https://github.com/HERRY423/CellTypePilot/actions/workflows/ci.yml)
-![Tests](https://img.shields.io/badge/tests-266%20passed-brightgreen)
-![Coverage](https://img.shields.io/badge/coverage-75%25-blue)
 ![Python](https://img.shields.io/badge/python-3.10%20%7C%203.11%20%7C%203.12-blue)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
-> **Single-cell annotation trust layer that parasitizes on your existing coding agent.**
+> **Local-first single-cell annotation review plugin for your existing coding workspace.**
 > For individual researchers and small labs — no standalone app, no heavy infrastructure.
 
 **CellTypePilot** is a **plugin** for Claude Code / OpenAI Codex. It turns pre-clustered
-single-cell data into trusted, publication-ready cell-type annotations — with **dual-engine**
-scoring (marker overlap + reference embedding), adaptive ensemble fusion, confidence levels,
-an independent critic review, and a draft methodology paragraph for your paper.
+single-cell data into auditable draft cell-type annotations — with **dual-engine**
+scoring (marker overlap + reference embedding), adaptive ensemble fusion, heuristic confidence levels,
+a rules-based critic review, and a draft methodology paragraph for your paper.
 
-It is **not** another cell-type annotation algorithm. It is a **trust layer** that lives inside
-the coding agent you already use, turning a conversation into a reviewed annotation workflow.
+It is **not an autonomous analysis agent**. It is a deterministic, artifact-producing plugin
+that adds evidence review, conservative abstention, benchmark hooks, and provenance to the
+coding workspace you already use. A qualified human owns the final biological decision.
+
+## Current validation boundary
+
+| Available in v0.2.0 | Not yet claimed |
+|---|---|
+| Direction-, log2FC-, FDR-, and expression-fraction-gated DE evidence | Biological superiority over CellTypist, SingleR, Azimuth, or popV |
+| Complete expected-marker denominators, with missing genes separated from present-but-silent genes | A completed public multi-study/donor benchmark |
+| Explicit `Unknown`/abstain decisions; low-evidence clusters cannot pass | Calibrated accuracy for every tissue, platform, disease state, or species |
+| One annotation pipeline for scoring, critic review, write-back, report, and manifest | Primary-source verification of every bundled marker relationship |
+| Locked study/donor holdout runner and comparator adapters | Clinical-grade or fully automated biological decisions |
+
+For `mkg-2026.08`, all 733 bundled marker relationships are currently classified as
+`aggregate_source_only_not_edge_verified`. They remain usable under the exploratory
+`database` evidence policy, but are excluded by stricter `edge_verified` and `primary`
+policies. The curation backlog is published in
+[`docs/atlas_curation_queue.csv`](docs/atlas_curation_queue.csv).
 
 ## Why it exists
 
@@ -24,12 +39,12 @@ painful — not because the algorithms don't exist, but because:
 
 | Pain point | What CellTypePilot does |
 |---|---|
-| **No one reviews your annotations** | Annotation Critic independently checks evidence sufficiency, negative marker conflicts, doublet signals, and ontology consistency — *before* you trust a label |
+| **No one reviews your annotations** | A rules-based Annotation Critic checks evidence sufficiency, negative marker conflicts, doublet signals, and ontology consistency — *before* you trust a label |
 | **Config barrier is too high** (MCP, pixi, conda...) | `git clone` + `pip install -e .` + run. Zero MCP required for the basic path. `doctor` tells you what you have *before* anything fails |
 | **Workflow fragmentation** (scripts here, tool there) | Runs inside your Claude Code / Codex session — no context switch to a separate app |
 | **Can't explain *why* a cluster got its label** | Every annotation ships with: supporting markers, expression stats, critic flags, and a draft methods paragraph |
-| **Rare / transitional states forced into a label** | Reference embedding mapping captures continuous trajectories; critic flags doublet signals and transitional states instead of silently assigning a wrong label |
-| **Token cost spirals** | Deterministic marker scoring is free (Tier 0); expensive multi-model consensus only triggers for genuinely ambiguous clusters (Tier 1) |
+| **Rare / transitional states forced into a label** | Low or conflicting evidence produces an explicit `Unknown`/`abstain`; the best candidate is retained separately for review |
+| **Token cost spirals** | Annotation, critic checks, calibration, and reporting are deterministic local code; no LLM call is required |
 | **Results unreproducible** | `manifest.json` records knowledge graph version, parameters, data hash, and output hashes for every run |
 | **Metadata is messy** (Ensembl IDs, mixed gene naming, non-standard tissue columns) | Robust auto-detection: Ensembl prefix voting across 9 species, gene-symbol convention fallback, case-insensitive tissue matching with synonym groups |
 
@@ -37,13 +52,13 @@ painful — not because the algorithms don't exist, but because:
 
 ```
 output/
-├── data.annotated.h5ad          # ctp_cell_type, ctp_cl_id, ctp_confidence in obs
+├── data.annotated.h5ad          # final label, candidate, decision, reason, confidence in obs
 ├── evidence_table.csv           # Per-cluster: scores, markers, critic flags, confidence
 ├── ensemble_scores.csv          # Per-cell-type: marker + ref + ensemble scores
 ├── transitional_states.csv      # Clusters flagged as differentiation intermediates
 ├── disagreements.csv            # Marker vs reference disagreement analysis
 ├── report_draft.html            # Self-contained HTML report with all figures embedded
-├── methodology_draft.txt        # "We annotated N clusters using CellTypePilot v0.1.0..."
+├── methodology_draft.txt        # "We annotated N clusters using CellTypePilot v0.2.0..."
 ├── manifest.json                # Provenance: versions, params, data hash, output hashes
 └── figures/
     ├── umap_cluster.png         # UMAP by cluster (colorblind-friendly Wong palette)
@@ -69,7 +84,7 @@ celltypepilot inspect --input data.h5ad
 celltypepilot annotate --input data.h5ad --cluster-key leiden --tissue blood
 
 # 5. Annotate with reference embedding (resolves trajectories & rare states)
-celltypepilot annotate-embedding --input data.h5ad --cluster-key leiden \
+celltypepilot annotate --input data.h5ad --cluster-key leiden \
     --reference atlas.h5ad --tissue blood
 
 # 6. Check available reference scoring backends
@@ -86,10 +101,27 @@ celltypepilot literature --cell-type "T cells" --markers "CD3E,CD4,CD8A"
 
 # 10. Convert Seurat .rds → .h5ad (optional, needs R)
 celltypepilot convert-rds --input data.rds --output data.h5ad
+
+# 11. Lock study/donor holdouts; evaluate imported out-of-fold predictions
+celltypepilot benchmark -i benchmark.h5ad --truth-key truth \
+    --study-key study --donor-key donor --output benchmark/
+
+# 12. Actually execute CellTypePilot/CellTypist on every isolated fold.
+# SingleR/Azimuth/popV use explicit JSON argv adapters under the same protocol.
+celltypepilot benchmark-run -i benchmark.h5ad --truth-key truth \
+    --study-key study --donor-key donor --cluster-key leiden \
+    --species human --tissue blood --methods celltypepilot,celltypist
+
+# 13. Fit a downgrade-only abstention policy on a separate calibration dataset
+celltypepilot calibrate -i calibration.h5ad --truth-key truth \
+    --predictions calibration_predictions.csv -o abstention_policy.json
+celltypepilot annotate -i query.h5ad -k leiden -t blood \
+    --calibration-policy abstention_policy.json
 ```
 
-Or just tell your agent: *"annotate my clusters in data.h5ad"* — the plugin instructions
-guide Claude Code / Codex through the full workflow automatically.
+Or invoke the plugin from Claude Code / Codex with *"annotate my clusters in data.h5ad"*.
+The host follows the bundled workflow instructions while the local Python backend produces
+the annotation artifacts.
 
 ## Robust automatic detection
 
@@ -119,21 +151,21 @@ and CSS cleanly separated from Python logic.
 
 ## Plugin architecture
 
-CellTypePilot **parasitizes** on the coding agent you already use. It does not ask you to
-switch to a new app, learn a new UI, or configure a new environment.
+CellTypePilot integrates with the coding workspace you already use. It does not require a
+separate annotation application or autonomous analysis service.
 
-> **Why "plugin" and not "skill"?** "Plugin" is the product concept — a self-contained
-> intelligence layer that attaches to a host agent. Each platform has its own native
+> **Why "plugin" and not "agent"?** "Plugin" is the product concept — a self-contained,
+> user-invoked capability bundle that attaches to a host workspace. Each platform has its own native
 > plugin format: Claude Code uses `.claude-plugin/plugin.json`, Codex uses
 > `.codex-plugin/plugin.json`. Both share the same `skills/` directory and Python backend.
 > CellTypePilot ships **both** plugin manifests plus platform-specific components.
 
 ```
 ┌──────────────────────────────────────────────────────────────────────┐
-│  Host agent:                                                        │
+│  Host workspace:                                                    │
 │  Claude Code                          │  Codex                      │
 │  .claude-plugin/plugin.json           │  .codex-plugin/plugin.json  │
-│  commands/  agents/  hooks/  rules/   │  skills/*/agents/openai.yaml│
+│  commands/  hooks/  rules/            │  skills/*/agents/openai.yaml│
 │                 └──────────┬──────────┘                              │
 │                            ↓                                        │
 │  CellTypePilot plugin (shared Python backend)                       │
@@ -151,7 +183,7 @@ switch to a new app, learn a new UI, or configure a new environment.
 │  │      ├─ Marker Scorer        Wilcoxon DE + 5-dim scoring         ││
 │  │      ├─ Reference Scorer     CellTypist/scANVI/KNN/Correlation   ││
 │  │      ├─ Ensemble Scorer      Adaptive fusion + disagreement      ││
-│  │      ├─ Annotation Critic    Independent evidence review         ││
+│  │      ├─ Annotation Critic    Rules-based same-run review         ││
 │  │      ├─ Web Inspector        Flask review panel (Jinja2 templates)││
 │  │      ├─ Visualizer           UMAP, dotplot, confidence (Wong)    ││
 │  │      ├─ Reporter             Jinja2 HTML report + methods text   ││
@@ -165,9 +197,9 @@ switch to a new app, learn a new UI, or configure a new environment.
 
 ### Dual-platform, single backend
 
-| Platform | Plugin manifest | Agent config | Discovery |
+| Platform | Plugin manifest | Host integration | Discovery |
 |---|---|---|---|
-| **Claude Code** | `.claude-plugin/plugin.json` | `agents/*.md` + `commands/*.md` + `hooks/` + `rules/` | Plugin manager discovers via `.claude-plugin/` |
+| **Claude Code** | `.claude-plugin/plugin.json` | `commands/*.md` + `hooks/` + `rules/` | Plugin manager discovers via `.claude-plugin/` |
 | **Codex** | `.codex-plugin/plugin.json` | `skills/*/agents/openai.yaml` + `AGENTS.md` | Plugin cache or repo-root auto-discovery |
 | **Standalone** | N/A | N/A | `celltypepilot` CLI command |
 
@@ -181,7 +213,7 @@ both platforms — each reads `SKILL.md` for workflow orchestration.
 git clone https://github.com/HERRY423/CellTypePilot ~/.claude/plugins/marketplaces/local/plugins/celltypepilot
 cd ~/.claude/plugins/marketplaces/local/plugins/celltypepilot
 pip install -e .
-# Claude Code discovers .claude-plugin/plugin.json → skills/ + commands/ + agents/ + hooks/
+# Claude Code discovers .claude-plugin/plugin.json → skills/ + commands/ + hooks/
 
 # Codex — install as a plugin
 git clone https://github.com/HERRY423/CellTypePilot ~/.codex/plugins/cache/local/celltypepilot
@@ -213,7 +245,6 @@ CellTypePilot/
 │       │   └── openai.yaml       ← Codex agent interface config
 │       └── reference/            ← Reference docs
 ├── commands/                     ← Claude Code slash commands: /annotate, /critic, /inspect, /doctor
-├── agents/                       ← Claude Code sub-agents: annotation-critic.md
 ├── hooks/                        ← Claude Code lifecycle hooks: session-start check
 ├── rules/                        ← Claude Code behavior rules: annotation-workflow
 ├── .mcp.json                     ← MCP servers (PubMed, bioRxiv)
@@ -223,14 +254,15 @@ CellTypePilot/
 │   ├── templates/                ← Jinja2 templates (HTML report, dashboard)
 │   ├── data/                     ← Marker knowledge graph + premium atlas
 │   └── ...                       ← Scorers, critic, visualizer, reporter, etc.
-├── tests/                        ← 266 tests (all passing, ~75% coverage)
+├── tests/                        ← Unit, contract, and scientific-boundary tests
 └── .github/workflows/            ← CI: ruff lint/format + test matrix (3.10–3.12)
 ```
 
 ### Continuous integration
 
 Every push runs GitHub Actions CI: `ruff check` + `ruff format --check` for code quality,
-then the full test suite across Python 3.10 / 3.11 / 3.12 with coverage reporting.
+then the configured test suite across Python 3.10 / 3.11 / 3.12 with coverage reporting.
+The CI badge reports the current default-branch state; it is not biological validation.
 
 ## Built-in Marker Knowledge Graph
 
@@ -259,15 +291,17 @@ transitional states, pure marker overlap scoring can fail. CellTypePilot address
 with a **dual-engine** architecture:
 
 **Engine 1 — Marker Scorer** (deterministic):
-Wilcoxon DE + 5-dim scoring against the built-in marker knowledge graph. Zero cost,
-fully reproducible, works offline.
+Wilcoxon DE against the built-in marker knowledge graph. A supporting positive marker
+must pass direction, log2FC ≥ 0.5, BH-FDR ≤ 0.05, and expression in ≥25% of cluster cells.
+Coverage is divided by the complete expected marker panel, including genes absent from
+the matrix. The scorer is deterministic, reproducible, and offline.
 
 **Engine 2 — Reference Scorer** (deep learning):
 Projects query cells into a reference embedding space and transfers labels. Four backends:
 
 | Backend | Method | Best for | Dependencies |
 |---|---|---|---|
-| **CellTypist** | Pre-trained logistic regression on CellxGene Census | Standard human/mouse tissues | `celltypist` |
+| **CellTypist** | Pre-trained or explicitly selected logistic-regression model | Model-matched tissues only | `celltypist` |
 | **scANVI** | Semi-supervised VAE with custom reference atlas | Custom atlases, cross-species | `scvi-tools` |
 | **KNN** | PCA + inverse-distance KNN label transfer | Quick mapping, no model needed | `sklearn` (always available) |
 | **Correlation** | Pearson correlation with reference mean profiles | Lightweight fallback | None (always available) |
@@ -291,26 +325,26 @@ state, marker database gap, or low-quality cluster).
 
 ```bash
 # Use CellTypist pre-trained model
-celltypepilot annotate-embedding -i data.h5ad -k leiden -m Immune_All_Low.pkl
+celltypepilot annotate -i data.h5ad -k leiden -m Immune_All_Low.pkl
 
 # Use custom reference atlas with auto-selected backend
-celltypepilot annotate-embedding -i data.h5ad -k leiden -r atlas.h5ad
+celltypepilot annotate -i data.h5ad -k leiden -r atlas.h5ad
 
 # Force specific backend
-celltypepilot annotate-embedding -i data.h5ad -k leiden -r atlas.h5ad -b knn
+celltypepilot annotate -i data.h5ad -k leiden -r atlas.h5ad -b knn
 ```
 
 ## Annotation Critic — the soul of the plugin
 
-The Critic doesn't just score — it *doubts*. Every annotation is independently reviewed
+The Critic doesn't just score — it *doubts*. Every annotation is reviewed by explicit rules
 across **6 checks** (including ensemble agreement when reference embedding is available):
 
 | Check | What it catches |
 |---|---|
-| Evidence sufficiency | < 20% marker coverage → `LOW_EVIDENCE`; 20–50% → `PARTIAL_EVIDENCE` |
-| Negative marker conflict | Negative markers expressed in > 15% of cells → `NEG_MARKER_CONFLICT` |
+| Evidence sufficiency | < 20% expected-marker coverage → `LOW_EVIDENCE`; 20–50% → `PARTIAL_EVIDENCE`; both abstain |
+| Negative marker conflict | Negative markers expressed in > 20% of cells → `NEG_MARKER_CONFLICT` |
 | Doublet signal | Two mutually exclusive lineage signatures co-expressed → `POSSIBLE_DOUBLET` |
-| Ontology consistency | Is the label a valid Cell Ontology term in the right tissue context? |
+| Ontology consistency | Does the label exactly match the CL identifier declared in the versioned atlas? Live ontology resolution is not claimed |
 | Ensemble agreement | Marker vs reference disagreement → `ENSEMBLE_DISAGREEMENT` / `ENSEMBLE_MILD_DISAGREEMENT` |
 | Weak reference | Reference-only support with low confidence → `WEAK_REFERENCE_ONLY` |
 
@@ -318,14 +352,22 @@ Confidence levels: **high** / **medium** / **low** / **needs_review**. The Criti
 downgrade, never upgrade. A flagged cluster is a *success* — it means the system caught
 something worth your attention.
 
+The atlas v2 schema records gene, polarity, species, tissue, state, atlas version,
+PMID/DOI/URL, and verification status for every bundled marker relationship. Existing
+relationships are honestly marked `aggregate_source_only_not_edge_verified`: database-paper
+provenance is present, but a marker-specific primary experiment has not been claimed.
+Use `--marker-evidence-policy edge_verified` or `primary` to exclude relationships below the
+requested evidence tier; the default `database` policy keeps them for exploratory draft labeling
+and marks the critic result `AGGREGATE_PROVENANCE_ONLY`.
+
 ## Roadmap
 
 - [x] **Phase 1 (MVP)** — h5ad adapter, marker knowledge graph, Wilcoxon DE scoring, Annotation Critic, doctor, figures, JSON output, HTML report, methodology draft, manifest provenance, literature validation (PubMed)
-- [x] **Phase 2** — Dual-platform plugin (Claude Code `.claude-plugin/` + Codex `.codex-plugin/`), slash commands, sub-agents, hooks, rules, MCP integration
+- [x] **Phase 2** — Dual-platform plugin packaging (Claude Code `.claude-plugin/` + Codex `.codex-plugin/`), commands, hooks, rules, and optional literature integration
 - [x] **Phase 3** — Web Inspector (Flask interactive panel), Seurat .rds adapter, tiered license system (free/academic/commercial), premium atlas (tumor/brain/immune)
 - [x] **Phase 4** — Reference Embedding + Ensemble fusion (CellTypist / scANVI / KNN / Correlation backends), adaptive weighting, transitional state detection, ensemble-aware critic, RSA-2048 license security, sparse-preserving Seurat conversion, Web Inspector override API
-- [x] **Architecture hardening** — Orchestrator layer (pipeline logic extracted from CLI), Jinja2 templates (HTML/JS out of Python), robust multi-species Ensembl detection (9 species), synonym-based tissue detection, 266 tests at ~75% coverage, GitHub Actions CI (ruff + Python 3.10–3.12 matrix)
-- [ ] **Phase 5** — Tiered consensus orchestrator (Tier 0 → Tier 1 adaptive upgrade), docx/pptx submission package, extended atlas subscription, team sharing, rare cell type mining
+- [x] **Architecture hardening** — Orchestrator layer (pipeline logic extracted from CLI), Jinja2 templates, multi-species detection, synonym-based tissue detection, and Python 3.10–3.12 CI
+- [ ] **Validation release** — Published multi-study/donor benchmark, calibrated abstention card, verified reference registry, and marker-edge curation coverage report
 
 ## License
 

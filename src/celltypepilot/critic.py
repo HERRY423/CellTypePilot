@@ -1,10 +1,14 @@
-"""Annotation Critic — independent review of cell type annotations.
+"""Annotation Critic — rules-based review of cell type annotations.
 
 The Critic is CellTypePilot's trust layer. It doesn't just report confidence scores;
-it performs a skeptical, evidence-based review of each annotation.
+it performs a skeptical, evidence-based review of each annotation. It is not an
+independent biological replicate or an independently trained annotator.
 """
 
 from __future__ import annotations
+
+import re
+from contextlib import suppress
 
 import anndata as ad
 import numpy as np
@@ -34,6 +38,8 @@ def run_critic(
     atlas: dict,
     tissue: str,
     ensemble_info: pd.DataFrame | None = None,
+    layer: str | None = None,
+    evidence_policy: str = "database",
 ) -> pd.DataFrame:
     """Run the full critic pipeline on annotations.
 
@@ -56,7 +62,7 @@ def run_critic(
     Returns the annotations DataFrame with added critic columns:
         critic_flags, critic_evidence, critic_confidence, critic_notes
     """
-    markers = get_all_markers_for_tissue(atlas, tissue)
+    markers = get_all_markers_for_tissue(atlas, tissue, evidence_policy=evidence_policy)
     lineage_groups = build_lineage_groups(atlas, tissue)
     gene_idx = _gene_index_map(adata)
     results = annotations.copy()
@@ -78,6 +84,7 @@ def run_critic(
     critic_evidence_list = []
     critic_confidence_list = []
     critic_notes_list = []
+    sufficiency_details = []
 
     for _, row in results.iterrows():
         cluster = row["cluster"]
@@ -90,9 +97,22 @@ def run_critic(
         pos_markers = ct_info.get("positive_markers", [])
         neg_markers = ct_info.get("negative_markers", [])
 
+        status_counts = ct_info.get("evidence_status_counts", {})
+        edge_verified = sum(
+            count
+            for status, count in status_counts.items()
+            if status in {"database_record_verified", "primary_source_verified"}
+        )
+        if status_counts and edge_verified == 0:
+            flags.append("AGGREGATE_PROVENANCE_ONLY")
+            notes.append(
+                "Marker relations cite database-level sources but have not been verified "
+                "against a stable database record or primary-source evidence locator"
+            )
+
         # 1. Evidence sufficiency check
         sufficiency_result = _check_evidence_sufficiency(
-            adata, cluster, cluster_key, pos_markers, gene_idx
+            adata, cluster, cluster_key, pos_markers, gene_idx, layer=layer
         )
         if sufficiency_result["flag"]:
             flags.append(sufficiency_result["flag"])
@@ -100,8 +120,24 @@ def run_critic(
         if sufficiency_result["note"]:
             notes.append(sufficiency_result["note"])
 
+        # Expression alone is not directional evidence. Require the candidate's
+        # expected panel to contain markers that also pass the DE gates.
+        de_support = float(row.get("pct_overlap", 0.0) or 0.0)
+        if de_support < CRITIC_LOW_COVERAGE_THRESHOLD:
+            flags.append("LOW_DE_SUPPORT")
+            evidence_parts.append(f"DE support: {de_support:.0%} of expected markers")
+            notes.append(
+                "Too few expected markers pass direction, logFC, FDR, and expression gates"
+            )
+        elif de_support < 0.5:
+            flags.append("PARTIAL_DE_SUPPORT")
+            evidence_parts.append(f"DE support: {de_support:.0%} of expected markers")
+            notes.append("Partial directional DE support; candidate requires review")
+
         # 2. Negative marker conflict check
-        neg_result = _check_negative_markers(adata, cluster, cluster_key, neg_markers, gene_idx)
+        neg_result = _check_negative_markers(
+            adata, cluster, cluster_key, neg_markers, gene_idx, layer=layer
+        )
         if neg_result["flag"]:
             flags.append(neg_result["flag"])
         evidence_parts.append(neg_result["evidence"])
@@ -110,7 +146,7 @@ def run_critic(
 
         # 3. Doublet / mixed signal heuristic
         doublet_result = _check_doublet_signal(
-            adata, cluster, cluster_key, markers, lineage_groups, gene_idx
+            adata, cluster, cluster_key, markers, lineage_groups, gene_idx, layer=layer
         )
         if doublet_result["flag"]:
             flags.append(doublet_result["flag"])
@@ -119,7 +155,11 @@ def run_critic(
             notes.append(doublet_result["note"])
 
         # 4. Ontology consistency check
-        onto_result = _check_ontology_consistency(cell_type, row.get("cl_id", ""))
+        onto_result = _check_ontology_consistency(
+            cell_type,
+            row.get("cl_id", ""),
+            expected_cl_id=ct_info.get("cl_id", ""),
+        )
         if onto_result["flag"]:
             flags.append(onto_result["flag"])
         if onto_result["note"]:
@@ -141,20 +181,75 @@ def run_critic(
             neg_conflict=neg_result,
         )
 
+        if new_confidence == CONFIDENCE_REVIEW and not flags:
+            flags.append("LOW_MODEL_CONFIDENCE")
+
         critic_flags_list.append("; ".join(flags) if flags else "PASS")
         critic_evidence_list.append(" | ".join(evidence_parts))
         critic_confidence_list.append(new_confidence)
         critic_notes_list.append("; ".join(notes) if notes else "")
+        sufficiency_details.append(sufficiency_result)
 
     results["critic_flags"] = critic_flags_list
     results["critic_evidence"] = critic_evidence_list
     results["critic_confidence"] = critic_confidence_list
     results["critic_notes"] = critic_notes_list
+    results["critic_method"] = "rules_based_same_run_review"
+    results["critic_independence"] = "not_independent"
+
+    for column in (
+        "n_expected_markers",
+        "n_present_markers",
+        "n_expressed_markers",
+        "n_missing_markers",
+        "n_silent_markers",
+        "expected_marker_coverage",
+        "present_markers",
+        "expressed_markers",
+        "missing_markers",
+        "silent_markers",
+    ):
+        results[column] = [
+            detail.get(column, 0 if column.startswith("n_") else "")
+            for detail in sufficiency_details
+        ]
+
+    # Fail closed: preserve the best candidate, but publish Unknown for any
+    # annotation that lacks adequate, non-conflicting evidence.
+    abstain_flags = {
+        "NO_MARKERS",
+        "LOW_EVIDENCE",
+        "PARTIAL_EVIDENCE",
+        "LOW_DE_SUPPORT",
+        "PARTIAL_DE_SUPPORT",
+        "NEG_MARKER_CONFLICT",
+        "POSSIBLE_DOUBLET",
+        "ENSEMBLE_DISAGREEMENT",
+        "WEAK_REFERENCE_ONLY",
+        "LOW_MODEL_CONFIDENCE",
+        "ONTOLOGY_MISMATCH",
+        "UNKNOWN_ATLAS_LABEL",
+        "INVALID_CL_FORMAT",
+    }
+    results["candidate_cell_type"] = results["cell_type"]
+    results["candidate_cl_id"] = results.get("cl_id", "")
+    decisions = []
+    reasons = []
+    for _, row in results.iterrows():
+        row_flags = set(str(row["critic_flags"]).split("; "))
+        active = sorted(row_flags & abstain_flags)
+        abstain = bool(active) or row["critic_confidence"] == CONFIDENCE_REVIEW
+        decisions.append("abstain" if abstain else "accepted")
+        reasons.append("; ".join(active) if abstain else "")
+    results["decision"] = decisions
+    results["abstain_reason"] = reasons
+    abstain_mask = results["decision"] == "abstain"
+    results.loc[abstain_mask, "cell_type"] = "Unknown"
+    if "cl_id" in results.columns:
+        results.loc[abstain_mask, "cl_id"] = ""
 
     # Layer-1 evidence summary: one glanceable verdict line per cluster
-    results["evidence_summary"] = [
-        format_evidence_summary(row) for _, row in results.iterrows()
-    ]
+    results["evidence_summary"] = [format_evidence_summary(row) for _, row in results.iterrows()]
 
     return results
 
@@ -164,10 +259,17 @@ def _gene_index_map(adata: ad.AnnData) -> dict[str, int]:
     return {g: i for i, g in enumerate(adata.var_names)}
 
 
-def _expression_pct(adata: ad.AnnData, mask, gene: str, gene_idx: dict[str, int]) -> float:
+def _expression_pct(
+    adata: ad.AnnData,
+    mask,
+    gene: str,
+    gene_idx: dict[str, int],
+    layer: str | None = None,
+) -> float:
     """Fraction of masked cells with detectable expression of a gene."""
     idx = gene_idx[gene]
-    expr = adata.X[mask][:, idx]
+    matrix = adata.layers[layer] if layer is not None else adata.X
+    expr = matrix[mask][:, idx]
     expr = expr.toarray().flatten() if sparse.issparse(expr) else np.asarray(expr).flatten()
     return float(np.mean(expr > 0))
 
@@ -178,6 +280,7 @@ def _check_evidence_sufficiency(
     cluster_key: str,
     pos_markers: list[str],
     gene_idx: dict[str, int] | None = None,
+    layer: str | None = None,
 ) -> dict:
     """Check if positive markers provide sufficient evidence for the annotation."""
     if not pos_markers:
@@ -185,39 +288,66 @@ def _check_evidence_sufficiency(
             "flag": "NO_MARKERS",
             "evidence": "No positive markers defined for this cell type",
             "note": "Cannot validate without marker definitions",
+            "n_expected_markers": 0,
+            "n_present_markers": 0,
+            "n_expressed_markers": 0,
+            "n_missing_markers": 0,
+            "n_silent_markers": 0,
+            "expected_marker_coverage": 0.0,
+            "present_markers": "",
+            "expressed_markers": "",
+            "missing_markers": "",
+            "silent_markers": "",
         }
 
     if gene_idx is None:
         gene_idx = _gene_index_map(adata)
 
-    detected = [g for g in pos_markers if g in gene_idx]
-    mask = (adata.obs[cluster_key] == cluster).values
+    present = [g for g in pos_markers if g in gene_idx]
+    missing = [g for g in pos_markers if g not in gene_idx]
+    mask = (adata.obs[cluster_key].astype(str) == str(cluster)).values
 
-    expressed_count = 0
-    for gene in detected:
-        pct = _expression_pct(adata, mask, gene, gene_idx)
+    expressed = []
+    for gene in present:
+        pct = _expression_pct(adata, mask, gene, gene_idx, layer=layer)
         if pct >= MARKER_PCT_THRESHOLD:
-            expressed_count += 1
+            expressed.append(gene)
+    silent = [g for g in present if g not in expressed]
 
-    coverage = expressed_count / max(len(detected), 1)
+    coverage = len(expressed) / len(pos_markers)
     evidence = (
-        f"Coverage: {expressed_count}/{len(detected)} ({coverage:.0%}) positive markers expressed"
+        f"Coverage: {len(expressed)}/{len(pos_markers)} ({coverage:.0%}) expected markers expressed; "
+        f"{len(missing)} missing from matrix; {len(silent)} present but silent"
     )
+    details = {
+        "n_expected_markers": len(pos_markers),
+        "n_present_markers": len(present),
+        "n_expressed_markers": len(expressed),
+        "n_missing_markers": len(missing),
+        "n_silent_markers": len(silent),
+        "expected_marker_coverage": round(coverage, 4),
+        "present_markers": ";".join(present),
+        "expressed_markers": ";".join(expressed),
+        "missing_markers": ";".join(missing),
+        "silent_markers": ";".join(silent),
+    }
 
     if coverage < CRITIC_LOW_COVERAGE_THRESHOLD:
         return {
             "flag": "LOW_EVIDENCE",
             "evidence": evidence,
+            **details,
             "note": f"Only {coverage:.0%} of expected markers detected — annotation may be unreliable",
         }
     elif coverage < 0.5:
         return {
             "flag": "PARTIAL_EVIDENCE",
             "evidence": evidence,
+            **details,
             "note": f"Moderate marker coverage ({coverage:.0%}) — consider manual review",
         }
     else:
-        return {"flag": "", "evidence": evidence, "note": ""}
+        return {"flag": "", "evidence": evidence, "note": "", **details}
 
 
 def _check_negative_markers(
@@ -226,6 +356,7 @@ def _check_negative_markers(
     cluster_key: str,
     neg_markers: list[str],
     gene_idx: dict[str, int] | None = None,
+    layer: str | None = None,
 ) -> dict:
     """Check for negative marker conflicts — markers that should NOT be expressed."""
     if not neg_markers:
@@ -235,11 +366,11 @@ def _check_negative_markers(
         gene_idx = _gene_index_map(adata)
 
     detected = [g for g in neg_markers if g in gene_idx]
-    mask = (adata.obs[cluster_key] == cluster).values
+    mask = (adata.obs[cluster_key].astype(str) == str(cluster)).values
 
     conflicts = []
     for gene in detected:
-        pct = _expression_pct(adata, mask, gene, gene_idx)
+        pct = _expression_pct(adata, mask, gene, gene_idx, layer=layer)
         if pct > CRITIC_NEG_MARKER_PCT_THRESHOLD:
             conflicts.append(f"{gene} ({pct:.0%})")
 
@@ -264,6 +395,7 @@ def _check_doublet_signal(
     all_markers: dict[str, dict],
     lineage_groups: dict[str, str] | None = None,
     gene_idx: dict[str, int] | None = None,
+    layer: str | None = None,
 ) -> dict:
     """Check for doublet/mixed signal — two mutually exclusive lineages co-expressed.
 
@@ -280,7 +412,7 @@ def _check_doublet_signal(
     if gene_idx is None:
         gene_idx = _gene_index_map(adata)
 
-    mask = (adata.obs[cluster_key] == cluster).values
+    mask = (adata.obs[cluster_key].astype(str) == str(cluster)).values
 
     # Gene specificity: count how many panels list each gene. Genes shared
     # across panels are weak lineage evidence and are excluded from coverage;
@@ -304,14 +436,15 @@ def _check_doublet_signal(
                 1
                 for gene in specific
                 if gene in gene_idx
-                and _expression_pct(adata, mask, gene, gene_idx) >= MARKER_PCT_THRESHOLD
+                and _expression_pct(adata, mask, gene, gene_idx, layer=layer)
+                >= MARKER_PCT_THRESHOLD
             )
             coverage = n_expressed / len(specific)
         else:
             weighted = sum(
                 1.0 / panel_count[gene]
                 for gene in detected
-                if _expression_pct(adata, mask, gene, gene_idx) >= MARKER_PCT_THRESHOLD
+                if _expression_pct(adata, mask, gene, gene_idx, layer=layer) >= MARKER_PCT_THRESHOLD
             )
             coverage = weighted / len(detected)
         if coverage >= CRITIC_DOUBLET_ACTIVE_COVERAGE:
@@ -353,19 +486,43 @@ def _check_doublet_signal(
     return {"flag": "", "evidence": "No doublet signal detected", "note": ""}
 
 
-def _check_ontology_consistency(cell_type: str, cl_id: str) -> dict:
-    """Basic ontology consistency check."""
+def _check_ontology_consistency(
+    cell_type: str,
+    cl_id: str,
+    expected_cl_id: str | None = None,
+) -> dict:
+    """Validate identifier syntax and the atlas-declared label-to-CL mapping.
+
+    This deliberately does not claim live Cell Ontology validation. The bundled
+    atlas mapping is checked exactly; live term existence/version validation is a
+    separate provenance task.
+    """
+    if expected_cl_id is None:
+        expected_cl_id = cl_id
+    elif not expected_cl_id:
+        return {
+            "flag": "UNKNOWN_ATLAS_LABEL",
+            "note": f"'{cell_type}' has no declared Cell Ontology mapping in the active atlas",
+        }
     if not cl_id:
         return {
             "flag": "NO_CL_ID",
             "note": "No Cell Ontology ID assigned — cannot verify term validity",
         }
 
-    # Check CL ID format
-    if not cl_id.startswith("CL:"):
+    if re.fullmatch(r"CL:\d{7}", str(cl_id)) is None:
         return {
             "flag": "INVALID_CL_FORMAT",
             "note": f"CL ID '{cl_id}' does not match expected format (CL:XXXXXXX)",
+        }
+
+    if str(cl_id) != str(expected_cl_id):
+        return {
+            "flag": "ONTOLOGY_MISMATCH",
+            "note": (
+                f"Label '{cell_type}' is mapped to {expected_cl_id} in the active atlas, "
+                f"but the annotation supplied {cl_id}"
+            ),
         }
 
     return {"flag": "", "note": ""}
@@ -390,10 +547,12 @@ def _recalibrate_confidence(
 
     # Downgrade based on flags
     for flag in flags:
-        if flag == "NO_MARKERS" or flag == "LOW_EVIDENCE":
+        if flag in {"NO_MARKERS", "LOW_EVIDENCE", "LOW_DE_SUPPORT"}:
             level = min(level, 1)
-        elif flag == "PARTIAL_EVIDENCE":
+        elif flag in {"PARTIAL_EVIDENCE", "PARTIAL_DE_SUPPORT"}:
             level = min(level, 2)
+        elif flag == "AGGREGATE_PROVENANCE_ONLY":
+            level = min(level, 3)
         elif flag == "NEG_MARKER_CONFLICT" or flag == "POSSIBLE_DOUBLET":
             level = min(level, 1)
 
@@ -493,11 +652,19 @@ FLAG_ACTIONS = {
     "PASS": "Accept annotation.",
     "LOW_EVIDENCE": "Manual review needed; consider sub-clustering.",
     "PARTIAL_EVIDENCE": "Review; may be correct for rare/transitional states.",
+    "LOW_DE_SUPPORT": "Insufficient directional DE support; keep as Unknown.",
+    "PARTIAL_DE_SUPPORT": "Partial directional DE support; review before labeling.",
     "NEG_MARKER_CONFLICT": "Likely misannotation or doublet; verify markers.",
     "POSSIBLE_DOUBLET": "Sub-cluster or mark as doublet.",
     "NO_MARKERS": "Add marker definitions for this cell type.",
     "NO_CL_ID": "Assign a Cell Ontology ID manually if needed.",
     "INVALID_CL_FORMAT": "Correct the Cell Ontology ID format.",
+    "ONTOLOGY_MISMATCH": "Correct the label-to-CL mapping before accepting the annotation.",
+    "UNKNOWN_ATLAS_LABEL": "Add a versioned label-to-CL mapping before acceptance.",
+    "AGGREGATE_PROVENANCE_ONLY": (
+        "Treat as a draft; verify marker edges against stable records or primary sources."
+    ),
+    "CALIBRATED_LOW_CONFIDENCE": "Keep as Unknown under the locked calibration policy.",
     "ENSEMBLE_DISAGREEMENT": "Review; scoring methods strongly disagree.",
     "ENSEMBLE_MILD_DISAGREEMENT": "Minor method disagreement; usually acceptable.",
     "WEAK_REFERENCE_ONLY": "Weak reference support; seek marker evidence.",
@@ -512,6 +679,7 @@ def format_evidence_summary(row) -> str:
     """
     cluster = row.get("cluster", "?")
     cell_type = row.get("cell_type", "?")
+    candidate = row.get("candidate_cell_type", cell_type)
     conf = row.get("critic_confidence", "unknown")
     flags = row.get("critic_flags", "PASS")
     overlap = row.get("pct_overlap", None)
@@ -519,19 +687,16 @@ def format_evidence_summary(row) -> str:
 
     verdict = "PASS" if flags == "PASS" else f"FLAGGED ({flags})"
 
-    parts = [f"Cluster {cluster} → {cell_type} [{conf.upper()}] {verdict}"]
+    label = cell_type if cell_type == candidate else f"{cell_type} (candidate: {candidate})"
+    parts = [f"Cluster {cluster} → {label} [{conf.upper()}] {verdict}"]
 
     evidence_bits = []
     if overlap is not None:
-        try:
+        with suppress(TypeError, ValueError):
             evidence_bits.append(f"marker overlap {float(overlap):.0%}")
-        except (TypeError, ValueError):
-            pass
     if score is not None:
-        try:
+        with suppress(TypeError, ValueError):
             evidence_bits.append(f"score {float(score):.2f}")
-        except (TypeError, ValueError):
-            pass
     if evidence_bits:
         parts.append("Evidence: " + ", ".join(evidence_bits))
 
@@ -561,16 +726,11 @@ def format_run_narrative(summary: dict) -> str:
         return "No clusters were reviewed."
 
     conf_parts = [
-        f"{count} {level}"
-        for level, count in sorted(
-            conf_dist.items(), key=lambda kv: -kv[1]
-        )
+        f"{count} {level}" for level, count in sorted(conf_dist.items(), key=lambda kv: -kv[1])
     ]
     narrative = (
         f"{total} cluster(s) reviewed: {passed} passed critic checks, "
-        f"{flagged} flagged for review. Confidence distribution: "
-        + ", ".join(conf_parts)
-        + "."
+        f"{flagged} flagged for review. Confidence distribution: " + ", ".join(conf_parts) + "."
     )
     if flag_types:
         flag_desc = ", ".join(f"{flag} ×{count}" for flag, count in flag_types.items())
