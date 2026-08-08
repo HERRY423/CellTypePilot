@@ -98,9 +98,7 @@ class TestCheckDoubletSignal:
         atlas = load_marker_atlas("human")
         lineages = build_lineage_groups(atlas, "blood")
         adata = _make_expression_adata(_T_MARKERS + _CD4_MARKERS)
-        result = _check_doublet_signal(
-            adata, "0", "leiden", blood_markers, lineages
-        )
+        result = _check_doublet_signal(adata, "0", "leiden", blood_markers, lineages)
         assert result["flag"] == ""
 
     def test_cross_lineage_coexpression_flagged(self, blood_markers):
@@ -110,9 +108,7 @@ class TestCheckDoubletSignal:
         atlas = load_marker_atlas("human")
         lineages = build_lineage_groups(atlas, "blood")
         adata = _make_expression_adata(_T_MARKERS + _B_MARKERS)
-        result = _check_doublet_signal(
-            adata, "0", "leiden", blood_markers, lineages
-        )
+        result = _check_doublet_signal(adata, "0", "leiden", blood_markers, lineages)
         assert result["flag"] == "POSSIBLE_DOUBLET"
         assert "Cross-lineage" in result["evidence"]
 
@@ -129,12 +125,8 @@ class TestCheckDoubletSignal:
         count that panel as an active lineage signature.
         """
         markers = {
-            "NK cell": {
-                "positive_markers": ["NCAM1", "NKG7", "GNLY", "KLRD1", "PRF1", "GZMB"]
-            },
-            "CD8+ T cell": {
-                "positive_markers": ["CD8A", "CD8B", "GZMB", "PRF1", "GNLY"]
-            },
+            "NK cell": {"positive_markers": ["NCAM1", "NKG7", "GNLY", "KLRD1", "PRF1", "GZMB"]},
+            "CD8+ T cell": {"positive_markers": ["CD8A", "CD8B", "GZMB", "PRF1", "GNLY"]},
         }
         # NK program fully on; from the CD8 panel only the shared genes are on
         adata = _make_expression_adata(["NCAM1", "NKG7", "GNLY", "KLRD1", "PRF1", "GZMB"])
@@ -144,12 +136,8 @@ class TestCheckDoubletSignal:
     def test_specific_genes_override_shared_weighting(self):
         """When panel-specific genes are also expressed the doublet still fires."""
         markers = {
-            "NK cell": {
-                "positive_markers": ["NCAM1", "NKG7", "GNLY", "KLRD1", "PRF1", "GZMB"]
-            },
-            "CD8+ T cell": {
-                "positive_markers": ["CD8A", "CD8B", "GZMB", "PRF1", "GNLY"]
-            },
+            "NK cell": {"positive_markers": ["NCAM1", "NKG7", "GNLY", "KLRD1", "PRF1", "GZMB"]},
+            "CD8+ T cell": {"positive_markers": ["CD8A", "CD8B", "GZMB", "PRF1", "GNLY"]},
         }
         adata = _make_expression_adata(
             ["NCAM1", "NKG7", "GNLY", "KLRD1", "PRF1", "GZMB", "CD8A", "CD8B"]
@@ -351,9 +339,7 @@ class TestEvidenceSummary:
         assert "FLAGGED (POSSIBLE_DOUBLET)" in summary
         assert "Sub-cluster or mark as doublet" in summary
 
-    def test_run_critic_adds_evidence_summary_column(
-        self, synthetic_pbmc, annotation_summary
-    ):
+    def test_run_critic_adds_evidence_summary_column(self, synthetic_pbmc, annotation_summary):
         from celltypepilot.data_adapter import load_marker_atlas
 
         atlas = load_marker_atlas("human")

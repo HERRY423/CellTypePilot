@@ -40,6 +40,7 @@ def run_critic(
     ensemble_info: pd.DataFrame | None = None,
     layer: str | None = None,
     evidence_policy: str = "database",
+    marker_definitions: dict[str, dict] | None = None,
 ) -> pd.DataFrame:
     """Run the full critic pipeline on annotations.
 
@@ -62,7 +63,11 @@ def run_critic(
     Returns the annotations DataFrame with added critic columns:
         critic_flags, critic_evidence, critic_confidence, critic_notes
     """
-    markers = get_all_markers_for_tissue(atlas, tissue, evidence_policy=evidence_policy)
+    markers = (
+        marker_definitions
+        if marker_definitions is not None
+        else get_all_markers_for_tissue(atlas, tissue, evidence_policy=evidence_policy)
+    )
     lineage_groups = build_lineage_groups(atlas, tissue)
     gene_idx = _gene_index_map(adata)
     results = annotations.copy()
@@ -165,6 +170,16 @@ def run_critic(
         if onto_result["note"]:
             notes.append(onto_result["note"])
 
+        # User context may expand candidates, but unreviewed context-only support
+        # is never allowed to upgrade a draft hypothesis into an accepted identity.
+        if bool(row.get("context_only_support", False)):
+            if row.get("context_review_status") == "reviewed":
+                flags.append("REVIEWED_CONTEXT_SUPPORT")
+                notes.append("Identity support depends only on an explicitly reviewed context pack")
+            else:
+                flags.append("UNREVIEWED_CONTEXT_ONLY")
+                notes.append("Identity support depends only on unreviewed user context")
+
         # 5. Ensemble agreement check
         ens_result = _check_ensemble_agreement(cluster, cell_type, ensemble_lookup)
         if ens_result["flag"]:
@@ -230,6 +245,8 @@ def run_critic(
         "ONTOLOGY_MISMATCH",
         "UNKNOWN_ATLAS_LABEL",
         "INVALID_CL_FORMAT",
+        "NO_CL_ID",
+        "UNREVIEWED_CONTEXT_ONLY",
     }
     results["candidate_cell_type"] = results["cell_type"]
     results["candidate_cl_id"] = results.get("cl_id", "")
@@ -551,7 +568,7 @@ def _recalibrate_confidence(
             level = min(level, 1)
         elif flag in {"PARTIAL_EVIDENCE", "PARTIAL_DE_SUPPORT"}:
             level = min(level, 2)
-        elif flag == "AGGREGATE_PROVENANCE_ONLY":
+        elif flag in {"AGGREGATE_PROVENANCE_ONLY", "REVIEWED_CONTEXT_SUPPORT"}:
             level = min(level, 3)
         elif flag == "NEG_MARKER_CONFLICT" or flag == "POSSIBLE_DOUBLET":
             level = min(level, 1)
@@ -664,6 +681,10 @@ FLAG_ACTIONS = {
     "AGGREGATE_PROVENANCE_ONLY": (
         "Treat as a draft; verify marker edges against stable records or primary sources."
     ),
+    "REVIEWED_CONTEXT_SUPPORT": (
+        "Retain the medium-confidence cap and independently review the custom marker panel."
+    ),
+    "UNREVIEWED_CONTEXT_ONLY": "Keep as Unknown until the custom marker panel is reviewed.",
     "CALIBRATED_LOW_CONFIDENCE": "Keep as Unknown under the locked calibration policy.",
     "ENSEMBLE_DISAGREEMENT": "Review; scoring methods strongly disagree.",
     "ENSEMBLE_MILD_DISAGREEMENT": "Minor method disagreement; usually acceptable.",

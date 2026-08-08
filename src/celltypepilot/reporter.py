@@ -124,6 +124,11 @@ def _annotation_rows(results: pd.DataFrame) -> list[dict]:
                 "evidence_summary": row.get("evidence_summary", ""),
                 "decision": row.get("decision", "accepted"),
                 "abstain_reason": row.get("abstain_reason", ""),
+                "cell_state_candidate": row.get("cell_state_candidate", "Unknown"),
+                "state_decision": row.get("state_decision", "abstain"),
+                "state_score": float(row.get("state_score", 0.0) or 0.0),
+                "state_evidence": row.get("state_evidence", "state_not_scored"),
+                "display_label": row.get("display_label", row.get("cell_type", "Unknown")),
             }
         )
     return rows
@@ -168,6 +173,9 @@ def _html_critic_details(results: pd.DataFrame) -> str:
                 "critic_evidence": row.get("critic_evidence", ""),
                 "critic_notes": row.get("critic_notes", ""),
                 "evidence_summary": row.get("evidence_summary", ""),
+                "cell_state_candidate": row.get("cell_state_candidate", "Unknown"),
+                "state_decision": row.get("state_decision", "abstain"),
+                "state_evidence": row.get("state_evidence", "state_not_scored"),
             }
         )
     return _render("critic_details.html", flagged_rows=flagged_rows)
@@ -202,6 +210,18 @@ def generate_methodology_text(
         if calibration_policy
         else "Confidence categories were rule-based heuristics and were not probability-calibrated. "
     )
+    context_statement = (
+        "A versioned user context pack expanded candidate identity and state hypotheses; free-text "
+        "context was retained for provenance but was not treated as expression evidence. "
+        if params.get("context_enabled")
+        else "No user context pack was applied. "
+    )
+    state_statement = (
+        "Cell states were scored on an independent axis using directional marker evidence; state "
+        "results were prohibited from changing canonical identity decisions. "
+        if params.get("state_lens_enabled")
+        else "Independent cell-state scoring was disabled. "
+    )
 
     text = (
         f"Cell type annotation was performed using CellTypePilot (v{manifest.get('celltypepilot_version', '?')}), "
@@ -218,6 +238,7 @@ def generate_methodology_text(
         f"negative marker conflicts, potential doublet signatures, and ontology consistency. "
         f"Candidates with insufficient or conflicting evidence were explicitly reported as Unknown "
         f"while retaining the best candidate label for human adjudication. "
+        f"{context_statement}{state_statement}"
         f"{confidence_statement}"
         f"Of {total} clusters, {high} were assigned high confidence, {med} medium confidence, "
         f"and {flagged} were flagged for manual review. "

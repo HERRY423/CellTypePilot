@@ -66,6 +66,10 @@ After inspection, confirm with the user:
 1. Species and tissue context
 2. Which cluster key to use
 3. Which embedding to use for visualization
+4. Whether condition/region/timepoint context or custom marker panels are available
+
+Free text is context and provenance only. Never treat prose as marker evidence. Use a governed
+JSON Context Pack and/or custom marker CSV for hypotheses that may enter scoring.
 
 ### Stage 2: Annotate
 
@@ -78,12 +82,17 @@ celltypepilot annotate \
   --output <output_dir> \
   --species <human|mouse> \
   --tissue <tissue> \
-  --embedding-key <key>
+  --embedding-key <key> \
+  [--context <text>] \
+  [--context-file <context.json>] \
+  [--custom-markers <markers.csv>]
 ```
 
 This produces:
-- `data.annotated.h5ad` — AnnData with final label, candidate, decision, abstain reason, CL ID, and confidence in obs
+- `data.annotated.h5ad` — AnnData with separate identity and state fields, candidate, decision, abstain reason, CL ID, and confidence in obs
 - `evidence_table.csv` — per-cluster evidence: scores, markers, critic flags, confidence
+- `state_results.csv` — independent state candidates, decisions, missing/silent markers, and evidence
+- `context_pack.normalized.json` — normalized and hashed governed context, when supplied
 - `figures/` — UMAP (clusters, cell types, confidence), dotplot, confidence distribution
 - `report_draft.html` — comprehensive HTML report with all figures embedded
 - `methodology_draft.txt` — draft methods paragraph for papers
@@ -186,7 +195,9 @@ Premium atlas (requires academic/commercial license):
 4. **Artifact-centric** — all compute writes durable files (CSV, PNG, JSON)
 5. **Review-ready drafts** — figures, evidence table, and draft methodology are included; human sign-off remains required
 6. **Plugin, not Agent** — keep orchestration deterministic and task-bounded; do not add autonomous planning, self-directed analysis, or multi-agent behavior
-6. **Fail closed** — insufficient/conflicting evidence writes `Unknown` and preserves a separate candidate
+7. **Fail closed** — insufficient/conflicting evidence writes `Unknown` and preserves a separate candidate
+8. **Governed context** — free text never becomes evidence; structured markers use the ordinary evidence and critic gates
+9. **Identity × State** — state is an independent exploratory axis and cannot overwrite or rescue identity
 
 ## Project layout
 
@@ -208,12 +219,15 @@ celltypepilot/
 ├── src/celltypepilot/           # Python package (shared backend)
 │   ├── cli.py                   # CLI entry point (thin layer, delegates to orchestrator)
 │   ├── orchestrator.py          # Pipeline business logic (shared by CLI & Web Inspector)
+│   ├── context_pack.py          # Governed context parsing, scope checks, and hashing
+│   ├── state_scorer.py          # Independent cell-state scoring and identity invariant
 │   ├── data_adapter.py          # h5ad loading, robust species/tissue detection
 │   ├── seurat_adapter.py        # Seurat .rds → AnnData conversion
 │   ├── constants.py             # Thresholds, species/tissue constants
 │   ├── data/
 │   │   ├── marker_atlas.json    # Built-in marker knowledge graph (80+ types)
-│   │   └── premium_atlas.json   # Premium atlas (tumor, brain, immune)
+│   │   ├── premium_atlas.json   # Premium identity atlas with legal base CL IDs
+│   │   └── state_atlas.json     # Versioned exploratory cell-state modules
 │   ├── templates/               # Jinja2 templates (HTML report, web dashboard)
 │   ├── marker_scorer.py         # DE + marker overlap scoring
 │   ├── reference_scorer.py      # Reference embedding scoring (4 backends)

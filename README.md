@@ -8,9 +8,9 @@
 > For individual researchers and small labs — no standalone app, no heavy infrastructure.
 
 **CellTypePilot** is a **plugin** for Claude Code / OpenAI Codex. It turns pre-clustered
-single-cell data into auditable draft cell-type annotations — with **dual-engine**
-scoring (marker overlap + reference embedding), adaptive ensemble fusion, heuristic confidence levels,
-a rules-based critic review, and a draft methodology paragraph for your paper.
+single-cell data into auditable draft cell-type annotations — with a governed context interface,
+**dual-engine** identity scoring (marker overlap + reference embedding), an independent cell-state
+lens, conservative critic review, and a draft methodology paragraph for your paper.
 
 It is **not an autonomous analysis agent**. It is a deterministic, artifact-producing plugin
 that adds evidence review, conservative abstention, benchmark hooks, and provenance to the
@@ -18,13 +18,15 @@ coding workspace you already use. A qualified human owns the final biological de
 
 ## Current validation boundary
 
-| Available in v0.2.0 | Not yet claimed |
+| Available in v0.3.0 | Not yet claimed |
 |---|---|
 | Direction-, log2FC-, FDR-, and expression-fraction-gated DE evidence | Biological superiority over CellTypist, SingleR, Azimuth, or popV |
 | Complete expected-marker denominators, with missing genes separated from present-but-silent genes | A completed public multi-study/donor benchmark |
 | Explicit `Unknown`/abstain decisions; low-evidence clusters cannot pass | Calibrated accuracy for every tissue, platform, disease state, or species |
 | One annotation pipeline for scoring, critic review, write-back, report, and manifest | Primary-source verification of every bundled marker relationship |
 | Locked study/donor holdout runner and comparator adapters | Clinical-grade or fully automated biological decisions |
+| Governed Context Pack: structured custom markers share the normal evidence gates; free text is provenance-only | That free-text biological context is validated evidence |
+| Separate identity and state outputs; state scoring cannot overwrite identity or rescue an abstained identity | Calibrated cell-state accuracy or comprehensive state coverage |
 
 For `mkg-2026.08`, all 733 bundled marker relationships are currently classified as
 `aggregate_source_only_not_edge_verified`. They remain usable under the exploratory
@@ -44,6 +46,8 @@ painful — not because the algorithms don't exist, but because:
 | **Workflow fragmentation** (scripts here, tool there) | Runs inside your Claude Code / Codex session — no context switch to a separate app |
 | **Can't explain *why* a cluster got its label** | Every annotation ships with: supporting markers, expression stats, critic flags, and a draft methods paragraph |
 | **Rare / transitional states forced into a label** | Low or conflicting evidence produces an explicit `Unknown`/`abstain`; the best candidate is retained separately for review |
+| **Disease context is either ignored or blindly trusted** | Free text is recorded but never counted as evidence; structured custom markers are hashed, scoped, and subjected to the same DE and critic gates |
+| **Identity and state are conflated** | Canonical identity and exploratory state are written on independent axes; an `Unknown` identity can retain a supported state without becoming a cell type |
 | **Token cost spirals** | Annotation, critic checks, calibration, and reporting are deterministic local code; no LLM call is required |
 | **Results unreproducible** | `manifest.json` records knowledge graph version, parameters, data hash, and output hashes for every run |
 | **Metadata is messy** (Ensembl IDs, mixed gene naming, non-standard tissue columns) | Robust auto-detection: Ensembl prefix voting across 9 species, gene-symbol convention fallback, case-insensitive tissue matching with synonym groups |
@@ -54,11 +58,13 @@ painful — not because the algorithms don't exist, but because:
 output/
 ├── data.annotated.h5ad          # final label, candidate, decision, reason, confidence in obs
 ├── evidence_table.csv           # Per-cluster: scores, markers, critic flags, confidence
+├── state_results.csv            # Independent state candidate, decision, score, evidence
+├── context_pack.normalized.json # Optional: normalized, scoped, hashed user context
 ├── ensemble_scores.csv          # Per-cell-type: marker + ref + ensemble scores
 ├── transitional_states.csv      # Clusters flagged as differentiation intermediates
 ├── disagreements.csv            # Marker vs reference disagreement analysis
 ├── report_draft.html            # Self-contained HTML report with all figures embedded
-├── methodology_draft.txt        # "We annotated N clusters using CellTypePilot v0.2.0..."
+├── methodology_draft.txt        # "We annotated N clusters using CellTypePilot v0.3.0..."
 ├── manifest.json                # Provenance: versions, params, data hash, output hashes
 └── figures/
     ├── umap_cluster.png         # UMAP by cluster (colorblind-friendly Wong palette)
@@ -117,6 +123,15 @@ celltypepilot calibrate -i calibration.h5ad --truth-key truth \
     --predictions calibration_predictions.csv -o abstention_policy.json
 celltypepilot annotate -i query.h5ad -k leiden -t blood \
     --calibration-policy abstention_policy.json
+
+# 14. Add disease context without turning prose into evidence. Structured markers
+# are accepted only through a versioned JSON Context Pack and/or marker CSV.
+celltypepilot annotate -i kidney_iri.h5ad -k leiden -s human -t kidney \
+    --context "Post-ischemic reperfusion injury" \
+    --context-file context.json --custom-markers custom_markers.csv
+
+# 15. Disable exploratory state scoring while keeping the identity pipeline unchanged
+celltypepilot annotate -i data.h5ad -k leiden -t blood --no-states
 ```
 
 Or invoke the plugin from Claude Code / Codex with *"annotate my clusters in data.h5ad"*.
@@ -180,10 +195,12 @@ separate annotation application or autonomous analysis service.
 │  │    annotate        Full pipeline:                                ││
 │  │      ├─ Data Adapter         Load .h5ad/.rds, detect, validate   ││
 │  │      ├─ Marker Knowledge Graph  80+ cell types, 11 tissues       ││
+│  │      ├─ Governed Context Pack  Scoped, hashed custom hypotheses  ││
 │  │      ├─ Marker Scorer        Wilcoxon DE + 5-dim scoring         ││
 │  │      ├─ Reference Scorer     CellTypist/scANVI/KNN/Correlation   ││
 │  │      ├─ Ensemble Scorer      Adaptive fusion + disagreement      ││
 │  │      ├─ Annotation Critic    Rules-based same-run review         ││
+│  │      ├─ State Lens           Independent, identity-invariant axis ││
 │  │      ├─ Web Inspector        Flask review panel (Jinja2 templates)││
 │  │      ├─ Visualizer           UMAP, dotplot, confidence (Wong)    ││
 │  │      ├─ Reporter             Jinja2 HTML report + methods text   ││
@@ -235,9 +252,9 @@ Optional extras: `pip install -e ".[web]"` (Web Inspector), `"[seurat]"` (.rds s
 ```
 CellTypePilot/
 ├── .claude-plugin/
-│   └── plugin.json              ← Claude Code plugin manifest (v0.2.0)
+│   └── plugin.json              ← Claude Code plugin manifest (v0.3.0)
 ├── .codex-plugin/
-│   └── plugin.json              ← Codex plugin manifest (v0.2.0, with interface block)
+│   └── plugin.json              ← Codex plugin manifest (v0.3.0, with interface block)
 ├── skills/
 │   └── celltypepilot/
 │       ├── SKILL.md              ← Shared skill instructions (4-stage workflow)
@@ -251,8 +268,10 @@ CellTypePilot/
 ├── AGENTS.md                     ← Codex agent instructions
 ├── src/celltypepilot/            ← Python backend (shared by all platforms)
 │   ├── orchestrator.py           ← Pipeline business logic (CLI + Web Inspector)
+│   ├── context_pack.py           ← Governed prior-context validation and hashing
+│   ├── state_scorer.py           ← Independent cell-state scoring and invariants
 │   ├── templates/                ← Jinja2 templates (HTML report, dashboard)
-│   ├── data/                     ← Marker knowledge graph + premium atlas
+│   ├── data/                     ← Identity marker atlases + state atlas
 │   └── ...                       ← Scorers, critic, visualizer, reporter, etc.
 ├── tests/                        ← Unit, contract, and scientific-boundary tests
 └── .github/workflows/            ← CI: ruff lint/format + test matrix (3.10–3.12)
@@ -283,6 +302,35 @@ both supported with automatic gene symbol conversion.
 | Pancreas | Alpha/beta/delta cells, ductal, acinar cells |
 | Skeletal muscle | Myofibers, satellite cells, FAPs |
 | General | Endothelial, pericytes, fibroblasts, macrophages, mast cells, epithelial |
+
+## Governed Context Pack
+
+CellTypePilot accepts disease, region, timepoint, and experiment-specific knowledge without
+letting a prompt bypass the evidence boundary:
+
+- `--context` records free text for interpretation and provenance only. It never creates a
+  marker, adds a score, unlocks an unsupported tissue, or changes an acceptance threshold.
+- `--context-file` accepts the versioned `celltypepilot.context.v1` JSON schema.
+- `--custom-markers` accepts a row-wise CSV with `axis,label,gene,polarity` plus optional
+  `cl_id,parent_cell_types,source,review_status` columns.
+- Structured identity markers enter the ordinary missing/silent, expression-fraction, positive
+  log2FC, BH-FDR, negative-marker, and critic gates. Draft context-only support must abstain;
+  reviewed context-only support is capped at medium confidence.
+- The normalized pack, source-file hashes, schema version, scope, and canonical content hash are
+  recorded in run artifacts. See [`docs/context_pack.md`](docs/context_pack.md).
+
+## Identity × State
+
+Cell identity and cell state are deliberately separate outputs. `ctp_cell_type` and `ctp_cl_id`
+remain the conservative canonical identity. State fields (`ctp_cell_state_candidate`,
+`ctp_state_decision`, `ctp_cell_state`, and `ctp_state_evidence`) are scored independently from a
+versioned state atlas or structured context hypotheses. The merge step asserts that identity,
+candidate, decision, and abstention-reason columns are byte-for-byte unchanged.
+
+This permits `Unknown · interferon_responsive` when state evidence is sufficient but lineage
+identity is not. It never permits a state to rescue or overwrite an abstained identity. Bundled
+state modules currently have aggregate source-level provenance and are exploratory, not a claim
+of calibrated state accuracy. See [`docs/state_lens.md`](docs/state_lens.md).
 
 ## Reference Embedding + Ensemble Fusion
 
@@ -367,6 +415,7 @@ and marks the critic result `AGGREGATE_PROVENANCE_ONLY`.
 - [x] **Phase 3** — Web Inspector (Flask interactive panel), Seurat .rds adapter, tiered license system (free/academic/commercial), premium atlas (tumor/brain/immune)
 - [x] **Phase 4** — Reference Embedding + Ensemble fusion (CellTypist / scANVI / KNN / Correlation backends), adaptive weighting, transitional state detection, ensemble-aware critic, RSA-2048 license security, sparse-preserving Seurat conversion, Web Inspector override API
 - [x] **Architecture hardening** — Orchestrator layer (pipeline logic extracted from CLI), Jinja2 templates, multi-species detection, synonym-based tissue detection, and Python 3.10–3.12 CI
+- [x] **Phase 5** — Governed Context Pack, custom marker trust boundary, legal identity ontology IDs, and independent Identity × State outputs
 - [ ] **Validation release** — Published multi-study/donor benchmark, calibrated abstention card, verified reference registry, and marker-edge curation coverage report
 
 ## License

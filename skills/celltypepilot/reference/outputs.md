@@ -8,6 +8,8 @@
 <output_dir>/
 ├── data.annotated.h5ad          # AnnData with annotation results
 ├── evidence_table.csv           # Per-cluster evidence and critic results
+├── state_results.csv            # Independent state evidence (when enabled)
+├── context_pack.normalized.json # Governed context (when supplied)
 ├── manifest.json                # Run provenance manifest
 ├── report_draft.html            # Comprehensive HTML report
 ├── methodology_draft.txt        # Draft methods paragraph
@@ -21,13 +23,23 @@
 
 ## 1. data.annotated.h5ad
 
-Standard AnnData with three new columns in `.obs`:
+Standard AnnData with identity and state columns in `.obs`:
 
 | Column | Type | Description |
 |---|---|---|
-| `ctp_cell_type` | str | Assigned cell type name |
+| `ctp_cell_type` | str | Accepted identity, or `Unknown` after abstention |
 | `ctp_cl_id` | str | Cell Ontology ID (e.g., CL:0000084) |
 | `ctp_confidence` | str | Critic-calibrated confidence: high/medium/low/needs_review |
+| `ctp_candidate_cell_type` | str | Best identity candidate, retained across abstention |
+| `ctp_decision` | str | Identity decision: accepted or abstain |
+| `ctp_abstain_reason` | str | Machine-readable fail-closed reason(s) |
+| `ctp_cell_state_candidate` | str | Best independent state candidate |
+| `ctp_state_decision` | str | supported, hypothesis, or abstain |
+| `ctp_cell_state` | str | Supported state, otherwise `Unknown` |
+| `ctp_state_score` | float | Heuristic state evidence score |
+| `ctp_state_confidence` | str | Heuristic state confidence |
+| `ctp_state_evidence` | str | Compact state evidence summary |
+| `ctp_display_label` | str | Identity plus supported state for display only |
 
 The original file is never modified. The annotated copy is written to the output directory.
 
@@ -51,11 +63,27 @@ One row per cluster. Columns:
 | `critic_confidence` | str | Post-critic confidence level |
 | `critic_notes` | str | Human-readable notes from critic |
 
-## 3. manifest.json
+Identity coverage includes every expected marker. Missing genes and present-but-silent genes are
+reported separately. Context-derived support and its review status are also retained so that
+context-only evidence cannot be mistaken for bundled atlas evidence.
+
+## 3. state_results.csv
+
+One row per cluster when the State Lens is enabled. It records the best state candidate, state
+decision, score, confidence, supporting markers, negative conflicts, and separate missing/silent
+marker counts. State attachment is identity-invariant and cannot alter an identity abstention.
+
+## 4. context_pack.normalized.json
+
+Written only when context or custom markers are provided. It contains the normalized
+`celltypepilot.context.v1` pack and canonical/source hashes. Free text is preserved for audit but
+does not contribute marker evidence.
+
+## 5. manifest.json
 
 ```json
 {
-  "celltypepilot_version": "0.1.0",
+  "celltypepilot_version": "0.3.0",
   "mkg_version": "mkg-2026.08",
   "timestamp": "2026-08-06T12:00:00+00:00",
   "input": {
@@ -67,7 +95,11 @@ One row per cluster. Columns:
     "species": "human",
     "tissue": "blood",
     "embedding_key": "X_umap",
-    "layer": null
+    "layer": null,
+    "context_schema_version": "celltypepilot.context.v1",
+    "context_sha256": null,
+    "state_lens_enabled": true,
+    "state_contract": "identity_invariant_independent_axis_v1"
   },
   "outputs": {
     "evidence_table.csv": {
@@ -82,7 +114,7 @@ One row per cluster. Columns:
 }
 ```
 
-## 4. report_draft.html
+## 6. report_draft.html
 
 Self-contained HTML report with embedded CSS. Sections:
 1. **Overview**: Stats grid showing cluster count, confidence distribution, critic pass/fail
@@ -90,11 +122,11 @@ Self-contained HTML report with embedded CSS. Sections:
 3. **Figures**: Grid of all generated figures with captions
 4. **Critic Details**: Expanded cards for each flagged cluster showing evidence and notes
 
-## 5. methodology_draft.txt
+## 7. methodology_draft.txt
 
 A plain-text paragraph suitable for adaptation into a paper's Methods section. Example:
 
-> Cell type annotation was performed using CellTypePilot (v0.2.0), an evidence-driven
+> Cell type annotation was performed using CellTypePilot (v0.3.0), an evidence-driven
 > annotation pipeline with built-in critic review. Marker gene evidence was sourced from
 > the CellTypePilot Marker Knowledge Graph (MKG mkg-2026.08), a curated atlas integrating
 > PanglaoDB, CellMarker, and Cell Ontology resources. For each of the N clusters identified

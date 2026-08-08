@@ -22,6 +22,12 @@ class TestCLIBasic:
         assert "inspect" in result.output
         assert "doctor" in result.output
 
+    def test_annotate_help_exposes_governed_context_and_state_controls(self):
+        result = runner.invoke(app, ["annotate", "--help"])
+        assert result.exit_code == 0
+        for option in ("--context", "--context-file", "--custom-markers", "--no-states"):
+            assert option in result.output
+
     def test_doctor(self):
         result = runner.invoke(app, ["doctor"])
         assert result.exit_code == 0

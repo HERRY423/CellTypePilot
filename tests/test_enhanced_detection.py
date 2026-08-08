@@ -6,6 +6,8 @@ Covers:
 - Orchestrator: pipeline execution, override application, helper functions
 """
 
+import json
+
 import anndata as ad
 import numpy as np
 import pandas as pd
@@ -195,7 +197,7 @@ class TestRunAnnotationPipeline:
         assert result["species"] == "human"
         assert result["tissue"] == "general"
         assert not result["critic_results"].empty
-        assert steps == [1, 2, 3, 4, 6]  # step 5 skipped when no_figures
+        assert steps == [1, 2, 3, 4, 5, 6, 8]  # step 7 is figures and was disabled
         for name in [
             "data.annotated.h5ad",
             "evidence_table.csv",
@@ -209,6 +211,50 @@ class TestRunAnnotationPipeline:
         adata = result["adata"]
         for col in ["ctp_cell_type", "ctp_cl_id", "ctp_confidence"]:
             assert col in adata.obs.columns
+        assert {
+            "ctp_cell_state_candidate",
+            "ctp_state_decision",
+            "ctp_cell_state",
+            "ctp_display_label",
+        } <= set(adata.obs.columns)
+
+    def test_context_state_writeback_report_and_manifest_are_one_pipeline(
+        self, synthetic_pbmc, tmp_output_dir
+    ):
+        input_path = tmp_output_dir / "input_context.h5ad"
+        synthetic_pbmc.write(str(input_path))
+        context_path = tmp_output_dir / "context.json"
+        context_path.write_text(
+            json.dumps(
+                {
+                    "schema_version": "celltypepilot.context.v1",
+                    "species": "human",
+                    "tissue": "general",
+                    "condition": "synthetic acceptance condition",
+                    "free_text": "Recorded for provenance, never expression evidence.",
+                }
+            ),
+            encoding="utf-8",
+        )
+
+        result = run_annotation_pipeline(
+            input_path,
+            "leiden",
+            tmp_output_dir / "context_out",
+            species="human",
+            tissue="general",
+            context_file_path=context_path,
+            no_figures=True,
+        )
+        params = result["manifest"]["parameters"]
+        assert params["context_enabled"] is True
+        assert len(params["context_sha256"]) == 64
+        assert params["context_source_hashes"]["context_file_sha256"]
+        assert params["state_contract"] == "identity_invariant_independent_axis_v1"
+        assert "context_pack.normalized.json" in result["manifest"]["outputs"]
+        assert "state_results.csv" in result["manifest"]["outputs"]
+        assert result["paths"]["report"].exists()
+        assert result["paths"]["annotated"].exists()
 
     def test_detected_tissue_from_obs(self, synthetic_pbmc, tmp_output_dir):
         synthetic_pbmc.obs["Tissue"] = "blood"

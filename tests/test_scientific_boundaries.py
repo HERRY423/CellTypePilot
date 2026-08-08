@@ -373,10 +373,12 @@ def test_reference_ensemble_critic_writeback_report_and_manifest_are_one_pipelin
     assert "ensemble_scores" in result["paths"]
     assert "data.annotated.h5ad" in result["manifest"]["outputs"]
     assert result["manifest"]["parameters"]["pipeline_stages"] == [
+        "context",
         "marker",
         "reference",
         "ensemble",
         "critic",
+        "state",
         "writeback",
         "report",
         "manifest",

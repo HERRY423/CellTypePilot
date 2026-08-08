@@ -7,6 +7,7 @@ PKG_ROOT = Path(__file__).resolve().parent
 
 # Built-in marker atlas path
 ATLAS_PATH = PKG_ROOT / "data" / "marker_atlas.json"
+STATE_ATLAS_PATH = PKG_ROOT / "data" / "state_atlas.json"
 
 # Confidence tiers
 CONFIDENCE_HIGH = "high"

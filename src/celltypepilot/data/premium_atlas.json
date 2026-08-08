@@ -1,5 +1,5 @@
 {
-  "version": "premium-atlas-2026.08",
+  "version": "premium-atlas-2026.08.1",
   "description": "CellTypePilot Premium Atlas — Extended cell types for academic and commercial users",
   "license_required": "academic",
   "tissues": {
@@ -8,7 +8,7 @@
       "organ_system": "oncology",
       "cell_types": {
         "cancer_associated_fibroblast": {
-          "cl_id": "CL:0000057-CAFs",
+          "cl_id": "CL:0000057",
           "synonyms": [
             "CAF",
             "tumor fibroblast",
@@ -36,7 +36,7 @@
               ],
               "tissue": "tumor_microenvironment",
               "state": "tumor",
-              "atlas_version": "premium-atlas-2026.08",
+              "atlas_version": "premium-atlas-2026.08.1",
               "sources": [
                 {
                   "source_id": "cellmarker_2_0",
@@ -65,7 +65,7 @@
               ],
               "tissue": "tumor_microenvironment",
               "state": "tumor",
-              "atlas_version": "premium-atlas-2026.08",
+              "atlas_version": "premium-atlas-2026.08.1",
               "sources": [
                 {
                   "source_id": "cellmarker_2_0",
@@ -94,7 +94,7 @@
               ],
               "tissue": "tumor_microenvironment",
               "state": "tumor",
-              "atlas_version": "premium-atlas-2026.08",
+              "atlas_version": "premium-atlas-2026.08.1",
               "sources": [
                 {
                   "source_id": "cellmarker_2_0",
@@ -123,7 +123,7 @@
               ],
               "tissue": "tumor_microenvironment",
               "state": "tumor",
-              "atlas_version": "premium-atlas-2026.08",
+              "atlas_version": "premium-atlas-2026.08.1",
               "sources": [
                 {
                   "source_id": "cellmarker_2_0",
@@ -152,7 +152,7 @@
               ],
               "tissue": "tumor_microenvironment",
               "state": "tumor",
-              "atlas_version": "premium-atlas-2026.08",
+              "atlas_version": "premium-atlas-2026.08.1",
               "sources": [
                 {
                   "source_id": "cellmarker_2_0",
@@ -181,7 +181,7 @@
               ],
               "tissue": "tumor_microenvironment",
               "state": "tumor",
-              "atlas_version": "premium-atlas-2026.08",
+              "atlas_version": "premium-atlas-2026.08.1",
               "sources": [
                 {
                   "source_id": "cellmarker_2_0",
@@ -210,7 +210,7 @@
               ],
               "tissue": "tumor_microenvironment",
               "state": "tumor",
-              "atlas_version": "premium-atlas-2026.08",
+              "atlas_version": "premium-atlas-2026.08.1",
               "sources": [
                 {
                   "source_id": "cellmarker_2_0",
@@ -232,7 +232,7 @@
             }
           ],
           "ontology_evidence": {
-            "cl_id": "CL:0000057-CAFs",
+            "cl_id": "CL:0000057",
             "source": {
               "source_id": "cell_ontology",
               "name": "Cell Ontology 2016",
@@ -240,11 +240,16 @@
               "doi": "10.1186/s13326-016-0088-7",
               "url": "https://pubmed.ncbi.nlm.nih.gov/27377652/"
             },
-            "verification_status": "identifier_format_recorded_not_live_resolved"
-          }
+            "verification_status": "identifier_format_recorded_not_live_resolved",
+            "label": "fibroblast"
+          },
+          "base_cell_type": "fibroblast",
+          "state_label": "cancer_associated",
+          "state_axis": "role",
+          "display_label": "cancer_associated_fibroblast"
         },
         "tumor_associated_macrophage_M1": {
-          "cl_id": "CL:0000891-M1",
+          "cl_id": "CL:0000235",
           "synonyms": [
             "M1 TAM",
             "pro-inflammatory macrophage"
@@ -271,7 +276,7 @@
               ],
               "tissue": "tumor_microenvironment",
               "state": "tumor",
-              "atlas_version": "premium-atlas-2026.08",
+              "atlas_version": "premium-atlas-2026.08.1",
               "sources": [
                 {
                   "source_id": "cellmarker_2_0",
@@ -300,7 +305,7 @@
               ],
               "tissue": "tumor_microenvironment",
               "state": "tumor",
-              "atlas_version": "premium-atlas-2026.08",
+              "atlas_version": "premium-atlas-2026.08.1",
               "sources": [
                 {
                   "source_id": "cellmarker_2_0",
@@ -329,7 +334,7 @@
               ],
               "tissue": "tumor_microenvironment",
               "state": "tumor",
-              "atlas_version": "premium-atlas-2026.08",
+              "atlas_version": "premium-atlas-2026.08.1",
               "sources": [
                 {
                   "source_id": "cellmarker_2_0",
@@ -358,7 +363,7 @@
               ],
               "tissue": "tumor_microenvironment",
               "state": "tumor",
-              "atlas_version": "premium-atlas-2026.08",
+              "atlas_version": "premium-atlas-2026.08.1",
               "sources": [
                 {
                   "source_id": "cellmarker_2_0",
@@ -387,7 +392,7 @@
               ],
               "tissue": "tumor_microenvironment",
               "state": "tumor",
-              "atlas_version": "premium-atlas-2026.08",
+              "atlas_version": "premium-atlas-2026.08.1",
               "sources": [
                 {
                   "source_id": "cellmarker_2_0",
@@ -416,7 +421,7 @@
               ],
               "tissue": "tumor_microenvironment",
               "state": "tumor",
-              "atlas_version": "premium-atlas-2026.08",
+              "atlas_version": "premium-atlas-2026.08.1",
               "sources": [
                 {
                   "source_id": "cellmarker_2_0",
@@ -445,7 +450,7 @@
               ],
               "tissue": "tumor_microenvironment",
               "state": "tumor",
-              "atlas_version": "premium-atlas-2026.08",
+              "atlas_version": "premium-atlas-2026.08.1",
               "sources": [
                 {
                   "source_id": "cellmarker_2_0",
@@ -467,7 +472,7 @@
             }
           ],
           "ontology_evidence": {
-            "cl_id": "CL:0000891-M1",
+            "cl_id": "CL:0000235",
             "source": {
               "source_id": "cell_ontology",
               "name": "Cell Ontology 2016",
@@ -475,11 +480,16 @@
               "doi": "10.1186/s13326-016-0088-7",
               "url": "https://pubmed.ncbi.nlm.nih.gov/27377652/"
             },
-            "verification_status": "identifier_format_recorded_not_live_resolved"
-          }
+            "verification_status": "identifier_format_recorded_not_live_resolved",
+            "label": "macrophage"
+          },
+          "base_cell_type": "macrophage",
+          "state_label": "tumor_associated_inflammatory",
+          "state_axis": "activation",
+          "display_label": "tumor_associated_macrophage_M1"
         },
         "tumor_associated_macrophage_M2": {
-          "cl_id": "CL:0000891-M2",
+          "cl_id": "CL:0000235",
           "synonyms": [
             "M2 TAM",
             "anti-inflammatory macrophage"
@@ -507,7 +517,7 @@
               ],
               "tissue": "tumor_microenvironment",
               "state": "tumor",
-              "atlas_version": "premium-atlas-2026.08",
+              "atlas_version": "premium-atlas-2026.08.1",
               "sources": [
                 {
                   "source_id": "cellmarker_2_0",
@@ -536,7 +546,7 @@
               ],
               "tissue": "tumor_microenvironment",
               "state": "tumor",
-              "atlas_version": "premium-atlas-2026.08",
+              "atlas_version": "premium-atlas-2026.08.1",
               "sources": [
                 {
                   "source_id": "cellmarker_2_0",
@@ -565,7 +575,7 @@
               ],
               "tissue": "tumor_microenvironment",
               "state": "tumor",
-              "atlas_version": "premium-atlas-2026.08",
+              "atlas_version": "premium-atlas-2026.08.1",
               "sources": [
                 {
                   "source_id": "cellmarker_2_0",
@@ -594,7 +604,7 @@
               ],
               "tissue": "tumor_microenvironment",
               "state": "tumor",
-              "atlas_version": "premium-atlas-2026.08",
+              "atlas_version": "premium-atlas-2026.08.1",
               "sources": [
                 {
                   "source_id": "cellmarker_2_0",
@@ -623,7 +633,7 @@
               ],
               "tissue": "tumor_microenvironment",
               "state": "tumor",
-              "atlas_version": "premium-atlas-2026.08",
+              "atlas_version": "premium-atlas-2026.08.1",
               "sources": [
                 {
                   "source_id": "cellmarker_2_0",
@@ -652,7 +662,7 @@
               ],
               "tissue": "tumor_microenvironment",
               "state": "tumor",
-              "atlas_version": "premium-atlas-2026.08",
+              "atlas_version": "premium-atlas-2026.08.1",
               "sources": [
                 {
                   "source_id": "cellmarker_2_0",
@@ -681,7 +691,7 @@
               ],
               "tissue": "tumor_microenvironment",
               "state": "tumor",
-              "atlas_version": "premium-atlas-2026.08",
+              "atlas_version": "premium-atlas-2026.08.1",
               "sources": [
                 {
                   "source_id": "cellmarker_2_0",
@@ -710,7 +720,7 @@
               ],
               "tissue": "tumor_microenvironment",
               "state": "tumor",
-              "atlas_version": "premium-atlas-2026.08",
+              "atlas_version": "premium-atlas-2026.08.1",
               "sources": [
                 {
                   "source_id": "cellmarker_2_0",
@@ -732,7 +742,7 @@
             }
           ],
           "ontology_evidence": {
-            "cl_id": "CL:0000891-M2",
+            "cl_id": "CL:0000235",
             "source": {
               "source_id": "cell_ontology",
               "name": "Cell Ontology 2016",
@@ -740,11 +750,16 @@
               "doi": "10.1186/s13326-016-0088-7",
               "url": "https://pubmed.ncbi.nlm.nih.gov/27377652/"
             },
-            "verification_status": "identifier_format_recorded_not_live_resolved"
-          }
+            "verification_status": "identifier_format_recorded_not_live_resolved",
+            "label": "macrophage"
+          },
+          "base_cell_type": "macrophage",
+          "state_label": "tumor_associated_immunosuppressive",
+          "state_axis": "activation",
+          "display_label": "tumor_associated_macrophage_M2"
         },
         "regulatory_T_cell_tumor": {
-          "cl_id": "CL:0000417-Treg",
+          "cl_id": "CL:0000815",
           "synonyms": [
             "tumor Treg",
             "intratumoral Treg"
@@ -771,7 +786,7 @@
               ],
               "tissue": "tumor_microenvironment",
               "state": "tumor",
-              "atlas_version": "premium-atlas-2026.08",
+              "atlas_version": "premium-atlas-2026.08.1",
               "sources": [
                 {
                   "source_id": "cellmarker_2_0",
@@ -800,7 +815,7 @@
               ],
               "tissue": "tumor_microenvironment",
               "state": "tumor",
-              "atlas_version": "premium-atlas-2026.08",
+              "atlas_version": "premium-atlas-2026.08.1",
               "sources": [
                 {
                   "source_id": "cellmarker_2_0",
@@ -829,7 +844,7 @@
               ],
               "tissue": "tumor_microenvironment",
               "state": "tumor",
-              "atlas_version": "premium-atlas-2026.08",
+              "atlas_version": "premium-atlas-2026.08.1",
               "sources": [
                 {
                   "source_id": "cellmarker_2_0",
@@ -858,7 +873,7 @@
               ],
               "tissue": "tumor_microenvironment",
               "state": "tumor",
-              "atlas_version": "premium-atlas-2026.08",
+              "atlas_version": "premium-atlas-2026.08.1",
               "sources": [
                 {
                   "source_id": "cellmarker_2_0",
@@ -887,7 +902,7 @@
               ],
               "tissue": "tumor_microenvironment",
               "state": "tumor",
-              "atlas_version": "premium-atlas-2026.08",
+              "atlas_version": "premium-atlas-2026.08.1",
               "sources": [
                 {
                   "source_id": "cellmarker_2_0",
@@ -916,7 +931,7 @@
               ],
               "tissue": "tumor_microenvironment",
               "state": "tumor",
-              "atlas_version": "premium-atlas-2026.08",
+              "atlas_version": "premium-atlas-2026.08.1",
               "sources": [
                 {
                   "source_id": "cellmarker_2_0",
@@ -945,7 +960,7 @@
               ],
               "tissue": "tumor_microenvironment",
               "state": "tumor",
-              "atlas_version": "premium-atlas-2026.08",
+              "atlas_version": "premium-atlas-2026.08.1",
               "sources": [
                 {
                   "source_id": "cellmarker_2_0",
@@ -967,7 +982,7 @@
             }
           ],
           "ontology_evidence": {
-            "cl_id": "CL:0000417-Treg",
+            "cl_id": "CL:0000815",
             "source": {
               "source_id": "cell_ontology",
               "name": "Cell Ontology 2016",
@@ -975,8 +990,13 @@
               "doi": "10.1186/s13326-016-0088-7",
               "url": "https://pubmed.ncbi.nlm.nih.gov/27377652/"
             },
-            "verification_status": "identifier_format_recorded_not_live_resolved"
-          }
+            "verification_status": "identifier_format_recorded_not_live_resolved",
+            "label": "regulatory T cell"
+          },
+          "base_cell_type": "regulatory T cell",
+          "state_label": "tumor_associated",
+          "state_axis": "context",
+          "display_label": "regulatory_T_cell_tumor"
         },
         "myeloid_derived_suppressor_cell": {
           "cl_id": "CL:0002393",
@@ -1008,7 +1028,7 @@
               ],
               "tissue": "tumor_microenvironment",
               "state": "tumor",
-              "atlas_version": "premium-atlas-2026.08",
+              "atlas_version": "premium-atlas-2026.08.1",
               "sources": [
                 {
                   "source_id": "cellmarker_2_0",
@@ -1037,7 +1057,7 @@
               ],
               "tissue": "tumor_microenvironment",
               "state": "tumor",
-              "atlas_version": "premium-atlas-2026.08",
+              "atlas_version": "premium-atlas-2026.08.1",
               "sources": [
                 {
                   "source_id": "cellmarker_2_0",
@@ -1066,7 +1086,7 @@
               ],
               "tissue": "tumor_microenvironment",
               "state": "tumor",
-              "atlas_version": "premium-atlas-2026.08",
+              "atlas_version": "premium-atlas-2026.08.1",
               "sources": [
                 {
                   "source_id": "cellmarker_2_0",
@@ -1095,7 +1115,7 @@
               ],
               "tissue": "tumor_microenvironment",
               "state": "tumor",
-              "atlas_version": "premium-atlas-2026.08",
+              "atlas_version": "premium-atlas-2026.08.1",
               "sources": [
                 {
                   "source_id": "cellmarker_2_0",
@@ -1124,7 +1144,7 @@
               ],
               "tissue": "tumor_microenvironment",
               "state": "tumor",
-              "atlas_version": "premium-atlas-2026.08",
+              "atlas_version": "premium-atlas-2026.08.1",
               "sources": [
                 {
                   "source_id": "cellmarker_2_0",
@@ -1153,7 +1173,7 @@
               ],
               "tissue": "tumor_microenvironment",
               "state": "tumor",
-              "atlas_version": "premium-atlas-2026.08",
+              "atlas_version": "premium-atlas-2026.08.1",
               "sources": [
                 {
                   "source_id": "cellmarker_2_0",
@@ -1182,7 +1202,7 @@
               ],
               "tissue": "tumor_microenvironment",
               "state": "tumor",
-              "atlas_version": "premium-atlas-2026.08",
+              "atlas_version": "premium-atlas-2026.08.1",
               "sources": [
                 {
                   "source_id": "cellmarker_2_0",
@@ -1211,7 +1231,7 @@
               ],
               "tissue": "tumor_microenvironment",
               "state": "tumor",
-              "atlas_version": "premium-atlas-2026.08",
+              "atlas_version": "premium-atlas-2026.08.1",
               "sources": [
                 {
                   "source_id": "cellmarker_2_0",
@@ -1245,7 +1265,7 @@
           }
         },
         "exhausted_T_cell": {
-          "cl_id": "CL:0000417-exhausted",
+          "cl_id": "CL:0000084",
           "synonyms": [
             "Tex",
             "dysfunctional T cell",
@@ -1274,7 +1294,7 @@
               ],
               "tissue": "tumor_microenvironment",
               "state": "tumor",
-              "atlas_version": "premium-atlas-2026.08",
+              "atlas_version": "premium-atlas-2026.08.1",
               "sources": [
                 {
                   "source_id": "cellmarker_2_0",
@@ -1303,7 +1323,7 @@
               ],
               "tissue": "tumor_microenvironment",
               "state": "tumor",
-              "atlas_version": "premium-atlas-2026.08",
+              "atlas_version": "premium-atlas-2026.08.1",
               "sources": [
                 {
                   "source_id": "cellmarker_2_0",
@@ -1332,7 +1352,7 @@
               ],
               "tissue": "tumor_microenvironment",
               "state": "tumor",
-              "atlas_version": "premium-atlas-2026.08",
+              "atlas_version": "premium-atlas-2026.08.1",
               "sources": [
                 {
                   "source_id": "cellmarker_2_0",
@@ -1361,7 +1381,7 @@
               ],
               "tissue": "tumor_microenvironment",
               "state": "tumor",
-              "atlas_version": "premium-atlas-2026.08",
+              "atlas_version": "premium-atlas-2026.08.1",
               "sources": [
                 {
                   "source_id": "cellmarker_2_0",
@@ -1390,7 +1410,7 @@
               ],
               "tissue": "tumor_microenvironment",
               "state": "tumor",
-              "atlas_version": "premium-atlas-2026.08",
+              "atlas_version": "premium-atlas-2026.08.1",
               "sources": [
                 {
                   "source_id": "cellmarker_2_0",
@@ -1419,7 +1439,7 @@
               ],
               "tissue": "tumor_microenvironment",
               "state": "tumor",
-              "atlas_version": "premium-atlas-2026.08",
+              "atlas_version": "premium-atlas-2026.08.1",
               "sources": [
                 {
                   "source_id": "cellmarker_2_0",
@@ -1448,7 +1468,7 @@
               ],
               "tissue": "tumor_microenvironment",
               "state": "tumor",
-              "atlas_version": "premium-atlas-2026.08",
+              "atlas_version": "premium-atlas-2026.08.1",
               "sources": [
                 {
                   "source_id": "cellmarker_2_0",
@@ -1477,7 +1497,7 @@
               ],
               "tissue": "tumor_microenvironment",
               "state": "tumor",
-              "atlas_version": "premium-atlas-2026.08",
+              "atlas_version": "premium-atlas-2026.08.1",
               "sources": [
                 {
                   "source_id": "cellmarker_2_0",
@@ -1499,7 +1519,7 @@
             }
           ],
           "ontology_evidence": {
-            "cl_id": "CL:0000417-exhausted",
+            "cl_id": "CL:0000084",
             "source": {
               "source_id": "cell_ontology",
               "name": "Cell Ontology 2016",
@@ -1507,8 +1527,13 @@
               "doi": "10.1186/s13326-016-0088-7",
               "url": "https://pubmed.ncbi.nlm.nih.gov/27377652/"
             },
-            "verification_status": "identifier_format_recorded_not_live_resolved"
-          }
+            "verification_status": "identifier_format_recorded_not_live_resolved",
+            "label": "T cell"
+          },
+          "base_cell_type": "T cell",
+          "state_label": "exhausted",
+          "state_axis": "activation",
+          "display_label": "exhausted_T_cell"
         }
       }
     },
@@ -1545,7 +1570,7 @@
               ],
               "tissue": "developing_brain",
               "state": "developmental",
-              "atlas_version": "premium-atlas-2026.08",
+              "atlas_version": "premium-atlas-2026.08.1",
               "sources": [
                 {
                   "source_id": "cellmarker_2_0",
@@ -1574,7 +1599,7 @@
               ],
               "tissue": "developing_brain",
               "state": "developmental",
-              "atlas_version": "premium-atlas-2026.08",
+              "atlas_version": "premium-atlas-2026.08.1",
               "sources": [
                 {
                   "source_id": "cellmarker_2_0",
@@ -1603,7 +1628,7 @@
               ],
               "tissue": "developing_brain",
               "state": "developmental",
-              "atlas_version": "premium-atlas-2026.08",
+              "atlas_version": "premium-atlas-2026.08.1",
               "sources": [
                 {
                   "source_id": "cellmarker_2_0",
@@ -1632,7 +1657,7 @@
               ],
               "tissue": "developing_brain",
               "state": "developmental",
-              "atlas_version": "premium-atlas-2026.08",
+              "atlas_version": "premium-atlas-2026.08.1",
               "sources": [
                 {
                   "source_id": "cellmarker_2_0",
@@ -1661,7 +1686,7 @@
               ],
               "tissue": "developing_brain",
               "state": "developmental",
-              "atlas_version": "premium-atlas-2026.08",
+              "atlas_version": "premium-atlas-2026.08.1",
               "sources": [
                 {
                   "source_id": "cellmarker_2_0",
@@ -1690,7 +1715,7 @@
               ],
               "tissue": "developing_brain",
               "state": "developmental",
-              "atlas_version": "premium-atlas-2026.08",
+              "atlas_version": "premium-atlas-2026.08.1",
               "sources": [
                 {
                   "source_id": "cellmarker_2_0",
@@ -1719,7 +1744,7 @@
               ],
               "tissue": "developing_brain",
               "state": "developmental",
-              "atlas_version": "premium-atlas-2026.08",
+              "atlas_version": "premium-atlas-2026.08.1",
               "sources": [
                 {
                   "source_id": "cellmarker_2_0",
@@ -1748,7 +1773,7 @@
               ],
               "tissue": "developing_brain",
               "state": "developmental",
-              "atlas_version": "premium-atlas-2026.08",
+              "atlas_version": "premium-atlas-2026.08.1",
               "sources": [
                 {
                   "source_id": "cellmarker_2_0",
@@ -1782,7 +1807,7 @@
           }
         },
         "intermediate_progenitor": {
-          "cl_id": "CL:0000647-IPC",
+          "cl_id": "CL:0011020",
           "synonyms": [
             "IPC",
             "basal progenitor",
@@ -1810,7 +1835,7 @@
               ],
               "tissue": "developing_brain",
               "state": "developmental",
-              "atlas_version": "premium-atlas-2026.08",
+              "atlas_version": "premium-atlas-2026.08.1",
               "sources": [
                 {
                   "source_id": "cellmarker_2_0",
@@ -1839,7 +1864,7 @@
               ],
               "tissue": "developing_brain",
               "state": "developmental",
-              "atlas_version": "premium-atlas-2026.08",
+              "atlas_version": "premium-atlas-2026.08.1",
               "sources": [
                 {
                   "source_id": "cellmarker_2_0",
@@ -1868,7 +1893,7 @@
               ],
               "tissue": "developing_brain",
               "state": "developmental",
-              "atlas_version": "premium-atlas-2026.08",
+              "atlas_version": "premium-atlas-2026.08.1",
               "sources": [
                 {
                   "source_id": "cellmarker_2_0",
@@ -1897,7 +1922,7 @@
               ],
               "tissue": "developing_brain",
               "state": "developmental",
-              "atlas_version": "premium-atlas-2026.08",
+              "atlas_version": "premium-atlas-2026.08.1",
               "sources": [
                 {
                   "source_id": "cellmarker_2_0",
@@ -1926,7 +1951,7 @@
               ],
               "tissue": "developing_brain",
               "state": "developmental",
-              "atlas_version": "premium-atlas-2026.08",
+              "atlas_version": "premium-atlas-2026.08.1",
               "sources": [
                 {
                   "source_id": "cellmarker_2_0",
@@ -1955,7 +1980,7 @@
               ],
               "tissue": "developing_brain",
               "state": "developmental",
-              "atlas_version": "premium-atlas-2026.08",
+              "atlas_version": "premium-atlas-2026.08.1",
               "sources": [
                 {
                   "source_id": "cellmarker_2_0",
@@ -1984,7 +2009,7 @@
               ],
               "tissue": "developing_brain",
               "state": "developmental",
-              "atlas_version": "premium-atlas-2026.08",
+              "atlas_version": "premium-atlas-2026.08.1",
               "sources": [
                 {
                   "source_id": "cellmarker_2_0",
@@ -2006,7 +2031,7 @@
             }
           ],
           "ontology_evidence": {
-            "cl_id": "CL:0000647-IPC",
+            "cl_id": "CL:0011020",
             "source": {
               "source_id": "cell_ontology",
               "name": "Cell Ontology 2016",
@@ -2014,11 +2039,16 @@
               "doi": "10.1186/s13326-016-0088-7",
               "url": "https://pubmed.ncbi.nlm.nih.gov/27377652/"
             },
-            "verification_status": "identifier_format_recorded_not_live_resolved"
-          }
+            "verification_status": "identifier_format_recorded_not_live_resolved",
+            "label": "neural progenitor cell"
+          },
+          "base_cell_type": "neural progenitor cell",
+          "state_label": "intermediate",
+          "state_axis": "development",
+          "display_label": "intermediate_progenitor"
         },
         "migrating_neuroblast": {
-          "cl_id": "CL:0000053-neuroblast",
+          "cl_id": "CL:0000031",
           "synonyms": [
             "neuroblast",
             "migrating neuron"
@@ -2045,7 +2075,7 @@
               ],
               "tissue": "developing_brain",
               "state": "developmental",
-              "atlas_version": "premium-atlas-2026.08",
+              "atlas_version": "premium-atlas-2026.08.1",
               "sources": [
                 {
                   "source_id": "cellmarker_2_0",
@@ -2074,7 +2104,7 @@
               ],
               "tissue": "developing_brain",
               "state": "developmental",
-              "atlas_version": "premium-atlas-2026.08",
+              "atlas_version": "premium-atlas-2026.08.1",
               "sources": [
                 {
                   "source_id": "cellmarker_2_0",
@@ -2103,7 +2133,7 @@
               ],
               "tissue": "developing_brain",
               "state": "developmental",
-              "atlas_version": "premium-atlas-2026.08",
+              "atlas_version": "premium-atlas-2026.08.1",
               "sources": [
                 {
                   "source_id": "cellmarker_2_0",
@@ -2132,7 +2162,7 @@
               ],
               "tissue": "developing_brain",
               "state": "developmental",
-              "atlas_version": "premium-atlas-2026.08",
+              "atlas_version": "premium-atlas-2026.08.1",
               "sources": [
                 {
                   "source_id": "cellmarker_2_0",
@@ -2161,7 +2191,7 @@
               ],
               "tissue": "developing_brain",
               "state": "developmental",
-              "atlas_version": "premium-atlas-2026.08",
+              "atlas_version": "premium-atlas-2026.08.1",
               "sources": [
                 {
                   "source_id": "cellmarker_2_0",
@@ -2190,7 +2220,7 @@
               ],
               "tissue": "developing_brain",
               "state": "developmental",
-              "atlas_version": "premium-atlas-2026.08",
+              "atlas_version": "premium-atlas-2026.08.1",
               "sources": [
                 {
                   "source_id": "cellmarker_2_0",
@@ -2219,7 +2249,7 @@
               ],
               "tissue": "developing_brain",
               "state": "developmental",
-              "atlas_version": "premium-atlas-2026.08",
+              "atlas_version": "premium-atlas-2026.08.1",
               "sources": [
                 {
                   "source_id": "cellmarker_2_0",
@@ -2241,7 +2271,7 @@
             }
           ],
           "ontology_evidence": {
-            "cl_id": "CL:0000053-neuroblast",
+            "cl_id": "CL:0000031",
             "source": {
               "source_id": "cell_ontology",
               "name": "Cell Ontology 2016",
@@ -2249,11 +2279,16 @@
               "doi": "10.1186/s13326-016-0088-7",
               "url": "https://pubmed.ncbi.nlm.nih.gov/27377652/"
             },
-            "verification_status": "identifier_format_recorded_not_live_resolved"
-          }
+            "verification_status": "identifier_format_recorded_not_live_resolved",
+            "label": "neuroblast (sensu Vertebrata)"
+          },
+          "base_cell_type": "neuroblast (sensu Vertebrata)",
+          "state_label": "migrating",
+          "state_axis": "development",
+          "display_label": "migrating_neuroblast"
         },
         "microglia_developing": {
-          "cl_id": "CL:0000129-dev",
+          "cl_id": "CL:0000129",
           "synonyms": [
             "fetal microglia",
             "ameboid microglia"
@@ -2281,7 +2316,7 @@
               ],
               "tissue": "developing_brain",
               "state": "developmental",
-              "atlas_version": "premium-atlas-2026.08",
+              "atlas_version": "premium-atlas-2026.08.1",
               "sources": [
                 {
                   "source_id": "cellmarker_2_0",
@@ -2310,7 +2345,7 @@
               ],
               "tissue": "developing_brain",
               "state": "developmental",
-              "atlas_version": "premium-atlas-2026.08",
+              "atlas_version": "premium-atlas-2026.08.1",
               "sources": [
                 {
                   "source_id": "cellmarker_2_0",
@@ -2339,7 +2374,7 @@
               ],
               "tissue": "developing_brain",
               "state": "developmental",
-              "atlas_version": "premium-atlas-2026.08",
+              "atlas_version": "premium-atlas-2026.08.1",
               "sources": [
                 {
                   "source_id": "cellmarker_2_0",
@@ -2368,7 +2403,7 @@
               ],
               "tissue": "developing_brain",
               "state": "developmental",
-              "atlas_version": "premium-atlas-2026.08",
+              "atlas_version": "premium-atlas-2026.08.1",
               "sources": [
                 {
                   "source_id": "cellmarker_2_0",
@@ -2397,7 +2432,7 @@
               ],
               "tissue": "developing_brain",
               "state": "developmental",
-              "atlas_version": "premium-atlas-2026.08",
+              "atlas_version": "premium-atlas-2026.08.1",
               "sources": [
                 {
                   "source_id": "cellmarker_2_0",
@@ -2426,7 +2461,7 @@
               ],
               "tissue": "developing_brain",
               "state": "developmental",
-              "atlas_version": "premium-atlas-2026.08",
+              "atlas_version": "premium-atlas-2026.08.1",
               "sources": [
                 {
                   "source_id": "cellmarker_2_0",
@@ -2455,7 +2490,7 @@
               ],
               "tissue": "developing_brain",
               "state": "developmental",
-              "atlas_version": "premium-atlas-2026.08",
+              "atlas_version": "premium-atlas-2026.08.1",
               "sources": [
                 {
                   "source_id": "cellmarker_2_0",
@@ -2484,7 +2519,7 @@
               ],
               "tissue": "developing_brain",
               "state": "developmental",
-              "atlas_version": "premium-atlas-2026.08",
+              "atlas_version": "premium-atlas-2026.08.1",
               "sources": [
                 {
                   "source_id": "cellmarker_2_0",
@@ -2506,7 +2541,7 @@
             }
           ],
           "ontology_evidence": {
-            "cl_id": "CL:0000129-dev",
+            "cl_id": "CL:0000129",
             "source": {
               "source_id": "cell_ontology",
               "name": "Cell Ontology 2016",
@@ -2514,8 +2549,13 @@
               "doi": "10.1186/s13326-016-0088-7",
               "url": "https://pubmed.ncbi.nlm.nih.gov/27377652/"
             },
-            "verification_status": "identifier_format_recorded_not_live_resolved"
-          }
+            "verification_status": "identifier_format_recorded_not_live_resolved",
+            "label": "microglial cell"
+          },
+          "base_cell_type": "microglial cell",
+          "state_label": "developmental",
+          "state_axis": "development",
+          "display_label": "microglia_developing"
         }
       }
     },
@@ -2524,7 +2564,7 @@
       "organ_system": "immunology",
       "cell_types": {
         "inflammatory_macrophage": {
-          "cl_id": "CL:0000891-inflammatory",
+          "cl_id": "CL:0000235",
           "synonyms": [
             "activated macrophage",
             "M1-like"
@@ -2553,7 +2593,7 @@
               ],
               "tissue": "inflamed_tissue",
               "state": "inflamed",
-              "atlas_version": "premium-atlas-2026.08",
+              "atlas_version": "premium-atlas-2026.08.1",
               "sources": [
                 {
                   "source_id": "cellmarker_2_0",
@@ -2582,7 +2622,7 @@
               ],
               "tissue": "inflamed_tissue",
               "state": "inflamed",
-              "atlas_version": "premium-atlas-2026.08",
+              "atlas_version": "premium-atlas-2026.08.1",
               "sources": [
                 {
                   "source_id": "cellmarker_2_0",
@@ -2611,7 +2651,7 @@
               ],
               "tissue": "inflamed_tissue",
               "state": "inflamed",
-              "atlas_version": "premium-atlas-2026.08",
+              "atlas_version": "premium-atlas-2026.08.1",
               "sources": [
                 {
                   "source_id": "cellmarker_2_0",
@@ -2640,7 +2680,7 @@
               ],
               "tissue": "inflamed_tissue",
               "state": "inflamed",
-              "atlas_version": "premium-atlas-2026.08",
+              "atlas_version": "premium-atlas-2026.08.1",
               "sources": [
                 {
                   "source_id": "cellmarker_2_0",
@@ -2669,7 +2709,7 @@
               ],
               "tissue": "inflamed_tissue",
               "state": "inflamed",
-              "atlas_version": "premium-atlas-2026.08",
+              "atlas_version": "premium-atlas-2026.08.1",
               "sources": [
                 {
                   "source_id": "cellmarker_2_0",
@@ -2698,7 +2738,7 @@
               ],
               "tissue": "inflamed_tissue",
               "state": "inflamed",
-              "atlas_version": "premium-atlas-2026.08",
+              "atlas_version": "premium-atlas-2026.08.1",
               "sources": [
                 {
                   "source_id": "cellmarker_2_0",
@@ -2727,7 +2767,7 @@
               ],
               "tissue": "inflamed_tissue",
               "state": "inflamed",
-              "atlas_version": "premium-atlas-2026.08",
+              "atlas_version": "premium-atlas-2026.08.1",
               "sources": [
                 {
                   "source_id": "cellmarker_2_0",
@@ -2756,7 +2796,7 @@
               ],
               "tissue": "inflamed_tissue",
               "state": "inflamed",
-              "atlas_version": "premium-atlas-2026.08",
+              "atlas_version": "premium-atlas-2026.08.1",
               "sources": [
                 {
                   "source_id": "cellmarker_2_0",
@@ -2785,7 +2825,7 @@
               ],
               "tissue": "inflamed_tissue",
               "state": "inflamed",
-              "atlas_version": "premium-atlas-2026.08",
+              "atlas_version": "premium-atlas-2026.08.1",
               "sources": [
                 {
                   "source_id": "cellmarker_2_0",
@@ -2807,7 +2847,7 @@
             }
           ],
           "ontology_evidence": {
-            "cl_id": "CL:0000891-inflammatory",
+            "cl_id": "CL:0000235",
             "source": {
               "source_id": "cell_ontology",
               "name": "Cell Ontology 2016",
@@ -2815,11 +2855,16 @@
               "doi": "10.1186/s13326-016-0088-7",
               "url": "https://pubmed.ncbi.nlm.nih.gov/27377652/"
             },
-            "verification_status": "identifier_format_recorded_not_live_resolved"
-          }
+            "verification_status": "identifier_format_recorded_not_live_resolved",
+            "label": "macrophage"
+          },
+          "base_cell_type": "macrophage",
+          "state_label": "inflammatory",
+          "state_axis": "activation",
+          "display_label": "inflammatory_macrophage"
         },
         "plasma_cell_inflamed": {
-          "cl_id": "CL:0000786-inflamed",
+          "cl_id": "CL:0000786",
           "synonyms": [
             "activated plasma cell",
             "antibody-secreting cell"
@@ -2847,7 +2892,7 @@
               ],
               "tissue": "inflamed_tissue",
               "state": "inflamed",
-              "atlas_version": "premium-atlas-2026.08",
+              "atlas_version": "premium-atlas-2026.08.1",
               "sources": [
                 {
                   "source_id": "cellmarker_2_0",
@@ -2876,7 +2921,7 @@
               ],
               "tissue": "inflamed_tissue",
               "state": "inflamed",
-              "atlas_version": "premium-atlas-2026.08",
+              "atlas_version": "premium-atlas-2026.08.1",
               "sources": [
                 {
                   "source_id": "cellmarker_2_0",
@@ -2905,7 +2950,7 @@
               ],
               "tissue": "inflamed_tissue",
               "state": "inflamed",
-              "atlas_version": "premium-atlas-2026.08",
+              "atlas_version": "premium-atlas-2026.08.1",
               "sources": [
                 {
                   "source_id": "cellmarker_2_0",
@@ -2934,7 +2979,7 @@
               ],
               "tissue": "inflamed_tissue",
               "state": "inflamed",
-              "atlas_version": "premium-atlas-2026.08",
+              "atlas_version": "premium-atlas-2026.08.1",
               "sources": [
                 {
                   "source_id": "cellmarker_2_0",
@@ -2963,7 +3008,7 @@
               ],
               "tissue": "inflamed_tissue",
               "state": "inflamed",
-              "atlas_version": "premium-atlas-2026.08",
+              "atlas_version": "premium-atlas-2026.08.1",
               "sources": [
                 {
                   "source_id": "cellmarker_2_0",
@@ -2992,7 +3037,7 @@
               ],
               "tissue": "inflamed_tissue",
               "state": "inflamed",
-              "atlas_version": "premium-atlas-2026.08",
+              "atlas_version": "premium-atlas-2026.08.1",
               "sources": [
                 {
                   "source_id": "cellmarker_2_0",
@@ -3021,7 +3066,7 @@
               ],
               "tissue": "inflamed_tissue",
               "state": "inflamed",
-              "atlas_version": "premium-atlas-2026.08",
+              "atlas_version": "premium-atlas-2026.08.1",
               "sources": [
                 {
                   "source_id": "cellmarker_2_0",
@@ -3050,7 +3095,7 @@
               ],
               "tissue": "inflamed_tissue",
               "state": "inflamed",
-              "atlas_version": "premium-atlas-2026.08",
+              "atlas_version": "premium-atlas-2026.08.1",
               "sources": [
                 {
                   "source_id": "cellmarker_2_0",
@@ -3072,7 +3117,7 @@
             }
           ],
           "ontology_evidence": {
-            "cl_id": "CL:0000786-inflamed",
+            "cl_id": "CL:0000786",
             "source": {
               "source_id": "cell_ontology",
               "name": "Cell Ontology 2016",
@@ -3080,11 +3125,16 @@
               "doi": "10.1186/s13326-016-0088-7",
               "url": "https://pubmed.ncbi.nlm.nih.gov/27377652/"
             },
-            "verification_status": "identifier_format_recorded_not_live_resolved"
-          }
+            "verification_status": "identifier_format_recorded_not_live_resolved",
+            "label": "plasma cell"
+          },
+          "base_cell_type": "plasma cell",
+          "state_label": "inflamed",
+          "state_axis": "context",
+          "display_label": "plasma_cell_inflamed"
         },
         "activated_fibroblast": {
-          "cl_id": "CL:0000057-activated",
+          "cl_id": "CL:0000057",
           "synonyms": [
             "myofibroblast",
             "activated stromal cell"
@@ -3111,7 +3161,7 @@
               ],
               "tissue": "inflamed_tissue",
               "state": "inflamed",
-              "atlas_version": "premium-atlas-2026.08",
+              "atlas_version": "premium-atlas-2026.08.1",
               "sources": [
                 {
                   "source_id": "cellmarker_2_0",
@@ -3140,7 +3190,7 @@
               ],
               "tissue": "inflamed_tissue",
               "state": "inflamed",
-              "atlas_version": "premium-atlas-2026.08",
+              "atlas_version": "premium-atlas-2026.08.1",
               "sources": [
                 {
                   "source_id": "cellmarker_2_0",
@@ -3169,7 +3219,7 @@
               ],
               "tissue": "inflamed_tissue",
               "state": "inflamed",
-              "atlas_version": "premium-atlas-2026.08",
+              "atlas_version": "premium-atlas-2026.08.1",
               "sources": [
                 {
                   "source_id": "cellmarker_2_0",
@@ -3198,7 +3248,7 @@
               ],
               "tissue": "inflamed_tissue",
               "state": "inflamed",
-              "atlas_version": "premium-atlas-2026.08",
+              "atlas_version": "premium-atlas-2026.08.1",
               "sources": [
                 {
                   "source_id": "cellmarker_2_0",
@@ -3227,7 +3277,7 @@
               ],
               "tissue": "inflamed_tissue",
               "state": "inflamed",
-              "atlas_version": "premium-atlas-2026.08",
+              "atlas_version": "premium-atlas-2026.08.1",
               "sources": [
                 {
                   "source_id": "cellmarker_2_0",
@@ -3256,7 +3306,7 @@
               ],
               "tissue": "inflamed_tissue",
               "state": "inflamed",
-              "atlas_version": "premium-atlas-2026.08",
+              "atlas_version": "premium-atlas-2026.08.1",
               "sources": [
                 {
                   "source_id": "cellmarker_2_0",
@@ -3285,7 +3335,7 @@
               ],
               "tissue": "inflamed_tissue",
               "state": "inflamed",
-              "atlas_version": "premium-atlas-2026.08",
+              "atlas_version": "premium-atlas-2026.08.1",
               "sources": [
                 {
                   "source_id": "cellmarker_2_0",
@@ -3307,7 +3357,7 @@
             }
           ],
           "ontology_evidence": {
-            "cl_id": "CL:0000057-activated",
+            "cl_id": "CL:0000057",
             "source": {
               "source_id": "cell_ontology",
               "name": "Cell Ontology 2016",
@@ -3315,8 +3365,13 @@
               "doi": "10.1186/s13326-016-0088-7",
               "url": "https://pubmed.ncbi.nlm.nih.gov/27377652/"
             },
-            "verification_status": "identifier_format_recorded_not_live_resolved"
-          }
+            "verification_status": "identifier_format_recorded_not_live_resolved",
+            "label": "fibroblast"
+          },
+          "base_cell_type": "fibroblast",
+          "state_label": "activated",
+          "state_axis": "activation",
+          "display_label": "activated_fibroblast"
         }
       }
     },
@@ -3325,7 +3380,7 @@
       "organ_system": "immunology_advanced",
       "cell_types": {
         "activated_CD4_T_cell": {
-          "cl_id": "CL:0000417-activated",
+          "cl_id": "CL:0000624",
           "synonyms": [
             "activated helper T cell",
             "effector CD4"
@@ -3353,7 +3408,7 @@
               ],
               "tissue": "immune_activation",
               "state": "activated",
-              "atlas_version": "premium-atlas-2026.08",
+              "atlas_version": "premium-atlas-2026.08.1",
               "sources": [
                 {
                   "source_id": "cellmarker_2_0",
@@ -3382,7 +3437,7 @@
               ],
               "tissue": "immune_activation",
               "state": "activated",
-              "atlas_version": "premium-atlas-2026.08",
+              "atlas_version": "premium-atlas-2026.08.1",
               "sources": [
                 {
                   "source_id": "cellmarker_2_0",
@@ -3411,7 +3466,7 @@
               ],
               "tissue": "immune_activation",
               "state": "activated",
-              "atlas_version": "premium-atlas-2026.08",
+              "atlas_version": "premium-atlas-2026.08.1",
               "sources": [
                 {
                   "source_id": "cellmarker_2_0",
@@ -3440,7 +3495,7 @@
               ],
               "tissue": "immune_activation",
               "state": "activated",
-              "atlas_version": "premium-atlas-2026.08",
+              "atlas_version": "premium-atlas-2026.08.1",
               "sources": [
                 {
                   "source_id": "cellmarker_2_0",
@@ -3469,7 +3524,7 @@
               ],
               "tissue": "immune_activation",
               "state": "activated",
-              "atlas_version": "premium-atlas-2026.08",
+              "atlas_version": "premium-atlas-2026.08.1",
               "sources": [
                 {
                   "source_id": "cellmarker_2_0",
@@ -3498,7 +3553,7 @@
               ],
               "tissue": "immune_activation",
               "state": "activated",
-              "atlas_version": "premium-atlas-2026.08",
+              "atlas_version": "premium-atlas-2026.08.1",
               "sources": [
                 {
                   "source_id": "cellmarker_2_0",
@@ -3527,7 +3582,7 @@
               ],
               "tissue": "immune_activation",
               "state": "activated",
-              "atlas_version": "premium-atlas-2026.08",
+              "atlas_version": "premium-atlas-2026.08.1",
               "sources": [
                 {
                   "source_id": "cellmarker_2_0",
@@ -3556,7 +3611,7 @@
               ],
               "tissue": "immune_activation",
               "state": "activated",
-              "atlas_version": "premium-atlas-2026.08",
+              "atlas_version": "premium-atlas-2026.08.1",
               "sources": [
                 {
                   "source_id": "cellmarker_2_0",
@@ -3578,7 +3633,7 @@
             }
           ],
           "ontology_evidence": {
-            "cl_id": "CL:0000417-activated",
+            "cl_id": "CL:0000624",
             "source": {
               "source_id": "cell_ontology",
               "name": "Cell Ontology 2016",
@@ -3586,11 +3641,16 @@
               "doi": "10.1186/s13326-016-0088-7",
               "url": "https://pubmed.ncbi.nlm.nih.gov/27377652/"
             },
-            "verification_status": "identifier_format_recorded_not_live_resolved"
-          }
+            "verification_status": "identifier_format_recorded_not_live_resolved",
+            "label": "CD4-positive, alpha-beta T cell"
+          },
+          "base_cell_type": "CD4-positive, alpha-beta T cell",
+          "state_label": "activated",
+          "state_axis": "activation",
+          "display_label": "activated_CD4_T_cell"
         },
         "activated_CD8_T_cell": {
-          "cl_id": "CL:0000417-CD8-activated",
+          "cl_id": "CL:0000625",
           "synonyms": [
             "effector CTL",
             "cytotoxic T cell"
@@ -3619,7 +3679,7 @@
               ],
               "tissue": "immune_activation",
               "state": "activated",
-              "atlas_version": "premium-atlas-2026.08",
+              "atlas_version": "premium-atlas-2026.08.1",
               "sources": [
                 {
                   "source_id": "cellmarker_2_0",
@@ -3648,7 +3708,7 @@
               ],
               "tissue": "immune_activation",
               "state": "activated",
-              "atlas_version": "premium-atlas-2026.08",
+              "atlas_version": "premium-atlas-2026.08.1",
               "sources": [
                 {
                   "source_id": "cellmarker_2_0",
@@ -3677,7 +3737,7 @@
               ],
               "tissue": "immune_activation",
               "state": "activated",
-              "atlas_version": "premium-atlas-2026.08",
+              "atlas_version": "premium-atlas-2026.08.1",
               "sources": [
                 {
                   "source_id": "cellmarker_2_0",
@@ -3706,7 +3766,7 @@
               ],
               "tissue": "immune_activation",
               "state": "activated",
-              "atlas_version": "premium-atlas-2026.08",
+              "atlas_version": "premium-atlas-2026.08.1",
               "sources": [
                 {
                   "source_id": "cellmarker_2_0",
@@ -3735,7 +3795,7 @@
               ],
               "tissue": "immune_activation",
               "state": "activated",
-              "atlas_version": "premium-atlas-2026.08",
+              "atlas_version": "premium-atlas-2026.08.1",
               "sources": [
                 {
                   "source_id": "cellmarker_2_0",
@@ -3764,7 +3824,7 @@
               ],
               "tissue": "immune_activation",
               "state": "activated",
-              "atlas_version": "premium-atlas-2026.08",
+              "atlas_version": "premium-atlas-2026.08.1",
               "sources": [
                 {
                   "source_id": "cellmarker_2_0",
@@ -3793,7 +3853,7 @@
               ],
               "tissue": "immune_activation",
               "state": "activated",
-              "atlas_version": "premium-atlas-2026.08",
+              "atlas_version": "premium-atlas-2026.08.1",
               "sources": [
                 {
                   "source_id": "cellmarker_2_0",
@@ -3822,7 +3882,7 @@
               ],
               "tissue": "immune_activation",
               "state": "activated",
-              "atlas_version": "premium-atlas-2026.08",
+              "atlas_version": "premium-atlas-2026.08.1",
               "sources": [
                 {
                   "source_id": "cellmarker_2_0",
@@ -3851,7 +3911,7 @@
               ],
               "tissue": "immune_activation",
               "state": "activated",
-              "atlas_version": "premium-atlas-2026.08",
+              "atlas_version": "premium-atlas-2026.08.1",
               "sources": [
                 {
                   "source_id": "cellmarker_2_0",
@@ -3873,7 +3933,7 @@
             }
           ],
           "ontology_evidence": {
-            "cl_id": "CL:0000417-CD8-activated",
+            "cl_id": "CL:0000625",
             "source": {
               "source_id": "cell_ontology",
               "name": "Cell Ontology 2016",
@@ -3881,11 +3941,16 @@
               "doi": "10.1186/s13326-016-0088-7",
               "url": "https://pubmed.ncbi.nlm.nih.gov/27377652/"
             },
-            "verification_status": "identifier_format_recorded_not_live_resolved"
-          }
+            "verification_status": "identifier_format_recorded_not_live_resolved",
+            "label": "CD8-positive, alpha-beta T cell"
+          },
+          "base_cell_type": "CD8-positive, alpha-beta T cell",
+          "state_label": "activated",
+          "state_axis": "activation",
+          "display_label": "activated_CD8_T_cell"
         },
         "germinal_center_B_cell": {
-          "cl_id": "CL:0000844-GC",
+          "cl_id": "CL:0000844",
           "synonyms": [
             "GC B cell",
             "centrocyte",
@@ -3915,7 +3980,7 @@
               ],
               "tissue": "immune_activation",
               "state": "activated",
-              "atlas_version": "premium-atlas-2026.08",
+              "atlas_version": "premium-atlas-2026.08.1",
               "sources": [
                 {
                   "source_id": "cellmarker_2_0",
@@ -3944,7 +4009,7 @@
               ],
               "tissue": "immune_activation",
               "state": "activated",
-              "atlas_version": "premium-atlas-2026.08",
+              "atlas_version": "premium-atlas-2026.08.1",
               "sources": [
                 {
                   "source_id": "cellmarker_2_0",
@@ -3973,7 +4038,7 @@
               ],
               "tissue": "immune_activation",
               "state": "activated",
-              "atlas_version": "premium-atlas-2026.08",
+              "atlas_version": "premium-atlas-2026.08.1",
               "sources": [
                 {
                   "source_id": "cellmarker_2_0",
@@ -4002,7 +4067,7 @@
               ],
               "tissue": "immune_activation",
               "state": "activated",
-              "atlas_version": "premium-atlas-2026.08",
+              "atlas_version": "premium-atlas-2026.08.1",
               "sources": [
                 {
                   "source_id": "cellmarker_2_0",
@@ -4031,7 +4096,7 @@
               ],
               "tissue": "immune_activation",
               "state": "activated",
-              "atlas_version": "premium-atlas-2026.08",
+              "atlas_version": "premium-atlas-2026.08.1",
               "sources": [
                 {
                   "source_id": "cellmarker_2_0",
@@ -4060,7 +4125,7 @@
               ],
               "tissue": "immune_activation",
               "state": "activated",
-              "atlas_version": "premium-atlas-2026.08",
+              "atlas_version": "premium-atlas-2026.08.1",
               "sources": [
                 {
                   "source_id": "cellmarker_2_0",
@@ -4089,7 +4154,7 @@
               ],
               "tissue": "immune_activation",
               "state": "activated",
-              "atlas_version": "premium-atlas-2026.08",
+              "atlas_version": "premium-atlas-2026.08.1",
               "sources": [
                 {
                   "source_id": "cellmarker_2_0",
@@ -4118,7 +4183,7 @@
               ],
               "tissue": "immune_activation",
               "state": "activated",
-              "atlas_version": "premium-atlas-2026.08",
+              "atlas_version": "premium-atlas-2026.08.1",
               "sources": [
                 {
                   "source_id": "cellmarker_2_0",
@@ -4147,7 +4212,7 @@
               ],
               "tissue": "immune_activation",
               "state": "activated",
-              "atlas_version": "premium-atlas-2026.08",
+              "atlas_version": "premium-atlas-2026.08.1",
               "sources": [
                 {
                   "source_id": "cellmarker_2_0",
@@ -4169,7 +4234,7 @@
             }
           ],
           "ontology_evidence": {
-            "cl_id": "CL:0000844-GC",
+            "cl_id": "CL:0000844",
             "source": {
               "source_id": "cell_ontology",
               "name": "Cell Ontology 2016",
@@ -4177,11 +4242,16 @@
               "doi": "10.1186/s13326-016-0088-7",
               "url": "https://pubmed.ncbi.nlm.nih.gov/27377652/"
             },
-            "verification_status": "identifier_format_recorded_not_live_resolved"
-          }
+            "verification_status": "identifier_format_recorded_not_live_resolved",
+            "label": "germinal center B cell"
+          },
+          "base_cell_type": "germinal center B cell",
+          "state_label": "germinal_center",
+          "state_axis": "context",
+          "display_label": "germinal_center_B_cell"
         },
         "NK_cell_activated": {
-          "cl_id": "CL:0000623-activated",
+          "cl_id": "CL:0000623",
           "synonyms": [
             "activated NK",
             "cytotoxic NK"
@@ -4210,7 +4280,7 @@
               ],
               "tissue": "immune_activation",
               "state": "activated",
-              "atlas_version": "premium-atlas-2026.08",
+              "atlas_version": "premium-atlas-2026.08.1",
               "sources": [
                 {
                   "source_id": "cellmarker_2_0",
@@ -4239,7 +4309,7 @@
               ],
               "tissue": "immune_activation",
               "state": "activated",
-              "atlas_version": "premium-atlas-2026.08",
+              "atlas_version": "premium-atlas-2026.08.1",
               "sources": [
                 {
                   "source_id": "cellmarker_2_0",
@@ -4268,7 +4338,7 @@
               ],
               "tissue": "immune_activation",
               "state": "activated",
-              "atlas_version": "premium-atlas-2026.08",
+              "atlas_version": "premium-atlas-2026.08.1",
               "sources": [
                 {
                   "source_id": "cellmarker_2_0",
@@ -4297,7 +4367,7 @@
               ],
               "tissue": "immune_activation",
               "state": "activated",
-              "atlas_version": "premium-atlas-2026.08",
+              "atlas_version": "premium-atlas-2026.08.1",
               "sources": [
                 {
                   "source_id": "cellmarker_2_0",
@@ -4326,7 +4396,7 @@
               ],
               "tissue": "immune_activation",
               "state": "activated",
-              "atlas_version": "premium-atlas-2026.08",
+              "atlas_version": "premium-atlas-2026.08.1",
               "sources": [
                 {
                   "source_id": "cellmarker_2_0",
@@ -4355,7 +4425,7 @@
               ],
               "tissue": "immune_activation",
               "state": "activated",
-              "atlas_version": "premium-atlas-2026.08",
+              "atlas_version": "premium-atlas-2026.08.1",
               "sources": [
                 {
                   "source_id": "cellmarker_2_0",
@@ -4384,7 +4454,7 @@
               ],
               "tissue": "immune_activation",
               "state": "activated",
-              "atlas_version": "premium-atlas-2026.08",
+              "atlas_version": "premium-atlas-2026.08.1",
               "sources": [
                 {
                   "source_id": "cellmarker_2_0",
@@ -4413,7 +4483,7 @@
               ],
               "tissue": "immune_activation",
               "state": "activated",
-              "atlas_version": "premium-atlas-2026.08",
+              "atlas_version": "premium-atlas-2026.08.1",
               "sources": [
                 {
                   "source_id": "cellmarker_2_0",
@@ -4442,7 +4512,7 @@
               ],
               "tissue": "immune_activation",
               "state": "activated",
-              "atlas_version": "premium-atlas-2026.08",
+              "atlas_version": "premium-atlas-2026.08.1",
               "sources": [
                 {
                   "source_id": "cellmarker_2_0",
@@ -4464,7 +4534,7 @@
             }
           ],
           "ontology_evidence": {
-            "cl_id": "CL:0000623-activated",
+            "cl_id": "CL:0000623",
             "source": {
               "source_id": "cell_ontology",
               "name": "Cell Ontology 2016",
@@ -4472,13 +4542,18 @@
               "doi": "10.1186/s13326-016-0088-7",
               "url": "https://pubmed.ncbi.nlm.nih.gov/27377652/"
             },
-            "verification_status": "identifier_format_recorded_not_live_resolved"
-          }
+            "verification_status": "identifier_format_recorded_not_live_resolved",
+            "label": "natural killer cell"
+          },
+          "base_cell_type": "natural killer cell",
+          "state_label": "activated",
+          "state_axis": "activation",
+          "display_label": "NK_cell_activated"
         }
       }
     }
   },
-  "schema_version": "celltypepilot.marker-atlas.v2",
+  "schema_version": "celltypepilot.marker-atlas.v2.1",
   "source_registry": {
     "cellmarker_2_0": {
       "source_id": "cellmarker_2_0",

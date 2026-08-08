@@ -6,8 +6,9 @@ description: >-
   single-cell or spatial transcriptomics data (.h5ad), or says things like "annotate my clusters",
   "what cell types are these?", "label my scRNA-seq", "figure out the cell types", or "run CellTypePilot".
   CellTypePilot runs through the host coding workspace — no separate app, no MCP required for basic use.
-  It provides marker-based scoring, a rules-based Annotation Critic that flags doubtful calls,
-  colorblind-friendly figures, and a draft methodology paragraph ready for papers.
+  It provides governed study context, marker-based identity scoring, an independent state lens,
+  a rules-based Annotation Critic that flags doubtful calls, colorblind-friendly figures, and
+  a draft methodology paragraph ready for papers.
 license: MIT
 ---
 
@@ -26,6 +27,10 @@ artifacts; a qualified human remains responsible for final biological adjudicati
 - **Evidence over black-box.** Every annotation comes with: which markers support it, what
   fraction of cells express them, whether negative markers conflict, and a rules-based
   critic verdict. No label without evidence.
+- **Governed context.** Free text is retained for provenance only. Only explicit structured
+  marker hypotheses enter scoring, under the same statistical and critic gates as atlas markers.
+- **Identity and state are separate.** State output cannot overwrite or rescue the canonical
+  identity decision; `Unknown` identity may retain a supported state for review.
 - **Critic is the soul.** The Annotation Critic doesn't just score — it *doubts*. It checks
   evidence sufficiency, negative marker conflicts, doublet signals, and ontology consistency.
   A cluster flagged by the critic is a success, not a failure.
@@ -60,6 +65,8 @@ structured output). This reports:
 - Confirm the cluster key (if multiple found, let user choose)
 - Confirm the embedding key for visualization
 - Ask about tissue context if not auto-detected (this determines which marker atlas to use)
+- Ask whether the user has disease/region/timepoint context or a custom marker panel. Use
+  `--context-file`/`--custom-markers` for evidence-bearing hypotheses; prose alone is not evidence.
 
 ### Stage 2 — Annotate
 
@@ -71,7 +78,10 @@ celltypepilot annotate \
   --output <output_dir> \
   --species <human|mouse> \
   --tissue <tissue> \
-  --embedding-key <key>
+  --embedding-key <key> \
+  [--context <text>] \
+  [--context-file <context.json>] \
+  [--custom-markers <markers.csv>]
 ```
 
 This runs the full pipeline:
@@ -80,8 +90,9 @@ This runs the full pipeline:
 3. Load the built-in Marker Knowledge Graph (MKG) for the species/tissue
 4. Compute marker scores: DE analysis (Wilcoxon) + marker overlap + specificity + negative marker check
 5. Run the Annotation Critic: evidence sufficiency, negative marker conflict, doublet heuristic, ontology check
-6. Generate figures: UMAP (clusters, cell types, confidence), dotplot, confidence distribution
-7. Save outputs: annotated .h5ad, evidence_table.csv, HTML report, manifest.json, methodology draft
+6. Score cell states on an independent, identity-invariant output axis
+7. Generate figures: UMAP (clusters, cell types, confidence), dotplot, confidence distribution
+8. Save outputs: annotated .h5ad, evidence/state tables, HTML report, manifest, methodology draft
 
 **2b. Review the results.** Read the evidence table and HTML report. Present the key findings:
 - How many clusters were annotated
@@ -150,8 +161,10 @@ All commands support `--json` for structured output that the host integration ca
 
 | File | Description |
 |---|---|
-| `data.annotated.h5ad` | AnnData with `ctp_cell_type`, `ctp_cl_id`, `ctp_confidence` in obs |
+| `data.annotated.h5ad` | AnnData with separate identity/state candidates, decisions, evidence, CL ID, and confidence in obs |
 | `evidence_table.csv` | Per-cluster evidence: scores, markers, critic flags, confidence |
+| `state_results.csv` | Independent state candidate, decision, missing/silent markers, score, and evidence |
+| `context_pack.normalized.json` | Normalized governed context and hashes, when context is supplied |
 | `figures/umap_cluster.png` | UMAP colored by cluster |
 | `figures/umap_celltype.png` | UMAP colored by annotated cell type |
 | `figures/umap_confidence.png` | UMAP colored by critic confidence level |
@@ -188,7 +201,9 @@ Mouse gene symbols are auto-converted from human conventions.
 | `PARTIAL_EVIDENCE` | 20-50% of all expected markers expressed | Abstain as Unknown pending review |
 | `NEG_MARKER_CONFLICT` | Negative markers unexpectedly expressed | Likely misannotation or doublet |
 | `POSSIBLE_DOUBLET` | Two lineage signatures co-expressed | Sub-cluster or mark as doublet |
-| `NO_CL_ID` | No Cell Ontology ID assigned | Non-critical; add manually if needed |
+| `NO_CL_ID` | No legal Cell Ontology ID assigned | Abstain until a versioned mapping is supplied |
+| `UNREVIEWED_CONTEXT_ONLY` | Identity depends only on a draft custom panel | Keep Unknown; review the panel |
+| `REVIEWED_CONTEXT_SUPPORT` | Identity depends only on a reviewed custom panel | Accepted only if other gates pass; confidence capped at medium |
 
 ## Confidence levels
 

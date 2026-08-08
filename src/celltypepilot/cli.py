@@ -124,6 +124,26 @@ def annotate(
         "--calibration-policy",
         help="Optional abstention policy JSON fitted on a separate calibration dataset",
     ),
+    context: str | None = typer.Option(
+        None,
+        "--context",
+        help="Free biological context; recorded for interpretation but never treated as evidence",
+    ),
+    context_file: str | None = typer.Option(
+        None,
+        "--context-file",
+        help="Governed celltypepilot.context.v1 JSON with structured identity/state hypotheses",
+    ),
+    custom_markers: str | None = typer.Option(
+        None,
+        "--custom-markers",
+        help="CSV marker hypotheses with axis,label,gene,polarity columns",
+    ),
+    no_states: bool = typer.Option(
+        False,
+        "--no-states",
+        help="Disable the independent State Lens without changing identity scoring",
+    ),
 ):
     """Run the full annotation pipeline: marker scoring → critic → report."""
     from .orchestrator import PipelineError, run_annotation_pipeline
@@ -150,6 +170,10 @@ def annotate(
             allow_unverified_reference=allow_unverified_reference,
             marker_evidence_policy=marker_evidence_policy,
             calibration_policy_path=calibration_policy,
+            context_text=context,
+            context_file_path=context_file,
+            custom_markers_path=custom_markers,
+            enable_states=not no_states,
             progress=_progress,
         )
     except PipelineError as e:
@@ -170,6 +194,12 @@ def annotate(
     )
     if critic_summary.get("narrative"):
         console.print(f"  [dim]{critic_summary['narrative']}[/dim]")
+    if "state_decision" in result["critic_results"]:
+        state_counts = result["critic_results"]["state_decision"].value_counts().to_dict()
+        console.print(
+            "  State Lens: "
+            + " | ".join(f"{decision}={count}" for decision, count in state_counts.items())
+        )
     console.print(f"  Generated {len(result['figure_paths'])} figures")
     for label, path in result["paths"].items():
         console.print(f"  {label.replace('_', ' ').title()}: {path}")

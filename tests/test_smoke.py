@@ -223,7 +223,7 @@ class TestProvenance:
                 parameters={"embedding_key": "X_umap"},
                 output_dir=tmpdir,
             )
-            assert manifest["celltypepilot_version"] == "0.1.0"
+            assert manifest["celltypepilot_version"] == "0.3.0"
             assert manifest["mkg_version"] == "mkg-2026.08"
 
             path = save_manifest(manifest, tmpdir)
@@ -251,7 +251,7 @@ class TestCLI:
         runner = CliRunner()
         result = runner.invoke(app, ["--version"])
         assert result.exit_code == 0
-        assert "0.1.0" in result.output
+        assert "0.3.0" in result.output
 
     def test_markers_command(self):
         from typer.testing import CliRunner

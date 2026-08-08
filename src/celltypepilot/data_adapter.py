@@ -5,6 +5,7 @@ from __future__ import annotations
 import hashlib
 import json
 import logging
+import re
 from collections import Counter
 from pathlib import Path
 
@@ -542,6 +543,16 @@ def validate_atlas_provenance(atlas: dict) -> list[str]:
     def validate_nodes(cell_types: dict, tissue: str, path: str) -> None:
         for cell_type, info in cell_types.items():
             node_path = f"{path}/{cell_type}"
+            cl_id = str(info.get("cl_id", ""))
+            if not cl_id:
+                issues.append(f"{node_path}: missing cl_id")
+            elif re.fullmatch(r"CL:\d{7}", cl_id) is None:
+                issues.append(f"{node_path}: invalid cl_id {cl_id!r}")
+            ontology = info.get("ontology_evidence", {})
+            if ontology and ontology.get("cl_id") != cl_id:
+                issues.append(f"{node_path}: ontology_evidence cl_id mismatch")
+            if info.get("state_label") and not info.get("base_cell_type"):
+                issues.append(f"{node_path}: state_label requires base_cell_type")
             expected = {
                 (gene, polarity)
                 for polarity, key in (
@@ -560,6 +571,8 @@ def validate_atlas_provenance(atlas: dict) -> list[str]:
                     issues.append(f"{node_path}/marker_evidence/{index}: missing {sorted(missing)}")
                 if record.get("tissue") != tissue:
                     issues.append(f"{node_path}/marker_evidence/{index}: tissue mismatch")
+                if record.get("atlas_version") != atlas.get("version"):
+                    issues.append(f"{node_path}/marker_evidence/{index}: atlas version mismatch")
                 verification_status = record.get("verification_status")
                 if verification_status not in EVIDENCE_STATUS_RANK:
                     issues.append(

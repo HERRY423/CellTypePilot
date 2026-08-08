@@ -82,6 +82,8 @@ def compute_marker_scores(
         for ct_name, ct_info in markers.items():
             pos_markers = ct_info.get("positive_markers", [])
             neg_markers = ct_info.get("negative_markers", [])
+            context_positive = set(ct_info.get("context_positive_markers", []))
+            atlas_positive = set(ct_info.get("atlas_positive_markers", pos_markers))
             provenance_records = ct_info.get("marker_evidence", [])
             provenance_sources = sorted(
                 {
@@ -101,6 +103,8 @@ def compute_marker_scores(
             pos_silent = [g for g in pos_present if g not in pos_expressed]
             # Supporting markers pass direction, logFC, FDR, and expression gates.
             pos_de = [g for g in pos_expressed if g in de_genes]
+            context_supporting = [g for g in pos_de if g in context_positive]
+            atlas_supporting = [g for g in pos_de if g in atlas_positive]
 
             expected_denominator = max(len(pos_markers), 1)
             pct_overlap = len(pos_de) / expected_denominator
@@ -143,6 +147,12 @@ def compute_marker_scores(
                     "pos_missing_markers": ";".join(pos_missing),
                     "pos_silent_markers": ";".join(pos_silent),
                     "pos_supporting_markers": ";".join(pos_de),
+                    "context_origin": bool(ct_info.get("context_origin", False)),
+                    "context_review_status": ct_info.get("context_review_status", "not_applicable"),
+                    "context_supporting_markers": ";".join(context_supporting),
+                    "n_context_supporting_markers": len(context_supporting),
+                    "n_atlas_supporting_markers": len(atlas_supporting),
+                    "context_only_support": bool(pos_de) and not atlas_supporting,
                     "pct_overlap": round(pct_overlap, 4),
                     "mean_log2fc": round(mean_fc, 4),
                     "pct_expressed": round(pct_expressed, 4),

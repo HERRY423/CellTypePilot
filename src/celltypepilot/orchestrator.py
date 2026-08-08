@@ -85,6 +85,48 @@ def write_annotations_to_adata(
             strict=True,
         )
     )
+    cluster_to_state_candidate = dict(
+        zip(
+            critic_results["cluster"],
+            critic_results.get("cell_state_candidate", ["Unknown"] * len(critic_results)),
+            strict=True,
+        )
+    )
+    cluster_to_state_decision = dict(
+        zip(
+            critic_results["cluster"],
+            critic_results.get("state_decision", ["abstain"] * len(critic_results)),
+            strict=True,
+        )
+    )
+    cluster_to_state_score = dict(
+        zip(
+            critic_results["cluster"],
+            critic_results.get("state_score", [0.0] * len(critic_results)),
+            strict=True,
+        )
+    )
+    cluster_to_state_confidence = dict(
+        zip(
+            critic_results["cluster"],
+            critic_results.get("state_confidence", ["needs_review"] * len(critic_results)),
+            strict=True,
+        )
+    )
+    cluster_to_state_evidence = dict(
+        zip(
+            critic_results["cluster"],
+            critic_results.get("state_evidence", ["state_not_scored"] * len(critic_results)),
+            strict=True,
+        )
+    )
+    cluster_to_display = dict(
+        zip(
+            critic_results["cluster"],
+            critic_results.get("display_label", critic_results["cell_type"]),
+            strict=True,
+        )
+    )
 
     cluster_series = adata.obs[cluster_key].astype(str)
     adata.obs["ctp_cell_type"] = cluster_series.map(cluster_to_ct).fillna("Unknown")
@@ -97,6 +139,23 @@ def write_annotations_to_adata(
     adata.obs["ctp_abstain_reason"] = cluster_series.map(cluster_to_reason).fillna(
         "cluster_not_scored"
     )
+    adata.obs["ctp_cell_state_candidate"] = cluster_series.map(cluster_to_state_candidate).fillna(
+        "Unknown"
+    )
+    adata.obs["ctp_state_decision"] = cluster_series.map(cluster_to_state_decision).fillna(
+        "abstain"
+    )
+    adata.obs["ctp_cell_state"] = adata.obs["ctp_cell_state_candidate"].where(
+        adata.obs["ctp_state_decision"] == "supported", "Unknown"
+    )
+    adata.obs["ctp_state_score"] = cluster_series.map(cluster_to_state_score).fillna(0.0)
+    adata.obs["ctp_state_confidence"] = cluster_series.map(cluster_to_state_confidence).fillna(
+        "needs_review"
+    )
+    adata.obs["ctp_state_evidence"] = cluster_series.map(cluster_to_state_evidence).fillna(
+        "state_not_scored"
+    )
+    adata.obs["ctp_display_label"] = cluster_series.map(cluster_to_display).fillna("Unknown")
 
     output_path = Path(output_dir) / OUTPUT_ANNOTATED
     adata.write(output_path)
@@ -121,6 +180,10 @@ def run_annotation_pipeline(
     allow_unverified_reference: bool = False,
     marker_evidence_policy: str = "database",
     calibration_policy_path: str | Path | None = None,
+    context_text: str | None = None,
+    context_file_path: str | Path | None = None,
+    custom_markers_path: str | Path | None = None,
+    enable_states: bool = True,
     progress: ProgressFn = None,
 ) -> dict:
     """Run marker, optional reference, ensemble, critic, and artifact generation.
@@ -157,7 +220,7 @@ def run_annotation_pipeline(
 
     def _emit(step: int, msg: str):
         if progress is not None:
-            progress(step, 7, msg)
+            progress(step, 8, msg)
 
     output_path = Path(output_dir)
     output_path.mkdir(parents=True, exist_ok=True)
@@ -190,14 +253,35 @@ def run_annotation_pipeline(
     if layer is not None and layer not in adata.layers:
         raise PipelineError(f"layer '{layer}' not found. Available layers: {list(adata.layers)}")
 
+    # Resolve governed context before selecting candidate marker panels. Free
+    # text is retained for provenance only; only structured hypotheses merge.
+    from .context_pack import (
+        ContextPackError,
+        context_manifest_parameters,
+        load_context_pack,
+        merge_identity_hypotheses,
+        resolve_atlas_tissue,
+    )
+
+    try:
+        context_pack = load_context_pack(
+            context_text=context_text,
+            context_file=context_file_path,
+            custom_markers_file=custom_markers_path,
+            species=species,
+            tissue=tissue,
+        )
+    except ContextPackError as exc:
+        raise PipelineError(f"Context safety gate failed: {exc}") from exc
+    context_enabled = bool(context_text or context_file_path or custom_markers_path)
+
     # Step 3: Marker scoring
     _emit(3, "Computing marker scores...")
     atlas = load_marker_atlas(species)
-    if tissue not in atlas.get("tissues", {}):
-        raise PipelineError(
-            f"Tissue {tissue!r} is not present in the bundled atlas. "
-            "Choose an explicit supported tissue or 'general'; no silent tissue fallback is allowed."
-        )
+    try:
+        atlas_tissue = resolve_atlas_tissue(tissue, atlas, context_pack)
+    except ContextPackError as exc:
+        raise PipelineError(f"Context safety gate failed: {exc}") from exc
     provenance_issues = validate_atlas_provenance(atlas)
     if provenance_issues:
         raise PipelineError(
@@ -205,10 +289,11 @@ def run_annotation_pipeline(
         )
     markers = get_all_markers_for_tissue(
         atlas,
-        tissue,
+        atlas_tissue,
         evidence_policy=marker_evidence_policy,
     )
-    atlas_evidence_summary = summarize_atlas_evidence(atlas, tissue)
+    markers = merge_identity_hypotheses(markers, context_pack)
+    atlas_evidence_summary = summarize_atlas_evidence(atlas, atlas_tissue)
     n_marker_relationships = sum(
         len(info.get("positive_markers", [])) + len(info.get("negative_markers", []))
         for info in markers.values()
@@ -273,10 +358,11 @@ def run_annotation_pipeline(
         cluster_key,
         summary,
         atlas,
-        tissue,
+        atlas_tissue,
         ensemble_info=ensemble_df if not ensemble_df.empty else None,
         layer=layer,
         evidence_policy=marker_evidence_policy,
+        marker_definitions=markers,
     )
     calibration_policy = None
     calibration_policy_hash = None
@@ -296,16 +382,41 @@ def run_annotation_pipeline(
         calibration_policy_hash = compute_data_hash(policy_path)
     critic_summary = generate_critic_summary(critic_results)
 
-    # Step 6: Figures
+    # Step 6: State Lens. This is an independent output axis; the attach
+    # function asserts that canonical identity columns are unchanged.
+    _emit(6, "Scoring independent cell states...")
+    state_results = pd.DataFrame()
+    if enable_states:
+        from .state_scorer import (
+            StateScoringError,
+            attach_state_results,
+            load_state_definitions,
+            score_cell_states,
+        )
+
+        try:
+            state_definitions = load_state_definitions(species, tissue, context_pack)
+            state_results = score_cell_states(
+                adata,
+                cluster_key,
+                critic_results,
+                state_definitions,
+                layer=layer,
+            )
+            critic_results = attach_state_results(critic_results, state_results)
+        except StateScoringError as exc:
+            raise PipelineError(f"State safety gate failed: {exc}") from exc
+
+    # Step 7: Figures
     figure_paths = []
     if not no_figures and embedding_key:
-        _emit(6, "Generating figures...")
+        _emit(7, "Generating figures...")
         figure_paths = generate_all_figures(
             adata, cluster_key, embedding_key, critic_results, output_path, tissue
         )
 
-    # Step 7: Save all outputs and hash them into one manifest.
-    _emit(7, "Saving outputs...")
+    # Step 8: Save all outputs and hash them into one manifest.
+    _emit(8, "Saving outputs...")
 
     evidence_path = save_evidence_table(critic_results, output_path)
 
@@ -315,6 +426,7 @@ def run_annotation_pipeline(
         ("ensemble_scores", ensemble_df),
         ("transitional_states", transitions),
         ("disagreements", disagreements),
+        ("state_results", state_results),
     ):
         if not frame.empty:
             frame_path = output_path / f"{name}.csv"
@@ -346,10 +458,12 @@ def run_annotation_pipeline(
             "de_fdr_max": MARKER_FDR_THRESHOLD,
             "marker_expression_fraction_min": MARKER_PCT_THRESHOLD,
             "pipeline_stages": [
+                "context",
                 "marker",
                 "reference" if uses_reference else "reference_skipped",
                 "ensemble" if uses_reference and not no_ensemble else "ensemble_skipped",
                 "critic",
+                "state" if enable_states else "state_skipped",
                 "writeback",
                 "report",
                 "manifest",
@@ -360,6 +474,10 @@ def run_annotation_pipeline(
             "marker_provenance_validation": "passed",
             "marker_evidence_policy": marker_evidence_policy,
             "marker_evidence_summary": atlas_evidence_summary,
+            "atlas_tissue": atlas_tissue,
+            **context_manifest_parameters(context_pack, context_enabled),
+            "state_lens_enabled": enable_states,
+            "state_contract": "identity_invariant_independent_axis_v1",
             "calibration_policy_path": str(calibration_policy_path)
             if calibration_policy_path is not None
             else None,
@@ -368,6 +486,15 @@ def run_annotation_pipeline(
         },
         output_dir=output_path,
     )
+
+    if context_enabled:
+        import json
+
+        context_output = output_path / "context_pack.normalized.json"
+        context_output.write_text(
+            json.dumps(context_pack, indent=2, ensure_ascii=False) + "\n",
+            encoding="utf-8",
+        )
 
     report_path = generate_html_report(
         critic_results, critic_results, critic_summary, manifest, figure_paths, output_path
