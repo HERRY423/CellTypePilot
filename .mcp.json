@@ -1,5 +1,9 @@
 {
   "mcpServers": {
+    "celltypepilot": {
+      "type": "stdio",
+      "command": "celltypepilot-mcp"
+    },
     "pubmed": {
       "type": "http",
       "url": "https://pubmed.mcp.claude.com/mcp"

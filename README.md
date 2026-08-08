@@ -28,11 +28,19 @@ coding workspace you already use. A qualified human owns the final biological de
 | Governed Context Pack: structured custom markers share the normal evidence gates; free text is provenance-only | That free-text biological context is validated evidence |
 | Separate identity and state outputs; state scoring cannot overwrite identity or rescue an abstained identity | Calibrated cell-state accuracy or comprehensive state coverage |
 
-For `mkg-2026.08`, all 733 bundled marker relationships are currently classified as
-`aggregate_source_only_not_edge_verified`. They remain usable under the exploratory
-`database` evidence policy, but are excluded by stricter `edge_verified` and `primary`
-policies. The curation backlog is published in
-[`docs/atlas_curation_queue.csv`](docs/atlas_curation_queue.csv).
+For `mkg-2026.08.1`, 280 of 599 bundled marker relationships have been upgraded to
+`literature_cooccurrence_supported` via an auditable PubMed co-occurrence sweep
+(`celltypepilot curate`). The remaining 319 relationships are still
+`aggregate_source_only_not_edge_verified`. All relationships remain usable under the
+exploratory `database` evidence policy; the `literature` policy requires at least
+co-occurrence support; `edge_verified` and `primary` policies exclude literature-only
+edges. The sweep report and curation queue are published in
+[`docs/curate/`](docs/curate/) and [`docs/atlas_curation_queue.csv`](docs/atlas_curation_queue.csv).
+
+Cell Ontology identifiers are validated against the live Cell Ontology
+(`celltypepilot ontology update` then `celltypepilot ontology check`). Unknown or
+obsolete CL identifiers are flagged as errors; lexical label mismatches are warnings
+(the atlas key may be an intentional refinement).
 
 ## Why it exists
 
@@ -50,7 +58,7 @@ painful — not because the algorithms don't exist, but because:
 | **Identity and state are conflated** | Canonical identity and exploratory state are written on independent axes; an `Unknown` identity can retain a supported state without becoming a cell type |
 | **Token cost spirals** | Annotation, critic checks, calibration, and reporting are deterministic local code; no LLM call is required |
 | **Results unreproducible** | `manifest.json` records knowledge graph version, parameters, data hash, and output hashes for every run |
-| **Metadata is messy** (Ensembl IDs, mixed gene naming, non-standard tissue columns) | Robust auto-detection: Ensembl prefix voting across 9 species, gene-symbol convention fallback, case-insensitive tissue matching with synonym groups |
+| **Metadata is messy** (Ensembl IDs, mixed gene naming, non-standard tissue columns) | Inspection can route data with Ensembl prefix voting across 9 species, but annotation scoring fails closed unless the species is supported by the atlas (`human`/`mouse` today) |
 
 ## What you get
 
@@ -76,6 +84,10 @@ output/
 
 ## Quick start
 
+Web Review also writes governance artifacts when manual overrides are used:
+`annotation_audit_log.jsonl` is append-only, and `artifact_status.json` records whether
+derived evidence/report/figure/manifest artifacts are stale after overrides.
+
 ```bash
 # 1. Install
 pip install -e .
@@ -83,11 +95,11 @@ pip install -e .
 # 2. Environment check — tells you what works and what's missing
 celltypepilot doctor
 
-# 3. Inspect your data — robustly auto-detects species, tissue, clusters, embeddings
+# 3. Inspect your data — detects species, tissue, clusters, embeddings, and support boundaries
 celltypepilot inspect --input data.h5ad
 
-# 4. Annotate — full pipeline in one command
-celltypepilot annotate --input data.h5ad --cluster-key leiden --tissue blood
+# 4. Annotate — full pipeline in one command for supported atlas species
+celltypepilot annotate --input data.h5ad --cluster-key leiden --species human --tissue blood
 
 # 5. Annotate with reference embedding (resolves trajectories & rare states)
 celltypepilot annotate --input data.h5ad --cluster-key leiden \
@@ -101,6 +113,9 @@ celltypepilot inspect-web --output output/
 
 # 8. Deep-review a flagged cluster
 celltypepilot critic --input data.h5ad --cluster-key leiden --focus cluster_7
+
+# 8b. Produce an offline atlas governance report for release review / Agent hosts
+celltypepilot atlas-governance --output atlas_governance.json
 
 # 9. Validate markers against literature (optional, needs network)
 celltypepilot literature --cell-type "T cells" --markers "CD3E,CD4,CD8A"
@@ -142,7 +157,7 @@ the annotation artifacts.
 
 Real-world datasets are messy. CellTypePilot's inspection layer is built to handle it:
 
-**Species detection** — multi-signal voting, not brittle pattern matching:
+**Species detection** — multi-signal voting for routing, not a promise of atlas support:
 
 | Signal | How it works |
 |---|---|
@@ -150,6 +165,15 @@ Real-world datasets are messy. CellTypePilot's inspection layer is built to hand
 | Gene symbol conventions | ALL-CAPS (e.g. `CD3E`, `S100A8`) → human; capitalized (e.g. `Cd3e`) → mouse — robust to symbols containing digits |
 | Mixed naming | Per-gene voting with clear majority rule; ambiguous data defaults safely and is reported, never silently mislabeled |
 | Explicit override | `--species human\|mouse` always wins |
+
+Detection and annotation support are intentionally separate. The inspection layer may detect
+rat, zebrafish, chicken, pig, cow, macaque, or dog identifiers so an Agent host can explain
+the dataset and route the next step. The bundled annotation atlas scores only `human` and
+`mouse`; unsupported species fail closed rather than applying human/mouse marker biology.
+Ordinary annotation outputs also record `validation_scope` in `manifest.json`, making clear
+that a run is a reviewable draft and not evidence of batch-effect or complex-sample
+robustness. Robustness claims require the locked `benchmark` / `benchmark-run` workflow with
+study and donor metadata.
 
 **Tissue detection** — case-insensitive matching over `obs` metadata with synonym groups
 (e.g. `pbmc` / `peripheral blood` / `blood` all resolve to the blood atlas), so columns
@@ -244,8 +268,17 @@ pip install -e .
 celltypepilot doctor
 ```
 
-Optional extras: `pip install -e ".[web]"` (Web Inspector), `"[seurat]"` (.rds support),
-`"[reference]"` (CellTypist), `"[embedding]"` (scVI/scANVI), `"[all]"` (everything).
+Optional extras: `pip install -e ".[web]"` (Web Inspector), `"[mcp]"` (native
+CellTypePilot MCP server), `"[seurat]"` (.rds support), `"[reference]"` (CellTypist),
+`"[embedding]"` (scVI/scANVI), `"[all]"` (everything).
+
+### Agent-native MCP
+
+CellTypePilot ships a local stdio MCP facade via `celltypepilot-mcp` and `.mcp.json`.
+The facade exposes deterministic tools for inspection, marker scope, atlas governance,
+manifest/audit reading, critic review, and bounded annotation. It does not make autonomous
+biological decisions; the same fail-closed species, pack, reference, and provenance gates
+apply as the CLI.
 
 ### Plugin structure
 
@@ -392,13 +425,28 @@ across **6 checks** (including ensemble agreement when reference embedding is av
 | Evidence sufficiency | < 20% expected-marker coverage → `LOW_EVIDENCE`; 20–50% → `PARTIAL_EVIDENCE`; both abstain |
 | Negative marker conflict | Negative markers expressed in > 20% of cells → `NEG_MARKER_CONFLICT` |
 | Doublet signal | Two mutually exclusive lineage signatures co-expressed → `POSSIBLE_DOUBLET` |
-| Ontology consistency | Does the label exactly match the CL identifier declared in the versioned atlas? Live ontology resolution is not claimed |
+| Ontology consistency | Does the label match the CL identifier declared in the versioned atlas? Live ontology validation available via `celltypepilot ontology check` |
 | Ensemble agreement | Marker vs reference disagreement → `ENSEMBLE_DISAGREEMENT` / `ENSEMBLE_MILD_DISAGREEMENT` |
 | Weak reference | Reference-only support with low confidence → `WEAK_REFERENCE_ONLY` |
 
 Confidence levels: **high** / **medium** / **low** / **needs_review**. The Critic can only
 downgrade, never upgrade. A flagged cluster is a *success* — it means the system caught
 something worth your attention.
+
+### Score, uncertainty, and statistical product language
+
+CellTypePilot treats `combined_score` and `evidence_score` as deterministic evidence-ranking
+signals, not calibrated probabilities. `critic_confidence` is a rule-based review category,
+not a posterior probability. `Unknown` is a fail-closed abstention decision rather than a
+biological cell class.
+
+Calibration is expressed as a downgrade-only abstention policy fitted on a separately
+designated calibration artifact. Applying that policy can move low-score calls to `Unknown`;
+it does not create per-cluster calibrated probabilities for the current annotation run.
+Batch robustness, complex-sample robustness, OOD/novelty detection, and selective-risk
+guarantees must come from separate benchmark/calibration artifacts, not ordinary annotation
+outputs. The machine-readable contract is exported as `uncertainty_language` in
+`manifest.json` and as semantic columns in `evidence_table.csv`.
 
 The atlas v2 schema records gene, polarity, species, tissue, state, atlas version,
 PMID/DOI/URL, and verification status for every bundled marker relationship. Existing

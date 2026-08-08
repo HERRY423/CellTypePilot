@@ -8,7 +8,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 ATLAS_PATHS = (
     ROOT / "src" / "celltypepilot" / "data" / "marker_atlas.json",
-    ROOT / "src" / "celltypepilot" / "data" / "premium_atlas.json",
+    ROOT / "src" / "celltypepilot" / "data" / "packs" / "premium" / "marker_atlas.json",
 )
 
 SOURCE_REGISTRY = {

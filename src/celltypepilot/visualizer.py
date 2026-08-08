@@ -60,7 +60,20 @@ def generate_all_figures(
         if path:
             generated.append(path)
 
+    # 6. UMAP colored by Identity x State composite label
+    if "display_label" in annotations.columns:
+        path = plot_umap_identity_state(adata, annotations, cluster_key, embedding_key, figures_dir)
+        if path:
+            generated.append(path)
+
+    # 7. Identity x State distribution heatmap
+    if "cell_state_candidate" in annotations.columns:
+        path = plot_identity_state_distribution(annotations, figures_dir)
+        if path:
+            generated.append(path)
+
     return generated
+
 
 
 def plot_umap_clusters(adata, cluster_key: str, embedding_key: str, output_dir: Path) -> str | None:
@@ -342,3 +355,100 @@ def _generate_colors(n: int) -> list[str]:
     ]
     all_colors = CB_PALETTE + extra_colors
     return [all_colors[i % len(all_colors)] for i in range(n)]
+
+
+def plot_umap_identity_state(
+    adata, annotations: pd.DataFrame, cluster_key: str, embedding_key: str, output_dir: Path
+) -> str | None:
+    """UMAP colored by Identity x State composite display label."""
+    if embedding_key not in adata.obsm or "display_label" not in annotations.columns:
+        return None
+
+    coords = adata.obsm[embedding_key]
+    cluster_to_label = dict(
+        zip(annotations["cluster"].astype(str), annotations["display_label"].astype(str), strict=True)
+    )
+    labels = [cluster_to_label.get(str(c), "Unknown") for c in adata.obs[cluster_key]]
+
+    unique_labels = sorted(set(labels))
+    colors = _generate_colors(len(unique_labels))
+    label_color_map = {lbl: colors[i % len(colors)] for i, lbl in enumerate(unique_labels)}
+
+    fig, ax = plt.subplots(figsize=(8, 6))
+    for lbl in unique_labels:
+        mask = np.array([l == lbl for l in labels])
+        ax.scatter(
+            coords[mask, 0],
+            coords[mask, 1],
+            c=[label_color_map[lbl]],
+            label=lbl,
+            s=1,
+            alpha=0.6,
+            rasterized=True,
+        )
+
+    ax.set_title("Identity x Cell State Composite Annotation", fontsize=12)
+    ax.set_xlabel(f"{embedding_key}1")
+    ax.set_ylabel(f"{embedding_key}2")
+    ax.legend(
+        markerscale=4,
+        fontsize=7,
+        loc="center left",
+        bbox_to_anchor=(1.0, 0.5),
+        frameon=False,
+    )
+    ax.set_aspect("equal")
+
+    path = output_dir / "umap_identity_state.png"
+    fig.savefig(path, dpi=150, bbox_inches="tight")
+    plt.close(fig)
+    return str(path)
+
+
+def plot_identity_state_distribution(annotations: pd.DataFrame, output_dir: Path) -> str | None:
+    """Heatmap matrix showing Cell State distribution per Identity."""
+    if "cell_type" not in annotations.columns or "cell_state_candidate" not in annotations.columns:
+        return None
+
+    valid = annotations[annotations["cell_state_candidate"] != "Unknown"]
+    if valid.empty:
+        return None
+
+    ct_state_counts = pd.crosstab(valid["cell_type"], valid["cell_state_candidate"])
+    if ct_state_counts.empty:
+        return None
+
+    n_rows, n_cols = ct_state_counts.shape
+    fig, ax = plt.subplots(figsize=(max(6, n_cols * 1.2), max(4, n_rows * 0.6)))
+    cax = ax.matshow(ct_state_counts.values, cmap="YlGnBu", alpha=0.85)
+
+    ax.set_xticks(range(n_cols))
+    ax.set_yticks(range(n_rows))
+    ax.set_xticklabels(ct_state_counts.columns, rotation=45, ha="left", fontsize=9)
+    ax.set_yticklabels(ct_state_counts.index, fontsize=9)
+
+    fig.colorbar(cax, ax=ax, fraction=0.046, pad=0.04)
+
+    for i in range(n_rows):
+        for j in range(n_cols):
+            val = ct_state_counts.values[i, j]
+            if val > 0:
+                ax.text(
+                    j,
+                    i,
+                    str(val),
+                    ha="center",
+                    va="center",
+                    color="black",
+                    fontsize=9,
+                    fontweight="bold",
+                )
+
+    ax.set_title("Cell State Distribution across Identities", fontsize=11, pad=40)
+    fig.tight_layout()
+
+    path = output_dir / "identity_state_distribution.png"
+    fig.savefig(path, dpi=150, bbox_inches="tight")
+    plt.close(fig)
+    return str(path)
+

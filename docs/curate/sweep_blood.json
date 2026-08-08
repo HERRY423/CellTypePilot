@@ -1,0 +1,2556 @@
+{
+  "curator": "celltypepilot-pubmed-sweep-v1",
+  "generated_at": "2026-08-08T12:02:55.030268+00:00",
+  "swept": 193,
+  "supported": 102,
+  "errors": 1,
+  "min_hits_for_upgrade": 2,
+  "results": [
+    {
+      "tissue": "blood",
+      "cell_path": "T cell",
+      "gene": "CD3D",
+      "polarity": "positive",
+      "query": "\"CD3D\"[tiab] AND \"T cell\"[tiab] AND marker[tiab]",
+      "supported": true,
+      "total_hits": 13,
+      "pmids": [
+        "42238559",
+        "40577225",
+        "40565031"
+      ],
+      "error": ""
+    },
+    {
+      "tissue": "blood",
+      "cell_path": "T cell",
+      "gene": "CD3E",
+      "polarity": "positive",
+      "query": "\"CD3E\"[tiab] AND \"T cell\"[tiab] AND marker[tiab]",
+      "supported": true,
+      "total_hits": 14,
+      "pmids": [
+        "42395370",
+        "42285316",
+        "42075501"
+      ],
+      "error": ""
+    },
+    {
+      "tissue": "blood",
+      "cell_path": "T cell",
+      "gene": "CD2",
+      "polarity": "positive",
+      "query": "\"CD2\"[tiab] AND \"T cell\"[tiab] AND marker[tiab]",
+      "supported": true,
+      "total_hits": 20,
+      "pmids": [
+        "41385935",
+        "40981343",
+        "40605272"
+      ],
+      "error": ""
+    },
+    {
+      "tissue": "blood",
+      "cell_path": "T cell",
+      "gene": "TRAC",
+      "polarity": "positive",
+      "query": "\"TRAC\"[tiab] AND \"T cell\"[tiab] AND marker[tiab]",
+      "supported": true,
+      "total_hits": 5,
+      "pmids": [
+        "42058597",
+        "41856057",
+        "40812299"
+      ],
+      "error": ""
+    },
+    {
+      "tissue": "blood",
+      "cell_path": "T cell",
+      "gene": "CD7",
+      "polarity": "positive",
+      "query": "\"CD7\"[tiab] AND \"T cell\"[tiab] AND marker[tiab]",
+      "supported": true,
+      "total_hits": 20,
+      "pmids": [
+        "42233011",
+        "41965798",
+        "41174711"
+      ],
+      "error": ""
+    },
+    {
+      "tissue": "blood",
+      "cell_path": "T cell",
+      "gene": "CD19",
+      "polarity": "negative",
+      "query": "\"CD19\"[tiab] AND \"T cell\"[tiab] AND (negative OR absence)",
+      "supported": true,
+      "total_hits": 20,
+      "pmids": [
+        "42567561",
+        "42566056",
+        "42558547"
+      ],
+      "error": ""
+    },
+    {
+      "tissue": "blood",
+      "cell_path": "T cell",
+      "gene": "MS4A1",
+      "polarity": "negative",
+      "query": "\"MS4A1\"[tiab] AND \"T cell\"[tiab] AND (negative OR absence)",
+      "supported": true,
+      "total_hits": 10,
+      "pmids": [
+        "42136237",
+        "41488652",
+        "41157589"
+      ],
+      "error": ""
+    },
+    {
+      "tissue": "blood",
+      "cell_path": "T cell",
+      "gene": "CD14",
+      "polarity": "negative",
+      "query": "\"CD14\"[tiab] AND \"T cell\"[tiab] AND (negative OR absence)",
+      "supported": true,
+      "total_hits": 20,
+      "pmids": [
+        "42539524",
+        "42485668",
+        "42453898"
+      ],
+      "error": ""
+    },
+    {
+      "tissue": "blood",
+      "cell_path": "T cell",
+      "gene": "NCAM1",
+      "polarity": "negative",
+      "query": "\"NCAM1\"[tiab] AND \"T cell\"[tiab] AND (negative OR absence)",
+      "supported": true,
+      "total_hits": 5,
+      "pmids": [
+        "41157589",
+        "40226614",
+        "39911859"
+      ],
+      "error": ""
+    },
+    {
+      "tissue": "blood",
+      "cell_path": "T cell > CD4+ T cell",
+      "gene": "CD4",
+      "polarity": "positive",
+      "query": "\"CD4\"[tiab] AND \"CD4+ T cell\"[tiab] AND marker[tiab]",
+      "supported": true,
+      "total_hits": 20,
+      "pmids": [
+        "42565034",
+        "42509802",
+        "42508067"
+      ],
+      "error": ""
+    },
+    {
+      "tissue": "blood",
+      "cell_path": "T cell > CD4+ T cell",
+      "gene": "IL7R",
+      "polarity": "positive",
+      "query": "\"IL7R\"[tiab] AND \"CD4+ T cell\"[tiab] AND marker[tiab]",
+      "supported": true,
+      "total_hits": 5,
+      "pmids": [
+        "41540405",
+        "40574973",
+        "22329520"
+      ],
+      "error": ""
+    },
+    {
+      "tissue": "blood",
+      "cell_path": "T cell > CD4+ T cell",
+      "gene": "MAL",
+      "polarity": "positive",
+      "query": "\"MAL\"[tiab] AND \"CD4+ T cell\"[tiab] AND marker[tiab]",
+      "supported": false,
+      "total_hits": 0,
+      "pmids": [],
+      "error": ""
+    },
+    {
+      "tissue": "blood",
+      "cell_path": "T cell > CD4+ T cell",
+      "gene": "TRAC",
+      "polarity": "positive",
+      "query": "\"TRAC\"[tiab] AND \"CD4+ T cell\"[tiab] AND marker[tiab]",
+      "supported": false,
+      "total_hits": 0,
+      "pmids": [],
+      "error": ""
+    },
+    {
+      "tissue": "blood",
+      "cell_path": "T cell > CD4+ T cell",
+      "gene": "CD8A",
+      "polarity": "negative",
+      "query": "\"CD8A\"[tiab] AND \"CD4+ T cell\"[tiab] AND (negative OR absence)",
+      "supported": true,
+      "total_hits": 4,
+      "pmids": [
+        "38327516",
+        "33301809",
+        "29384862"
+      ],
+      "error": ""
+    },
+    {
+      "tissue": "blood",
+      "cell_path": "T cell > CD4+ T cell",
+      "gene": "CD8B",
+      "polarity": "negative",
+      "query": "\"CD8B\"[tiab] AND \"CD4+ T cell\"[tiab] AND (negative OR absence)",
+      "supported": false,
+      "total_hits": 1,
+      "pmids": [
+        "40747421"
+      ],
+      "error": ""
+    },
+    {
+      "tissue": "blood",
+      "cell_path": "T cell > CD4+ T cell",
+      "gene": "FOXP3",
+      "polarity": "negative",
+      "query": "\"FOXP3\"[tiab] AND \"CD4+ T cell\"[tiab] AND (negative OR absence)",
+      "supported": true,
+      "total_hits": 20,
+      "pmids": [
+        "42485749",
+        "42445220",
+        "42440430"
+      ],
+      "error": ""
+    },
+    {
+      "tissue": "blood",
+      "cell_path": "T cell > CD4+ T cell > Naive CD4+ T cell",
+      "gene": "CCR7",
+      "polarity": "positive",
+      "query": "\"CCR7\"[tiab] AND \"Naive CD4+ T cell\"[tiab] AND marker[tiab]",
+      "supported": false,
+      "total_hits": 0,
+      "pmids": [],
+      "error": ""
+    },
+    {
+      "tissue": "blood",
+      "cell_path": "T cell > CD4+ T cell > Naive CD4+ T cell",
+      "gene": "LEF1",
+      "polarity": "positive",
+      "query": "\"LEF1\"[tiab] AND \"Naive CD4+ T cell\"[tiab] AND marker[tiab]",
+      "supported": false,
+      "total_hits": 0,
+      "pmids": [],
+      "error": ""
+    },
+    {
+      "tissue": "blood",
+      "cell_path": "T cell > CD4+ T cell > Naive CD4+ T cell",
+      "gene": "SELL",
+      "polarity": "positive",
+      "query": "\"SELL\"[tiab] AND \"Naive CD4+ T cell\"[tiab] AND marker[tiab]",
+      "supported": false,
+      "total_hits": 0,
+      "pmids": [],
+      "error": ""
+    },
+    {
+      "tissue": "blood",
+      "cell_path": "T cell > CD4+ T cell > Naive CD4+ T cell",
+      "gene": "TCF7",
+      "polarity": "positive",
+      "query": "\"TCF7\"[tiab] AND \"Naive CD4+ T cell\"[tiab] AND marker[tiab]",
+      "supported": false,
+      "total_hits": 0,
+      "pmids": [],
+      "error": ""
+    },
+    {
+      "tissue": "blood",
+      "cell_path": "T cell > CD4+ T cell > Naive CD4+ T cell",
+      "gene": "GZMB",
+      "polarity": "negative",
+      "query": "\"GZMB\"[tiab] AND \"Naive CD4+ T cell\"[tiab] AND (negative OR absence)",
+      "supported": false,
+      "total_hits": 1,
+      "pmids": [
+        "39746548"
+      ],
+      "error": ""
+    },
+    {
+      "tissue": "blood",
+      "cell_path": "T cell > CD4+ T cell > Naive CD4+ T cell",
+      "gene": "PRF1",
+      "polarity": "negative",
+      "query": "\"PRF1\"[tiab] AND \"Naive CD4+ T cell\"[tiab] AND (negative OR absence)",
+      "supported": false,
+      "total_hits": 0,
+      "pmids": [],
+      "error": ""
+    },
+    {
+      "tissue": "blood",
+      "cell_path": "T cell > CD4+ T cell > Naive CD4+ T cell",
+      "gene": "FOXP3",
+      "polarity": "negative",
+      "query": "\"FOXP3\"[tiab] AND \"Naive CD4+ T cell\"[tiab] AND (negative OR absence)",
+      "supported": true,
+      "total_hits": 10,
+      "pmids": [
+        "42485749",
+        "41736071",
+        "39147414"
+      ],
+      "error": ""
+    },
+    {
+      "tissue": "blood",
+      "cell_path": "T cell > CD4+ T cell > Memory CD4+ T cell",
+      "gene": "IL7R",
+      "polarity": "positive",
+      "query": "\"IL7R\"[tiab] AND \"Memory CD4+ T cell\"[tiab] AND marker[tiab]",
+      "supported": false,
+      "total_hits": 1,
+      "pmids": [
+        "22018471"
+      ],
+      "error": ""
+    },
+    {
+      "tissue": "blood",
+      "cell_path": "T cell > CD4+ T cell > Memory CD4+ T cell",
+      "gene": "S100A4",
+      "polarity": "positive",
+      "query": "\"S100A4\"[tiab] AND \"Memory CD4+ T cell\"[tiab] AND marker[tiab]",
+      "supported": false,
+      "total_hits": 0,
+      "pmids": [],
+      "error": ""
+    },
+    {
+      "tissue": "blood",
+      "cell_path": "T cell > CD4+ T cell > Memory CD4+ T cell",
+      "gene": "CCR7",
+      "polarity": "positive",
+      "query": "\"CCR7\"[tiab] AND \"Memory CD4+ T cell\"[tiab] AND marker[tiab]",
+      "supported": true,
+      "total_hits": 4,
+      "pmids": [
+        "37330549",
+        "30559746",
+        "29293157"
+      ],
+      "error": ""
+    },
+    {
+      "tissue": "blood",
+      "cell_path": "T cell > CD4+ T cell > Memory CD4+ T cell",
+      "gene": "FOXP3",
+      "polarity": "negative",
+      "query": "\"FOXP3\"[tiab] AND \"Memory CD4+ T cell\"[tiab] AND (negative OR absence)",
+      "supported": true,
+      "total_hits": 5,
+      "pmids": [
+        "36059538",
+        "29498435",
+        "29403500"
+      ],
+      "error": ""
+    },
+    {
+      "tissue": "blood",
+      "cell_path": "T cell > CD4+ T cell > Memory CD4+ T cell",
+      "gene": "GZMB",
+      "polarity": "negative",
+      "query": "\"GZMB\"[tiab] AND \"Memory CD4+ T cell\"[tiab] AND (negative OR absence)",
+      "supported": false,
+      "total_hits": 0,
+      "pmids": [],
+      "error": ""
+    },
+    {
+      "tissue": "blood",
+      "cell_path": "T cell > CD4+ T cell > Regulatory T cell",
+      "gene": "FOXP3",
+      "polarity": "positive",
+      "query": "\"FOXP3\"[tiab] AND \"Regulatory T cell\"[tiab] AND marker[tiab]",
+      "supported": true,
+      "total_hits": 20,
+      "pmids": [
+        "42567561",
+        "42565034",
+        "42272979"
+      ],
+      "error": ""
+    },
+    {
+      "tissue": "blood",
+      "cell_path": "T cell > CD4+ T cell > Regulatory T cell",
+      "gene": "IL2RA",
+      "polarity": "positive",
+      "query": "\"IL2RA\"[tiab] AND \"Regulatory T cell\"[tiab] AND marker[tiab]",
+      "supported": true,
+      "total_hits": 2,
+      "pmids": [
+        "33193091",
+        "31066485"
+      ],
+      "error": ""
+    },
+    {
+      "tissue": "blood",
+      "cell_path": "T cell > CD4+ T cell > Regulatory T cell",
+      "gene": "CTLA4",
+      "polarity": "positive",
+      "query": "\"CTLA4\"[tiab] AND \"Regulatory T cell\"[tiab] AND marker[tiab]",
+      "supported": true,
+      "total_hits": 20,
+      "pmids": [
+        "42565034",
+        "41416935",
+        "40181205"
+      ],
+      "error": ""
+    },
+    {
+      "tissue": "blood",
+      "cell_path": "T cell > CD4+ T cell > Regulatory T cell",
+      "gene": "IKZF2",
+      "polarity": "positive",
+      "query": "\"IKZF2\"[tiab] AND \"Regulatory T cell\"[tiab] AND marker[tiab]",
+      "supported": false,
+      "total_hits": 1,
+      "pmids": [
+        "40659357"
+      ],
+      "error": ""
+    },
+    {
+      "tissue": "blood",
+      "cell_path": "T cell > CD4+ T cell > Regulatory T cell",
+      "gene": "TNFRSF18",
+      "polarity": "positive",
+      "query": "\"TNFRSF18\"[tiab] AND \"Regulatory T cell\"[tiab] AND marker[tiab]",
+      "supported": true,
+      "total_hits": 2,
+      "pmids": [
+        "41416935",
+        "34365017"
+      ],
+      "error": ""
+    },
+    {
+      "tissue": "blood",
+      "cell_path": "T cell > CD4+ T cell > Regulatory T cell",
+      "gene": "IL17A",
+      "polarity": "negative",
+      "query": "\"IL17A\"[tiab] AND \"Regulatory T cell\"[tiab] AND (negative OR absence)",
+      "supported": true,
+      "total_hits": 20,
+      "pmids": [
+        "41551409",
+        "41482418",
+        "39631446"
+      ],
+      "error": ""
+    },
+    {
+      "tissue": "blood",
+      "cell_path": "T cell > CD4+ T cell > Regulatory T cell",
+      "gene": "IFNG",
+      "polarity": "negative",
+      "query": "\"IFNG\"[tiab] AND \"Regulatory T cell\"[tiab] AND (negative OR absence)",
+      "supported": true,
+      "total_hits": 7,
+      "pmids": [
+        "36776769",
+        "35860502",
+        "33748824"
+      ],
+      "error": ""
+    },
+    {
+      "tissue": "blood",
+      "cell_path": "T cell > CD4+ T cell > Regulatory T cell",
+      "gene": "TBX21",
+      "polarity": "negative",
+      "query": "\"TBX21\"[tiab] AND \"Regulatory T cell\"[tiab] AND (negative OR absence)",
+      "supported": true,
+      "total_hits": 4,
+      "pmids": [
+        "40032779",
+        "38764823",
+        "34916766"
+      ],
+      "error": ""
+    },
+    {
+      "tissue": "blood",
+      "cell_path": "T cell > CD4+ T cell > Th1 cell",
+      "gene": "TBX21",
+      "polarity": "positive",
+      "query": "\"TBX21\"[tiab] AND \"Th1 cell\"[tiab] AND marker[tiab]",
+      "supported": false,
+      "total_hits": 0,
+      "pmids": [],
+      "error": ""
+    },
+    {
+      "tissue": "blood",
+      "cell_path": "T cell > CD4+ T cell > Th1 cell",
+      "gene": "IFNG",
+      "polarity": "positive",
+      "query": "\"IFNG\"[tiab] AND \"Th1 cell\"[tiab] AND marker[tiab]",
+      "supported": false,
+      "total_hits": 1,
+      "pmids": [
+        "31061297"
+      ],
+      "error": ""
+    },
+    {
+      "tissue": "blood",
+      "cell_path": "T cell > CD4+ T cell > Th1 cell",
+      "gene": "CXCR3",
+      "polarity": "positive",
+      "query": "\"CXCR3\"[tiab] AND \"Th1 cell\"[tiab] AND marker[tiab]",
+      "supported": false,
+      "total_hits": 0,
+      "pmids": [],
+      "error": "The read operation timed out"
+    },
+    {
+      "tissue": "blood",
+      "cell_path": "T cell > CD4+ T cell > Th1 cell",
+      "gene": "IL12RB1",
+      "polarity": "positive",
+      "query": "\"IL12RB1\"[tiab] AND \"Th1 cell\"[tiab] AND marker[tiab]",
+      "supported": false,
+      "total_hits": 0,
+      "pmids": [],
+      "error": ""
+    },
+    {
+      "tissue": "blood",
+      "cell_path": "T cell > CD4+ T cell > Th1 cell",
+      "gene": "IL4",
+      "polarity": "negative",
+      "query": "\"IL4\"[tiab] AND \"Th1 cell\"[tiab] AND (negative OR absence)",
+      "supported": true,
+      "total_hits": 20,
+      "pmids": [
+        "41103717",
+        "37051293",
+        "36685604"
+      ],
+      "error": ""
+    },
+    {
+      "tissue": "blood",
+      "cell_path": "T cell > CD4+ T cell > Th1 cell",
+      "gene": "IL17A",
+      "polarity": "negative",
+      "query": "\"IL17A\"[tiab] AND \"Th1 cell\"[tiab] AND (negative OR absence)",
+      "supported": true,
+      "total_hits": 5,
+      "pmids": [
+        "41416940",
+        "35737168",
+        "32561568"
+      ],
+      "error": ""
+    },
+    {
+      "tissue": "blood",
+      "cell_path": "T cell > CD4+ T cell > Th17 cell",
+      "gene": "IL17A",
+      "polarity": "positive",
+      "query": "\"IL17A\"[tiab] AND \"Th17 cell\"[tiab] AND marker[tiab]",
+      "supported": true,
+      "total_hits": 20,
+      "pmids": [
+        "41380197",
+        "41054013",
+        "39232294"
+      ],
+      "error": ""
+    },
+    {
+      "tissue": "blood",
+      "cell_path": "T cell > CD4+ T cell > Th17 cell",
+      "gene": "IL17F",
+      "polarity": "positive",
+      "query": "\"IL17F\"[tiab] AND \"Th17 cell\"[tiab] AND marker[tiab]",
+      "supported": true,
+      "total_hits": 4,
+      "pmids": [
+        "41380197",
+        "40689836",
+        "36418634"
+      ],
+      "error": ""
+    },
+    {
+      "tissue": "blood",
+      "cell_path": "T cell > CD4+ T cell > Th17 cell",
+      "gene": "RORC",
+      "polarity": "positive",
+      "query": "\"RORC\"[tiab] AND \"Th17 cell\"[tiab] AND marker[tiab]",
+      "supported": true,
+      "total_hits": 7,
+      "pmids": [
+        "37604262",
+        "37352327",
+        "35764071"
+      ],
+      "error": ""
+    },
+    {
+      "tissue": "blood",
+      "cell_path": "T cell > CD4+ T cell > Th17 cell",
+      "gene": "CCL20",
+      "polarity": "positive",
+      "query": "\"CCL20\"[tiab] AND \"Th17 cell\"[tiab] AND marker[tiab]",
+      "supported": false,
+      "total_hits": 1,
+      "pmids": [
+        "40689836"
+      ],
+      "error": ""
+    },
+    {
+      "tissue": "blood",
+      "cell_path": "T cell > CD4+ T cell > Th17 cell",
+      "gene": "CCR6",
+      "polarity": "positive",
+      "query": "\"CCR6\"[tiab] AND \"Th17 cell\"[tiab] AND marker[tiab]",
+      "supported": true,
+      "total_hits": 6,
+      "pmids": [
+        "39178742",
+        "26717145",
+        "26666875"
+      ],
+      "error": ""
+    },
+    {
+      "tissue": "blood",
+      "cell_path": "T cell > CD4+ T cell > Th17 cell",
+      "gene": "IFNG",
+      "polarity": "negative",
+      "query": "\"IFNG\"[tiab] AND \"Th17 cell\"[tiab] AND (negative OR absence)",
+      "supported": true,
+      "total_hits": 8,
+      "pmids": [
+        "42495632",
+        "39771552",
+        "36741398"
+      ],
+      "error": ""
+    },
+    {
+      "tissue": "blood",
+      "cell_path": "T cell > CD4+ T cell > Th17 cell",
+      "gene": "IL4",
+      "polarity": "negative",
+      "query": "\"IL4\"[tiab] AND \"Th17 cell\"[tiab] AND (negative OR absence)",
+      "supported": true,
+      "total_hits": 20,
+      "pmids": [
+        "39944494",
+        "39246611",
+        "39229267"
+      ],
+      "error": ""
+    },
+    {
+      "tissue": "blood",
+      "cell_path": "T cell > CD4+ T cell > Th17 cell",
+      "gene": "FOXP3",
+      "polarity": "negative",
+      "query": "\"FOXP3\"[tiab] AND \"Th17 cell\"[tiab] AND (negative OR absence)",
+      "supported": true,
+      "total_hits": 20,
+      "pmids": [
+        "42112839",
+        "41727496",
+        "41660421"
+      ],
+      "error": ""
+    },
+    {
+      "tissue": "blood",
+      "cell_path": "T cell > CD8+ T cell",
+      "gene": "CD8A",
+      "polarity": "positive",
+      "query": "\"CD8A\"[tiab] AND \"CD8+ T cell\"[tiab] AND marker[tiab]",
+      "supported": true,
+      "total_hits": 11,
+      "pmids": [
+        "42446964",
+        "42393223",
+        "41426973"
+      ],
+      "error": ""
+    },
+    {
+      "tissue": "blood",
+      "cell_path": "T cell > CD8+ T cell",
+      "gene": "CD8B",
+      "polarity": "positive",
+      "query": "\"CD8B\"[tiab] AND \"CD8+ T cell\"[tiab] AND marker[tiab]",
+      "supported": true,
+      "total_hits": 2,
+      "pmids": [
+        "42393223",
+        "34923792"
+      ],
+      "error": ""
+    },
+    {
+      "tissue": "blood",
+      "cell_path": "T cell > CD8+ T cell",
+      "gene": "GZMB",
+      "polarity": "positive",
+      "query": "\"GZMB\"[tiab] AND \"CD8+ T cell\"[tiab] AND marker[tiab]",
+      "supported": true,
+      "total_hits": 14,
+      "pmids": [
+        "41819547",
+        "41201451",
+        "40366262"
+      ],
+      "error": ""
+    },
+    {
+      "tissue": "blood",
+      "cell_path": "T cell > CD8+ T cell",
+      "gene": "PRF1",
+      "polarity": "positive",
+      "query": "\"PRF1\"[tiab] AND \"CD8+ T cell\"[tiab] AND marker[tiab]",
+      "supported": true,
+      "total_hits": 5,
+      "pmids": [
+        "41819547",
+        "40366262",
+        "38986249"
+      ],
+      "error": ""
+    },
+    {
+      "tissue": "blood",
+      "cell_path": "T cell > CD8+ T cell",
+      "gene": "GNLY",
+      "polarity": "positive",
+      "query": "\"GNLY\"[tiab] AND \"CD8+ T cell\"[tiab] AND marker[tiab]",
+      "supported": false,
+      "total_hits": 0,
+      "pmids": [],
+      "error": ""
+    },
+    {
+      "tissue": "blood",
+      "cell_path": "T cell > CD8+ T cell",
+      "gene": "CD4",
+      "polarity": "negative",
+      "query": "\"CD4\"[tiab] AND \"CD8+ T cell\"[tiab] AND (negative OR absence)",
+      "supported": true,
+      "total_hits": 20,
+      "pmids": [
+        "42558475",
+        "42553259",
+        "42548716"
+      ],
+      "error": ""
+    },
+    {
+      "tissue": "blood",
+      "cell_path": "T cell > CD8+ T cell",
+      "gene": "FOXP3",
+      "polarity": "negative",
+      "query": "\"FOXP3\"[tiab] AND \"CD8+ T cell\"[tiab] AND (negative OR absence)",
+      "supported": true,
+      "total_hits": 20,
+      "pmids": [
+        "42488647",
+        "42422226",
+        "42382766"
+      ],
+      "error": ""
+    },
+    {
+      "tissue": "blood",
+      "cell_path": "T cell > CD8+ T cell > Naive CD8+ T cell",
+      "gene": "CCR7",
+      "polarity": "positive",
+      "query": "\"CCR7\"[tiab] AND \"Naive CD8+ T cell\"[tiab] AND marker[tiab]",
+      "supported": false,
+      "total_hits": 0,
+      "pmids": [],
+      "error": ""
+    },
+    {
+      "tissue": "blood",
+      "cell_path": "T cell > CD8+ T cell > Naive CD8+ T cell",
+      "gene": "LEF1",
+      "polarity": "positive",
+      "query": "\"LEF1\"[tiab] AND \"Naive CD8+ T cell\"[tiab] AND marker[tiab]",
+      "supported": false,
+      "total_hits": 0,
+      "pmids": [],
+      "error": ""
+    },
+    {
+      "tissue": "blood",
+      "cell_path": "T cell > CD8+ T cell > Naive CD8+ T cell",
+      "gene": "SELL",
+      "polarity": "positive",
+      "query": "\"SELL\"[tiab] AND \"Naive CD8+ T cell\"[tiab] AND marker[tiab]",
+      "supported": false,
+      "total_hits": 0,
+      "pmids": [],
+      "error": ""
+    },
+    {
+      "tissue": "blood",
+      "cell_path": "T cell > CD8+ T cell > Naive CD8+ T cell",
+      "gene": "TCF7",
+      "polarity": "positive",
+      "query": "\"TCF7\"[tiab] AND \"Naive CD8+ T cell\"[tiab] AND marker[tiab]",
+      "supported": false,
+      "total_hits": 0,
+      "pmids": [],
+      "error": ""
+    },
+    {
+      "tissue": "blood",
+      "cell_path": "T cell > CD8+ T cell > Naive CD8+ T cell",
+      "gene": "GZMB",
+      "polarity": "negative",
+      "query": "\"GZMB\"[tiab] AND \"Naive CD8+ T cell\"[tiab] AND (negative OR absence)",
+      "supported": false,
+      "total_hits": 0,
+      "pmids": [],
+      "error": ""
+    },
+    {
+      "tissue": "blood",
+      "cell_path": "T cell > CD8+ T cell > Naive CD8+ T cell",
+      "gene": "PRF1",
+      "polarity": "negative",
+      "query": "\"PRF1\"[tiab] AND \"Naive CD8+ T cell\"[tiab] AND (negative OR absence)",
+      "supported": false,
+      "total_hits": 0,
+      "pmids": [],
+      "error": ""
+    },
+    {
+      "tissue": "blood",
+      "cell_path": "T cell > CD8+ T cell > Naive CD8+ T cell",
+      "gene": "GNLY",
+      "polarity": "negative",
+      "query": "\"GNLY\"[tiab] AND \"Naive CD8+ T cell\"[tiab] AND (negative OR absence)",
+      "supported": false,
+      "total_hits": 0,
+      "pmids": [],
+      "error": ""
+    },
+    {
+      "tissue": "blood",
+      "cell_path": "T cell > CD8+ T cell > Effector CD8+ T cell",
+      "gene": "GZMB",
+      "polarity": "positive",
+      "query": "\"GZMB\"[tiab] AND \"Effector CD8+ T cell\"[tiab] AND marker[tiab]",
+      "supported": false,
+      "total_hits": 0,
+      "pmids": [],
+      "error": ""
+    },
+    {
+      "tissue": "blood",
+      "cell_path": "T cell > CD8+ T cell > Effector CD8+ T cell",
+      "gene": "PRF1",
+      "polarity": "positive",
+      "query": "\"PRF1\"[tiab] AND \"Effector CD8+ T cell\"[tiab] AND marker[tiab]",
+      "supported": false,
+      "total_hits": 0,
+      "pmids": [],
+      "error": ""
+    },
+    {
+      "tissue": "blood",
+      "cell_path": "T cell > CD8+ T cell > Effector CD8+ T cell",
+      "gene": "GNLY",
+      "polarity": "positive",
+      "query": "\"GNLY\"[tiab] AND \"Effector CD8+ T cell\"[tiab] AND marker[tiab]",
+      "supported": false,
+      "total_hits": 0,
+      "pmids": [],
+      "error": ""
+    },
+    {
+      "tissue": "blood",
+      "cell_path": "T cell > CD8+ T cell > Effector CD8+ T cell",
+      "gene": "NKG7",
+      "polarity": "positive",
+      "query": "\"NKG7\"[tiab] AND \"Effector CD8+ T cell\"[tiab] AND marker[tiab]",
+      "supported": false,
+      "total_hits": 0,
+      "pmids": [],
+      "error": ""
+    },
+    {
+      "tissue": "blood",
+      "cell_path": "T cell > CD8+ T cell > Effector CD8+ T cell",
+      "gene": "CST7",
+      "polarity": "positive",
+      "query": "\"CST7\"[tiab] AND \"Effector CD8+ T cell\"[tiab] AND marker[tiab]",
+      "supported": false,
+      "total_hits": 0,
+      "pmids": [],
+      "error": ""
+    },
+    {
+      "tissue": "blood",
+      "cell_path": "T cell > CD8+ T cell > Effector CD8+ T cell",
+      "gene": "CCR7",
+      "polarity": "negative",
+      "query": "\"CCR7\"[tiab] AND \"Effector CD8+ T cell\"[tiab] AND (negative OR absence)",
+      "supported": true,
+      "total_hits": 2,
+      "pmids": [
+        "33631227",
+        "26500349"
+      ],
+      "error": ""
+    },
+    {
+      "tissue": "blood",
+      "cell_path": "T cell > CD8+ T cell > Effector CD8+ T cell",
+      "gene": "LEF1",
+      "polarity": "negative",
+      "query": "\"LEF1\"[tiab] AND \"Effector CD8+ T cell\"[tiab] AND (negative OR absence)",
+      "supported": false,
+      "total_hits": 0,
+      "pmids": [],
+      "error": ""
+    },
+    {
+      "tissue": "blood",
+      "cell_path": "T cell > CD8+ T cell > Effector CD8+ T cell",
+      "gene": "SELL",
+      "polarity": "negative",
+      "query": "\"SELL\"[tiab] AND \"Effector CD8+ T cell\"[tiab] AND (negative OR absence)",
+      "supported": false,
+      "total_hits": 0,
+      "pmids": [],
+      "error": ""
+    },
+    {
+      "tissue": "blood",
+      "cell_path": "T cell > Gamma-delta T cell",
+      "gene": "TRDC",
+      "polarity": "positive",
+      "query": "\"TRDC\"[tiab] AND \"Gamma-delta T cell\"[tiab] AND marker[tiab]",
+      "supported": false,
+      "total_hits": 0,
+      "pmids": [],
+      "error": ""
+    },
+    {
+      "tissue": "blood",
+      "cell_path": "T cell > Gamma-delta T cell",
+      "gene": "TRGC1",
+      "polarity": "positive",
+      "query": "\"TRGC1\"[tiab] AND \"Gamma-delta T cell\"[tiab] AND marker[tiab]",
+      "supported": false,
+      "total_hits": 0,
+      "pmids": [],
+      "error": ""
+    },
+    {
+      "tissue": "blood",
+      "cell_path": "T cell > Gamma-delta T cell",
+      "gene": "TRGC2",
+      "polarity": "positive",
+      "query": "\"TRGC2\"[tiab] AND \"Gamma-delta T cell\"[tiab] AND marker[tiab]",
+      "supported": false,
+      "total_hits": 0,
+      "pmids": [],
+      "error": ""
+    },
+    {
+      "tissue": "blood",
+      "cell_path": "T cell > Gamma-delta T cell",
+      "gene": "CD3D",
+      "polarity": "positive",
+      "query": "\"CD3D\"[tiab] AND \"Gamma-delta T cell\"[tiab] AND marker[tiab]",
+      "supported": false,
+      "total_hits": 0,
+      "pmids": [],
+      "error": ""
+    },
+    {
+      "tissue": "blood",
+      "cell_path": "T cell > Gamma-delta T cell",
+      "gene": "CD4",
+      "polarity": "negative",
+      "query": "\"CD4\"[tiab] AND \"Gamma-delta T cell\"[tiab] AND (negative OR absence)",
+      "supported": true,
+      "total_hits": 20,
+      "pmids": [
+        "41003768",
+        "40777023",
+        "40726358"
+      ],
+      "error": ""
+    },
+    {
+      "tissue": "blood",
+      "cell_path": "T cell > Gamma-delta T cell",
+      "gene": "CD8A",
+      "polarity": "negative",
+      "query": "\"CD8A\"[tiab] AND \"Gamma-delta T cell\"[tiab] AND (negative OR absence)",
+      "supported": false,
+      "total_hits": 0,
+      "pmids": [],
+      "error": ""
+    },
+    {
+      "tissue": "blood",
+      "cell_path": "T cell > Gamma-delta T cell",
+      "gene": "CD19",
+      "polarity": "negative",
+      "query": "\"CD19\"[tiab] AND \"Gamma-delta T cell\"[tiab] AND (negative OR absence)",
+      "supported": true,
+      "total_hits": 2,
+      "pmids": [
+        "11828721",
+        "9199653"
+      ],
+      "error": ""
+    },
+    {
+      "tissue": "blood",
+      "cell_path": "B cell",
+      "gene": "CD19",
+      "polarity": "positive",
+      "query": "\"CD19\"[tiab] AND \"B cell\"[tiab] AND marker[tiab]",
+      "supported": true,
+      "total_hits": 20,
+      "pmids": [
+        "42567561",
+        "42566996",
+        "42551701"
+      ],
+      "error": ""
+    },
+    {
+      "tissue": "blood",
+      "cell_path": "B cell",
+      "gene": "MS4A1",
+      "polarity": "positive",
+      "query": "\"MS4A1\"[tiab] AND \"B cell\"[tiab] AND marker[tiab]",
+      "supported": true,
+      "total_hits": 12,
+      "pmids": [
+        "41993182",
+        "41226926",
+        "40849886"
+      ],
+      "error": ""
+    },
+    {
+      "tissue": "blood",
+      "cell_path": "B cell",
+      "gene": "CD79A",
+      "polarity": "positive",
+      "query": "\"CD79A\"[tiab] AND \"B cell\"[tiab] AND marker[tiab]",
+      "supported": true,
+      "total_hits": 20,
+      "pmids": [
+        "42544771",
+        "42526361",
+        "42481400"
+      ],
+      "error": ""
+    },
+    {
+      "tissue": "blood",
+      "cell_path": "B cell",
+      "gene": "CD79B",
+      "polarity": "positive",
+      "query": "\"CD79B\"[tiab] AND \"B cell\"[tiab] AND marker[tiab]",
+      "supported": true,
+      "total_hits": 20,
+      "pmids": [
+        "41519212",
+        "41140808",
+        "40891690"
+      ],
+      "error": ""
+    },
+    {
+      "tissue": "blood",
+      "cell_path": "B cell",
+      "gene": "PAX5",
+      "polarity": "positive",
+      "query": "\"PAX5\"[tiab] AND \"B cell\"[tiab] AND marker[tiab]",
+      "supported": true,
+      "total_hits": 20,
+      "pmids": [
+        "42473531",
+        "42226647",
+        "41922226"
+      ],
+      "error": ""
+    },
+    {
+      "tissue": "blood",
+      "cell_path": "B cell",
+      "gene": "CD3D",
+      "polarity": "negative",
+      "query": "\"CD3D\"[tiab] AND \"B cell\"[tiab] AND (negative OR absence)",
+      "supported": true,
+      "total_hits": 5,
+      "pmids": [
+        "40860292",
+        "40394466",
+        "36276947"
+      ],
+      "error": ""
+    },
+    {
+      "tissue": "blood",
+      "cell_path": "B cell",
+      "gene": "CD14",
+      "polarity": "negative",
+      "query": "\"CD14\"[tiab] AND \"B cell\"[tiab] AND (negative OR absence)",
+      "supported": true,
+      "total_hits": 20,
+      "pmids": [
+        "42566996",
+        "42158858",
+        "42064851"
+      ],
+      "error": ""
+    },
+    {
+      "tissue": "blood",
+      "cell_path": "B cell",
+      "gene": "NCAM1",
+      "polarity": "negative",
+      "query": "\"NCAM1\"[tiab] AND \"B cell\"[tiab] AND (negative OR absence)",
+      "supported": true,
+      "total_hits": 2,
+      "pmids": [
+        "41157589",
+        "34127544"
+      ],
+      "error": ""
+    },
+    {
+      "tissue": "blood",
+      "cell_path": "B cell > Naive B cell",
+      "gene": "IGD",
+      "polarity": "positive",
+      "query": "\"IGD\"[tiab] AND \"Naive B cell\"[tiab] AND marker[tiab]",
+      "supported": true,
+      "total_hits": 3,
+      "pmids": [
+        "33095090",
+        "17587349",
+        "11024124"
+      ],
+      "error": ""
+    },
+    {
+      "tissue": "blood",
+      "cell_path": "B cell > Naive B cell",
+      "gene": "IGHM",
+      "polarity": "positive",
+      "query": "\"IGHM\"[tiab] AND \"Naive B cell\"[tiab] AND marker[tiab]",
+      "supported": false,
+      "total_hits": 0,
+      "pmids": [],
+      "error": ""
+    },
+    {
+      "tissue": "blood",
+      "cell_path": "B cell > Naive B cell",
+      "gene": "CD27",
+      "polarity": "positive",
+      "query": "\"CD27\"[tiab] AND \"Naive B cell\"[tiab] AND marker[tiab]",
+      "supported": true,
+      "total_hits": 5,
+      "pmids": [
+        "33095090",
+        "32724082",
+        "32246726"
+      ],
+      "error": ""
+    },
+    {
+      "tissue": "blood",
+      "cell_path": "B cell > Naive B cell",
+      "gene": "MS4A1",
+      "polarity": "positive",
+      "query": "\"MS4A1\"[tiab] AND \"Naive B cell\"[tiab] AND marker[tiab]",
+      "supported": false,
+      "total_hits": 0,
+      "pmids": [],
+      "error": ""
+    },
+    {
+      "tissue": "blood",
+      "cell_path": "B cell > Naive B cell",
+      "gene": "CD19",
+      "polarity": "positive",
+      "query": "\"CD19\"[tiab] AND \"Naive B cell\"[tiab] AND marker[tiab]",
+      "supported": true,
+      "total_hits": 2,
+      "pmids": [
+        "33679693",
+        "32724082"
+      ],
+      "error": ""
+    },
+    {
+      "tissue": "blood",
+      "cell_path": "B cell > Naive B cell",
+      "gene": "CD27",
+      "polarity": "negative",
+      "query": "\"CD27\"[tiab] AND \"Naive B cell\"[tiab] AND (negative OR absence)",
+      "supported": true,
+      "total_hits": 19,
+      "pmids": [
+        "42523256",
+        "41929497",
+        "39533072"
+      ],
+      "error": ""
+    },
+    {
+      "tissue": "blood",
+      "cell_path": "B cell > Naive B cell",
+      "gene": "SDC1",
+      "polarity": "negative",
+      "query": "\"SDC1\"[tiab] AND \"Naive B cell\"[tiab] AND (negative OR absence)",
+      "supported": false,
+      "total_hits": 0,
+      "pmids": [],
+      "error": ""
+    },
+    {
+      "tissue": "blood",
+      "cell_path": "B cell > Memory B cell",
+      "gene": "CD27",
+      "polarity": "positive",
+      "query": "\"CD27\"[tiab] AND \"Memory B cell\"[tiab] AND marker[tiab]",
+      "supported": true,
+      "total_hits": 20,
+      "pmids": [
+        "41659163",
+        "40229860",
+        "40124243"
+      ],
+      "error": ""
+    },
+    {
+      "tissue": "blood",
+      "cell_path": "B cell > Memory B cell",
+      "gene": "MS4A1",
+      "polarity": "positive",
+      "query": "\"MS4A1\"[tiab] AND \"Memory B cell\"[tiab] AND marker[tiab]",
+      "supported": false,
+      "total_hits": 0,
+      "pmids": [],
+      "error": ""
+    },
+    {
+      "tissue": "blood",
+      "cell_path": "B cell > Memory B cell",
+      "gene": "CD19",
+      "polarity": "positive",
+      "query": "\"CD19\"[tiab] AND \"Memory B cell\"[tiab] AND marker[tiab]",
+      "supported": true,
+      "total_hits": 15,
+      "pmids": [
+        "41659163",
+        "40010950",
+        "37473738"
+      ],
+      "error": ""
+    },
+    {
+      "tissue": "blood",
+      "cell_path": "B cell > Memory B cell",
+      "gene": "IGHG1",
+      "polarity": "positive",
+      "query": "\"IGHG1\"[tiab] AND \"Memory B cell\"[tiab] AND marker[tiab]",
+      "supported": false,
+      "total_hits": 0,
+      "pmids": [],
+      "error": ""
+    },
+    {
+      "tissue": "blood",
+      "cell_path": "B cell > Memory B cell",
+      "gene": "IGD",
+      "polarity": "negative",
+      "query": "\"IGD\"[tiab] AND \"Memory B cell\"[tiab] AND (negative OR absence)",
+      "supported": true,
+      "total_hits": 20,
+      "pmids": [
+        "41929497",
+        "41891035",
+        "41659163"
+      ],
+      "error": ""
+    },
+    {
+      "tissue": "blood",
+      "cell_path": "B cell > Memory B cell",
+      "gene": "SDC1",
+      "polarity": "negative",
+      "query": "\"SDC1\"[tiab] AND \"Memory B cell\"[tiab] AND (negative OR absence)",
+      "supported": false,
+      "total_hits": 0,
+      "pmids": [],
+      "error": ""
+    },
+    {
+      "tissue": "blood",
+      "cell_path": "B cell > Plasma cell",
+      "gene": "SDC1",
+      "polarity": "positive",
+      "query": "\"SDC1\"[tiab] AND \"Plasma cell\"[tiab] AND marker[tiab]",
+      "supported": true,
+      "total_hits": 3,
+      "pmids": [
+        "40155751",
+        "39253973",
+        "24385542"
+      ],
+      "error": ""
+    },
+    {
+      "tissue": "blood",
+      "cell_path": "B cell > Plasma cell",
+      "gene": "MZB1",
+      "polarity": "positive",
+      "query": "\"MZB1\"[tiab] AND \"Plasma cell\"[tiab] AND marker[tiab]",
+      "supported": true,
+      "total_hits": 2,
+      "pmids": [
+        "41145683",
+        "32377723"
+      ],
+      "error": ""
+    },
+    {
+      "tissue": "blood",
+      "cell_path": "B cell > Plasma cell",
+      "gene": "JCHAIN",
+      "polarity": "positive",
+      "query": "\"JCHAIN\"[tiab] AND \"Plasma cell\"[tiab] AND marker[tiab]",
+      "supported": false,
+      "total_hits": 0,
+      "pmids": [],
+      "error": ""
+    },
+    {
+      "tissue": "blood",
+      "cell_path": "B cell > Plasma cell",
+      "gene": "IGHG1",
+      "polarity": "positive",
+      "query": "\"IGHG1\"[tiab] AND \"Plasma cell\"[tiab] AND marker[tiab]",
+      "supported": true,
+      "total_hits": 3,
+      "pmids": [
+        "40015701",
+        "38081768",
+        "26311245"
+      ],
+      "error": ""
+    },
+    {
+      "tissue": "blood",
+      "cell_path": "B cell > Plasma cell",
+      "gene": "XBP1",
+      "polarity": "positive",
+      "query": "\"XBP1\"[tiab] AND \"Plasma cell\"[tiab] AND marker[tiab]",
+      "supported": true,
+      "total_hits": 10,
+      "pmids": [
+        "40116454",
+        "39253973",
+        "34686774"
+      ],
+      "error": ""
+    },
+    {
+      "tissue": "blood",
+      "cell_path": "B cell > Plasma cell",
+      "gene": "PRDM1",
+      "polarity": "positive",
+      "query": "\"PRDM1\"[tiab] AND \"Plasma cell\"[tiab] AND marker[tiab]",
+      "supported": true,
+      "total_hits": 5,
+      "pmids": [
+        "40116454",
+        "34925321",
+        "22491065"
+      ],
+      "error": ""
+    },
+    {
+      "tissue": "blood",
+      "cell_path": "B cell > Plasma cell",
+      "gene": "MS4A1",
+      "polarity": "negative",
+      "query": "\"MS4A1\"[tiab] AND \"Plasma cell\"[tiab] AND (negative OR absence)",
+      "supported": false,
+      "total_hits": 1,
+      "pmids": [
+        "30712266"
+      ],
+      "error": ""
+    },
+    {
+      "tissue": "blood",
+      "cell_path": "B cell > Plasma cell",
+      "gene": "CD19",
+      "polarity": "negative",
+      "query": "\"CD19\"[tiab] AND \"Plasma cell\"[tiab] AND (negative OR absence)",
+      "supported": true,
+      "total_hits": 20,
+      "pmids": [
+        "42516131",
+        "42462588",
+        "42459328"
+      ],
+      "error": ""
+    },
+    {
+      "tissue": "blood",
+      "cell_path": "B cell > Plasma cell",
+      "gene": "IGHD",
+      "polarity": "negative",
+      "query": "\"IGHD\"[tiab] AND \"Plasma cell\"[tiab] AND (negative OR absence)",
+      "supported": false,
+      "total_hits": 0,
+      "pmids": [],
+      "error": ""
+    },
+    {
+      "tissue": "blood",
+      "cell_path": "NK cell",
+      "gene": "NCAM1",
+      "polarity": "positive",
+      "query": "\"NCAM1\"[tiab] AND \"NK cell\"[tiab] AND marker[tiab]",
+      "supported": true,
+      "total_hits": 2,
+      "pmids": [
+        "41071311",
+        "34937729"
+      ],
+      "error": ""
+    },
+    {
+      "tissue": "blood",
+      "cell_path": "NK cell",
+      "gene": "NKG7",
+      "polarity": "positive",
+      "query": "\"NKG7\"[tiab] AND \"NK cell\"[tiab] AND marker[tiab]",
+      "supported": false,
+      "total_hits": 0,
+      "pmids": [],
+      "error": ""
+    },
+    {
+      "tissue": "blood",
+      "cell_path": "NK cell",
+      "gene": "GNLY",
+      "polarity": "positive",
+      "query": "\"GNLY\"[tiab] AND \"NK cell\"[tiab] AND marker[tiab]",
+      "supported": false,
+      "total_hits": 1,
+      "pmids": [
+        "41972591"
+      ],
+      "error": ""
+    },
+    {
+      "tissue": "blood",
+      "cell_path": "NK cell",
+      "gene": "KLRD1",
+      "polarity": "positive",
+      "query": "\"KLRD1\"[tiab] AND \"NK cell\"[tiab] AND marker[tiab]",
+      "supported": true,
+      "total_hits": 3,
+      "pmids": [
+        "39781341",
+        "20648603",
+        "10783260"
+      ],
+      "error": ""
+    },
+    {
+      "tissue": "blood",
+      "cell_path": "NK cell",
+      "gene": "KLRB1",
+      "polarity": "positive",
+      "query": "\"KLRB1\"[tiab] AND \"NK cell\"[tiab] AND marker[tiab]",
+      "supported": true,
+      "total_hits": 4,
+      "pmids": [
+        "39583114",
+        "39507529",
+        "37397471"
+      ],
+      "error": ""
+    },
+    {
+      "tissue": "blood",
+      "cell_path": "NK cell",
+      "gene": "FCGR3A",
+      "polarity": "positive",
+      "query": "\"FCGR3A\"[tiab] AND \"NK cell\"[tiab] AND marker[tiab]",
+      "supported": true,
+      "total_hits": 5,
+      "pmids": [
+        "42363275",
+        "39583114",
+        "34937729"
+      ],
+      "error": ""
+    },
+    {
+      "tissue": "blood",
+      "cell_path": "NK cell",
+      "gene": "CD3D",
+      "polarity": "negative",
+      "query": "\"CD3D\"[tiab] AND \"NK cell\"[tiab] AND (negative OR absence)",
+      "supported": false,
+      "total_hits": 0,
+      "pmids": [],
+      "error": ""
+    },
+    {
+      "tissue": "blood",
+      "cell_path": "NK cell",
+      "gene": "CD19",
+      "polarity": "negative",
+      "query": "\"CD19\"[tiab] AND \"NK cell\"[tiab] AND (negative OR absence)",
+      "supported": true,
+      "total_hits": 20,
+      "pmids": [
+        "42555181",
+        "42499540",
+        "42253961"
+      ],
+      "error": ""
+    },
+    {
+      "tissue": "blood",
+      "cell_path": "NK cell",
+      "gene": "CD14",
+      "polarity": "negative",
+      "query": "\"CD14\"[tiab] AND \"NK cell\"[tiab] AND (negative OR absence)",
+      "supported": true,
+      "total_hits": 20,
+      "pmids": [
+        "42548765",
+        "41403780",
+        "41394864"
+      ],
+      "error": ""
+    },
+    {
+      "tissue": "blood",
+      "cell_path": "NK cell > CD56bright NK cell",
+      "gene": "NCAM1",
+      "polarity": "positive",
+      "query": "\"NCAM1\"[tiab] AND \"CD56bright NK cell\"[tiab] AND marker[tiab]",
+      "supported": false,
+      "total_hits": 0,
+      "pmids": [],
+      "error": ""
+    },
+    {
+      "tissue": "blood",
+      "cell_path": "NK cell > CD56bright NK cell",
+      "gene": "FCGR3A",
+      "polarity": "positive",
+      "query": "\"FCGR3A\"[tiab] AND \"CD56bright NK cell\"[tiab] AND marker[tiab]",
+      "supported": false,
+      "total_hits": 0,
+      "pmids": [],
+      "error": ""
+    },
+    {
+      "tissue": "blood",
+      "cell_path": "NK cell > CD56bright NK cell",
+      "gene": "NKG7",
+      "polarity": "positive",
+      "query": "\"NKG7\"[tiab] AND \"CD56bright NK cell\"[tiab] AND marker[tiab]",
+      "supported": false,
+      "total_hits": 0,
+      "pmids": [],
+      "error": ""
+    },
+    {
+      "tissue": "blood",
+      "cell_path": "NK cell > CD56bright NK cell",
+      "gene": "CXCR4",
+      "polarity": "positive",
+      "query": "\"CXCR4\"[tiab] AND \"CD56bright NK cell\"[tiab] AND marker[tiab]",
+      "supported": false,
+      "total_hits": 0,
+      "pmids": [],
+      "error": ""
+    },
+    {
+      "tissue": "blood",
+      "cell_path": "NK cell > CD56bright NK cell",
+      "gene": "FCGR3A",
+      "polarity": "negative",
+      "query": "\"FCGR3A\"[tiab] AND \"CD56bright NK cell\"[tiab] AND (negative OR absence)",
+      "supported": false,
+      "total_hits": 0,
+      "pmids": [],
+      "error": ""
+    },
+    {
+      "tissue": "blood",
+      "cell_path": "NK cell > CD56dim NK cell",
+      "gene": "FCGR3A",
+      "polarity": "positive",
+      "query": "\"FCGR3A\"[tiab] AND \"CD56dim NK cell\"[tiab] AND marker[tiab]",
+      "supported": false,
+      "total_hits": 0,
+      "pmids": [],
+      "error": ""
+    },
+    {
+      "tissue": "blood",
+      "cell_path": "NK cell > CD56dim NK cell",
+      "gene": "NKG7",
+      "polarity": "positive",
+      "query": "\"NKG7\"[tiab] AND \"CD56dim NK cell\"[tiab] AND marker[tiab]",
+      "supported": false,
+      "total_hits": 0,
+      "pmids": [],
+      "error": ""
+    },
+    {
+      "tissue": "blood",
+      "cell_path": "NK cell > CD56dim NK cell",
+      "gene": "GNLY",
+      "polarity": "positive",
+      "query": "\"GNLY\"[tiab] AND \"CD56dim NK cell\"[tiab] AND marker[tiab]",
+      "supported": false,
+      "total_hits": 0,
+      "pmids": [],
+      "error": ""
+    },
+    {
+      "tissue": "blood",
+      "cell_path": "NK cell > CD56dim NK cell",
+      "gene": "KLRD1",
+      "polarity": "positive",
+      "query": "\"KLRD1\"[tiab] AND \"CD56dim NK cell\"[tiab] AND marker[tiab]",
+      "supported": false,
+      "total_hits": 0,
+      "pmids": [],
+      "error": ""
+    },
+    {
+      "tissue": "blood",
+      "cell_path": "NK cell > CD56dim NK cell",
+      "gene": "PRF1",
+      "polarity": "positive",
+      "query": "\"PRF1\"[tiab] AND \"CD56dim NK cell\"[tiab] AND marker[tiab]",
+      "supported": false,
+      "total_hits": 0,
+      "pmids": [],
+      "error": ""
+    },
+    {
+      "tissue": "blood",
+      "cell_path": "NK cell > CD56dim NK cell",
+      "gene": "CD3D",
+      "polarity": "negative",
+      "query": "\"CD3D\"[tiab] AND \"CD56dim NK cell\"[tiab] AND (negative OR absence)",
+      "supported": false,
+      "total_hits": 0,
+      "pmids": [],
+      "error": ""
+    },
+    {
+      "tissue": "blood",
+      "cell_path": "Monocyte",
+      "gene": "CD14",
+      "polarity": "positive",
+      "query": "\"CD14\"[tiab] AND \"Monocyte\"[tiab] AND marker[tiab]",
+      "supported": true,
+      "total_hits": 20,
+      "pmids": [
+        "42423094",
+        "42070680",
+        "42068384"
+      ],
+      "error": ""
+    },
+    {
+      "tissue": "blood",
+      "cell_path": "Monocyte",
+      "gene": "LYZ",
+      "polarity": "positive",
+      "query": "\"LYZ\"[tiab] AND \"Monocyte\"[tiab] AND marker[tiab]",
+      "supported": false,
+      "total_hits": 1,
+      "pmids": [
+        "22144904"
+      ],
+      "error": ""
+    },
+    {
+      "tissue": "blood",
+      "cell_path": "Monocyte",
+      "gene": "S100A8",
+      "polarity": "positive",
+      "query": "\"S100A8\"[tiab] AND \"Monocyte\"[tiab] AND marker[tiab]",
+      "supported": true,
+      "total_hits": 13,
+      "pmids": [
+        "40992787",
+        "40836918",
+        "40231451"
+      ],
+      "error": ""
+    },
+    {
+      "tissue": "blood",
+      "cell_path": "Monocyte",
+      "gene": "S100A9",
+      "polarity": "positive",
+      "query": "\"S100A9\"[tiab] AND \"Monocyte\"[tiab] AND marker[tiab]",
+      "supported": true,
+      "total_hits": 8,
+      "pmids": [
+        "38936146",
+        "34939314",
+        "33790912"
+      ],
+      "error": ""
+    },
+    {
+      "tissue": "blood",
+      "cell_path": "Monocyte",
+      "gene": "FCN1",
+      "polarity": "positive",
+      "query": "\"FCN1\"[tiab] AND \"Monocyte\"[tiab] AND marker[tiab]",
+      "supported": false,
+      "total_hits": 1,
+      "pmids": [
+        "37470432"
+      ],
+      "error": ""
+    },
+    {
+      "tissue": "blood",
+      "cell_path": "Monocyte",
+      "gene": "CD3D",
+      "polarity": "negative",
+      "query": "\"CD3D\"[tiab] AND \"Monocyte\"[tiab] AND (negative OR absence)",
+      "supported": true,
+      "total_hits": 2,
+      "pmids": [
+        "37942472",
+        "36733486"
+      ],
+      "error": ""
+    },
+    {
+      "tissue": "blood",
+      "cell_path": "Monocyte",
+      "gene": "CD19",
+      "polarity": "negative",
+      "query": "\"CD19\"[tiab] AND \"Monocyte\"[tiab] AND (negative OR absence)",
+      "supported": true,
+      "total_hits": 20,
+      "pmids": [
+        "42511856",
+        "42510708",
+        "41810689"
+      ],
+      "error": ""
+    },
+    {
+      "tissue": "blood",
+      "cell_path": "Monocyte",
+      "gene": "NCAM1",
+      "polarity": "negative",
+      "query": "\"NCAM1\"[tiab] AND \"Monocyte\"[tiab] AND (negative OR absence)",
+      "supported": false,
+      "total_hits": 0,
+      "pmids": [],
+      "error": ""
+    },
+    {
+      "tissue": "blood",
+      "cell_path": "Monocyte",
+      "gene": "FCGR3A",
+      "polarity": "negative",
+      "query": "\"FCGR3A\"[tiab] AND \"Monocyte\"[tiab] AND (negative OR absence)",
+      "supported": true,
+      "total_hits": 4,
+      "pmids": [
+        "42516388",
+        "41030449",
+        "40256686"
+      ],
+      "error": ""
+    },
+    {
+      "tissue": "blood",
+      "cell_path": "Monocyte > Classical monocyte",
+      "gene": "CD14",
+      "polarity": "positive",
+      "query": "\"CD14\"[tiab] AND \"Classical monocyte\"[tiab] AND marker[tiab]",
+      "supported": true,
+      "total_hits": 14,
+      "pmids": [
+        "40995412",
+        "40001509",
+        "39171822"
+      ],
+      "error": ""
+    },
+    {
+      "tissue": "blood",
+      "cell_path": "Monocyte > Classical monocyte",
+      "gene": "S100A8",
+      "polarity": "positive",
+      "query": "\"S100A8\"[tiab] AND \"Classical monocyte\"[tiab] AND marker[tiab]",
+      "supported": false,
+      "total_hits": 0,
+      "pmids": [],
+      "error": ""
+    },
+    {
+      "tissue": "blood",
+      "cell_path": "Monocyte > Classical monocyte",
+      "gene": "S100A9",
+      "polarity": "positive",
+      "query": "\"S100A9\"[tiab] AND \"Classical monocyte\"[tiab] AND marker[tiab]",
+      "supported": false,
+      "total_hits": 0,
+      "pmids": [],
+      "error": ""
+    },
+    {
+      "tissue": "blood",
+      "cell_path": "Monocyte > Classical monocyte",
+      "gene": "LYZ",
+      "polarity": "positive",
+      "query": "\"LYZ\"[tiab] AND \"Classical monocyte\"[tiab] AND marker[tiab]",
+      "supported": false,
+      "total_hits": 0,
+      "pmids": [],
+      "error": ""
+    },
+    {
+      "tissue": "blood",
+      "cell_path": "Monocyte > Classical monocyte",
+      "gene": "FCN1",
+      "polarity": "positive",
+      "query": "\"FCN1\"[tiab] AND \"Classical monocyte\"[tiab] AND marker[tiab]",
+      "supported": false,
+      "total_hits": 0,
+      "pmids": [],
+      "error": ""
+    },
+    {
+      "tissue": "blood",
+      "cell_path": "Monocyte > Classical monocyte",
+      "gene": "CCR2",
+      "polarity": "positive",
+      "query": "\"CCR2\"[tiab] AND \"Classical monocyte\"[tiab] AND marker[tiab]",
+      "supported": true,
+      "total_hits": 5,
+      "pmids": [
+        "41050673",
+        "40799558",
+        "40001509"
+      ],
+      "error": ""
+    },
+    {
+      "tissue": "blood",
+      "cell_path": "Monocyte > Classical monocyte",
+      "gene": "FCGR3A",
+      "polarity": "negative",
+      "query": "\"FCGR3A\"[tiab] AND \"Classical monocyte\"[tiab] AND (negative OR absence)",
+      "supported": false,
+      "total_hits": 0,
+      "pmids": [],
+      "error": ""
+    },
+    {
+      "tissue": "blood",
+      "cell_path": "Monocyte > Classical monocyte",
+      "gene": "CD163",
+      "polarity": "negative",
+      "query": "\"CD163\"[tiab] AND \"Classical monocyte\"[tiab] AND (negative OR absence)",
+      "supported": true,
+      "total_hits": 6,
+      "pmids": [
+        "41808827",
+        "41640845",
+        "37520439"
+      ],
+      "error": ""
+    },
+    {
+      "tissue": "blood",
+      "cell_path": "Monocyte > Non-classical monocyte",
+      "gene": "FCGR3A",
+      "polarity": "positive",
+      "query": "\"FCGR3A\"[tiab] AND \"Non-classical monocyte\"[tiab] AND marker[tiab]",
+      "supported": false,
+      "total_hits": 0,
+      "pmids": [],
+      "error": ""
+    },
+    {
+      "tissue": "blood",
+      "cell_path": "Monocyte > Non-classical monocyte",
+      "gene": "CD163",
+      "polarity": "positive",
+      "query": "\"CD163\"[tiab] AND \"Non-classical monocyte\"[tiab] AND marker[tiab]",
+      "supported": false,
+      "total_hits": 1,
+      "pmids": [
+        "34022965"
+      ],
+      "error": ""
+    },
+    {
+      "tissue": "blood",
+      "cell_path": "Monocyte > Non-classical monocyte",
+      "gene": "MS4A7",
+      "polarity": "positive",
+      "query": "\"MS4A7\"[tiab] AND \"Non-classical monocyte\"[tiab] AND marker[tiab]",
+      "supported": false,
+      "total_hits": 0,
+      "pmids": [],
+      "error": ""
+    },
+    {
+      "tissue": "blood",
+      "cell_path": "Monocyte > Non-classical monocyte",
+      "gene": "LYZ",
+      "polarity": "positive",
+      "query": "\"LYZ\"[tiab] AND \"Non-classical monocyte\"[tiab] AND marker[tiab]",
+      "supported": false,
+      "total_hits": 0,
+      "pmids": [],
+      "error": ""
+    },
+    {
+      "tissue": "blood",
+      "cell_path": "Monocyte > Non-classical monocyte",
+      "gene": "CCL3",
+      "polarity": "positive",
+      "query": "\"CCL3\"[tiab] AND \"Non-classical monocyte\"[tiab] AND marker[tiab]",
+      "supported": false,
+      "total_hits": 0,
+      "pmids": [],
+      "error": ""
+    },
+    {
+      "tissue": "blood",
+      "cell_path": "Monocyte > Non-classical monocyte",
+      "gene": "S100A8",
+      "polarity": "negative",
+      "query": "\"S100A8\"[tiab] AND \"Non-classical monocyte\"[tiab] AND (negative OR absence)",
+      "supported": true,
+      "total_hits": 2,
+      "pmids": [
+        "37150240",
+        "35378753"
+      ],
+      "error": ""
+    },
+    {
+      "tissue": "blood",
+      "cell_path": "Monocyte > Non-classical monocyte",
+      "gene": "S100A9",
+      "polarity": "negative",
+      "query": "\"S100A9\"[tiab] AND \"Non-classical monocyte\"[tiab] AND (negative OR absence)",
+      "supported": false,
+      "total_hits": 0,
+      "pmids": [],
+      "error": ""
+    },
+    {
+      "tissue": "blood",
+      "cell_path": "Dendritic cell",
+      "gene": "ITGAX",
+      "polarity": "positive",
+      "query": "\"ITGAX\"[tiab] AND \"Dendritic cell\"[tiab] AND marker[tiab]",
+      "supported": true,
+      "total_hits": 4,
+      "pmids": [
+        "42468469",
+        "32964731",
+        "28338898"
+      ],
+      "error": ""
+    },
+    {
+      "tissue": "blood",
+      "cell_path": "Dendritic cell",
+      "gene": "FCER1A",
+      "polarity": "positive",
+      "query": "\"FCER1A\"[tiab] AND \"Dendritic cell\"[tiab] AND marker[tiab]",
+      "supported": false,
+      "total_hits": 0,
+      "pmids": [],
+      "error": ""
+    },
+    {
+      "tissue": "blood",
+      "cell_path": "Dendritic cell",
+      "gene": "CLEC10A",
+      "polarity": "positive",
+      "query": "\"CLEC10A\"[tiab] AND \"Dendritic cell\"[tiab] AND marker[tiab]",
+      "supported": true,
+      "total_hits": 2,
+      "pmids": [
+        "42436936",
+        "29755453"
+      ],
+      "error": ""
+    },
+    {
+      "tissue": "blood",
+      "cell_path": "Dendritic cell",
+      "gene": "CD1C",
+      "polarity": "positive",
+      "query": "\"CD1C\"[tiab] AND \"Dendritic cell\"[tiab] AND marker[tiab]",
+      "supported": true,
+      "total_hits": 20,
+      "pmids": [
+        "42436936",
+        "38907868",
+        "38870011"
+      ],
+      "error": ""
+    },
+    {
+      "tissue": "blood",
+      "cell_path": "Dendritic cell",
+      "gene": "HLA-DRA",
+      "polarity": "positive",
+      "query": "\"HLA-DRA\"[tiab] AND \"Dendritic cell\"[tiab] AND marker[tiab]",
+      "supported": false,
+      "total_hits": 0,
+      "pmids": [],
+      "error": ""
+    },
+    {
+      "tissue": "blood",
+      "cell_path": "Dendritic cell",
+      "gene": "CD3D",
+      "polarity": "negative",
+      "query": "\"CD3D\"[tiab] AND \"Dendritic cell\"[tiab] AND (negative OR absence)",
+      "supported": false,
+      "total_hits": 0,
+      "pmids": [],
+      "error": ""
+    },
+    {
+      "tissue": "blood",
+      "cell_path": "Dendritic cell",
+      "gene": "CD19",
+      "polarity": "negative",
+      "query": "\"CD19\"[tiab] AND \"Dendritic cell\"[tiab] AND (negative OR absence)",
+      "supported": true,
+      "total_hits": 20,
+      "pmids": [
+        "42158870",
+        "41479887",
+        "41356656"
+      ],
+      "error": ""
+    },
+    {
+      "tissue": "blood",
+      "cell_path": "Dendritic cell",
+      "gene": "CD14",
+      "polarity": "negative",
+      "query": "\"CD14\"[tiab] AND \"Dendritic cell\"[tiab] AND (negative OR absence)",
+      "supported": true,
+      "total_hits": 20,
+      "pmids": [
+        "42453898",
+        "42396463",
+        "42223506"
+      ],
+      "error": ""
+    },
+    {
+      "tissue": "blood",
+      "cell_path": "Dendritic cell",
+      "gene": "NCAM1",
+      "polarity": "negative",
+      "query": "\"NCAM1\"[tiab] AND \"Dendritic cell\"[tiab] AND (negative OR absence)",
+      "supported": false,
+      "total_hits": 0,
+      "pmids": [],
+      "error": ""
+    },
+    {
+      "tissue": "blood",
+      "cell_path": "Dendritic cell > cDC1",
+      "gene": "CLEC9A",
+      "polarity": "positive",
+      "query": "\"CLEC9A\"[tiab] AND \"cDC1\"[tiab] AND marker[tiab]",
+      "supported": true,
+      "total_hits": 3,
+      "pmids": [
+        "35435334",
+        "32590296",
+        "29755453"
+      ],
+      "error": ""
+    },
+    {
+      "tissue": "blood",
+      "cell_path": "Dendritic cell > cDC1",
+      "gene": "IRF8",
+      "polarity": "positive",
+      "query": "\"IRF8\"[tiab] AND \"cDC1\"[tiab] AND marker[tiab]",
+      "supported": true,
+      "total_hits": 5,
+      "pmids": [
+        "40824830",
+        "38023788",
+        "35435334"
+      ],
+      "error": ""
+    },
+    {
+      "tissue": "blood",
+      "cell_path": "Dendritic cell > cDC1",
+      "gene": "FCER1A",
+      "polarity": "positive",
+      "query": "\"FCER1A\"[tiab] AND \"cDC1\"[tiab] AND marker[tiab]",
+      "supported": false,
+      "total_hits": 0,
+      "pmids": [],
+      "error": ""
+    },
+    {
+      "tissue": "blood",
+      "cell_path": "Dendritic cell > cDC1",
+      "gene": "CD1C",
+      "polarity": "positive",
+      "query": "\"CD1C\"[tiab] AND \"cDC1\"[tiab] AND marker[tiab]",
+      "supported": true,
+      "total_hits": 5,
+      "pmids": [
+        "37600779",
+        "36713392",
+        "32590296"
+      ],
+      "error": ""
+    },
+    {
+      "tissue": "blood",
+      "cell_path": "Dendritic cell > cDC1",
+      "gene": "XCR1",
+      "polarity": "positive",
+      "query": "\"XCR1\"[tiab] AND \"cDC1\"[tiab] AND marker[tiab]",
+      "supported": true,
+      "total_hits": 5,
+      "pmids": [
+        "41256406",
+        "41132684",
+        "37566635"
+      ],
+      "error": ""
+    },
+    {
+      "tissue": "blood",
+      "cell_path": "Dendritic cell > cDC1",
+      "gene": "CD14",
+      "polarity": "negative",
+      "query": "\"CD14\"[tiab] AND \"cDC1\"[tiab] AND (negative OR absence)",
+      "supported": true,
+      "total_hits": 3,
+      "pmids": [
+        "42453898",
+        "41235223",
+        "34177915"
+      ],
+      "error": ""
+    },
+    {
+      "tissue": "blood",
+      "cell_path": "Dendritic cell > cDC1",
+      "gene": "CD3D",
+      "polarity": "negative",
+      "query": "\"CD3D\"[tiab] AND \"cDC1\"[tiab] AND (negative OR absence)",
+      "supported": false,
+      "total_hits": 0,
+      "pmids": [],
+      "error": ""
+    },
+    {
+      "tissue": "blood",
+      "cell_path": "Dendritic cell > cDC2",
+      "gene": "CD1C",
+      "polarity": "positive",
+      "query": "\"CD1C\"[tiab] AND \"cDC2\"[tiab] AND marker[tiab]",
+      "supported": true,
+      "total_hits": 4,
+      "pmids": [
+        "37600779",
+        "36713392",
+        "32369498"
+      ],
+      "error": ""
+    },
+    {
+      "tissue": "blood",
+      "cell_path": "Dendritic cell > cDC2",
+      "gene": "CLEC10A",
+      "polarity": "positive",
+      "query": "\"CLEC10A\"[tiab] AND \"cDC2\"[tiab] AND marker[tiab]",
+      "supported": false,
+      "total_hits": 1,
+      "pmids": [
+        "29755453"
+      ],
+      "error": ""
+    },
+    {
+      "tissue": "blood",
+      "cell_path": "Dendritic cell > cDC2",
+      "gene": "FCER1A",
+      "polarity": "positive",
+      "query": "\"FCER1A\"[tiab] AND \"cDC2\"[tiab] AND marker[tiab]",
+      "supported": false,
+      "total_hits": 0,
+      "pmids": [],
+      "error": ""
+    },
+    {
+      "tissue": "blood",
+      "cell_path": "Dendritic cell > cDC2",
+      "gene": "IRF4",
+      "polarity": "positive",
+      "query": "\"IRF4\"[tiab] AND \"cDC2\"[tiab] AND marker[tiab]",
+      "supported": false,
+      "total_hits": 0,
+      "pmids": [],
+      "error": ""
+    },
+    {
+      "tissue": "blood",
+      "cell_path": "Dendritic cell > cDC2",
+      "gene": "CD14",
+      "polarity": "negative",
+      "query": "\"CD14\"[tiab] AND \"cDC2\"[tiab] AND (negative OR absence)",
+      "supported": true,
+      "total_hits": 8,
+      "pmids": [
+        "42453898",
+        "41356656",
+        "41235223"
+      ],
+      "error": ""
+    },
+    {
+      "tissue": "blood",
+      "cell_path": "Dendritic cell > cDC2",
+      "gene": "CD3D",
+      "polarity": "negative",
+      "query": "\"CD3D\"[tiab] AND \"cDC2\"[tiab] AND (negative OR absence)",
+      "supported": false,
+      "total_hits": 0,
+      "pmids": [],
+      "error": ""
+    },
+    {
+      "tissue": "blood",
+      "cell_path": "Dendritic cell > cDC2",
+      "gene": "CLEC9A",
+      "polarity": "negative",
+      "query": "\"CLEC9A\"[tiab] AND \"cDC2\"[tiab] AND (negative OR absence)",
+      "supported": false,
+      "total_hits": 1,
+      "pmids": [
+        "34518373"
+      ],
+      "error": ""
+    },
+    {
+      "tissue": "blood",
+      "cell_path": "Dendritic cell > pDC",
+      "gene": "CLEC4C",
+      "polarity": "positive",
+      "query": "\"CLEC4C\"[tiab] AND \"pDC\"[tiab] AND marker[tiab]",
+      "supported": true,
+      "total_hits": 3,
+      "pmids": [
+        "34782453",
+        "32513781",
+        "30395816"
+      ],
+      "error": ""
+    },
+    {
+      "tissue": "blood",
+      "cell_path": "Dendritic cell > pDC",
+      "gene": "NRP1",
+      "polarity": "positive",
+      "query": "\"NRP1\"[tiab] AND \"pDC\"[tiab] AND marker[tiab]",
+      "supported": false,
+      "total_hits": 1,
+      "pmids": [
+        "29105205"
+      ],
+      "error": ""
+    },
+    {
+      "tissue": "blood",
+      "cell_path": "Dendritic cell > pDC",
+      "gene": "IRF7",
+      "polarity": "positive",
+      "query": "\"IRF7\"[tiab] AND \"pDC\"[tiab] AND marker[tiab]",
+      "supported": true,
+      "total_hits": 5,
+      "pmids": [
+        "33488612",
+        "31211458",
+        "30446998"
+      ],
+      "error": ""
+    },
+    {
+      "tissue": "blood",
+      "cell_path": "Dendritic cell > pDC",
+      "gene": "FCER1A",
+      "polarity": "positive",
+      "query": "\"FCER1A\"[tiab] AND \"pDC\"[tiab] AND marker[tiab]",
+      "supported": false,
+      "total_hits": 0,
+      "pmids": [],
+      "error": ""
+    },
+    {
+      "tissue": "blood",
+      "cell_path": "Dendritic cell > pDC",
+      "gene": "CD303",
+      "polarity": "positive",
+      "query": "\"CD303\"[tiab] AND \"pDC\"[tiab] AND marker[tiab]",
+      "supported": true,
+      "total_hits": 6,
+      "pmids": [
+        "39307111",
+        "34486917",
+        "30446998"
+      ],
+      "error": ""
+    },
+    {
+      "tissue": "blood",
+      "cell_path": "Dendritic cell > pDC",
+      "gene": "CD14",
+      "polarity": "negative",
+      "query": "\"CD14\"[tiab] AND \"pDC\"[tiab] AND (negative OR absence)",
+      "supported": true,
+      "total_hits": 16,
+      "pmids": [
+        "42453898",
+        "41930201",
+        "41235223"
+      ],
+      "error": ""
+    },
+    {
+      "tissue": "blood",
+      "cell_path": "Dendritic cell > pDC",
+      "gene": "CD1C",
+      "polarity": "negative",
+      "query": "\"CD1C\"[tiab] AND \"pDC\"[tiab] AND (negative OR absence)",
+      "supported": true,
+      "total_hits": 8,
+      "pmids": [
+        "40703515",
+        "38731010",
+        "35222381"
+      ],
+      "error": ""
+    },
+    {
+      "tissue": "blood",
+      "cell_path": "Dendritic cell > pDC",
+      "gene": "CD3D",
+      "polarity": "negative",
+      "query": "\"CD3D\"[tiab] AND \"pDC\"[tiab] AND (negative OR absence)",
+      "supported": false,
+      "total_hits": 0,
+      "pmids": [],
+      "error": ""
+    },
+    {
+      "tissue": "blood",
+      "cell_path": "Platelet",
+      "gene": "PF4",
+      "polarity": "positive",
+      "query": "\"PF4\"[tiab] AND \"Platelet\"[tiab] AND marker[tiab]",
+      "supported": true,
+      "total_hits": 20,
+      "pmids": [
+        "41839626",
+        "41828395",
+        "41797571"
+      ],
+      "error": ""
+    },
+    {
+      "tissue": "blood",
+      "cell_path": "Platelet",
+      "gene": "PPBP",
+      "polarity": "positive",
+      "query": "\"PPBP\"[tiab] AND \"Platelet\"[tiab] AND marker[tiab]",
+      "supported": true,
+      "total_hits": 3,
+      "pmids": [
+        "41558870",
+        "30655761",
+        "23468981"
+      ],
+      "error": ""
+    },
+    {
+      "tissue": "blood",
+      "cell_path": "Platelet",
+      "gene": "GP1BB",
+      "polarity": "positive",
+      "query": "\"GP1BB\"[tiab] AND \"Platelet\"[tiab] AND marker[tiab]",
+      "supported": false,
+      "total_hits": 0,
+      "pmids": [],
+      "error": ""
+    },
+    {
+      "tissue": "blood",
+      "cell_path": "Platelet",
+      "gene": "ITGA2B",
+      "polarity": "positive",
+      "query": "\"ITGA2B\"[tiab] AND \"Platelet\"[tiab] AND marker[tiab]",
+      "supported": true,
+      "total_hits": 4,
+      "pmids": [
+        "41573336",
+        "41105878",
+        "31523198"
+      ],
+      "error": ""
+    },
+    {
+      "tissue": "blood",
+      "cell_path": "Platelet",
+      "gene": "CD9",
+      "polarity": "positive",
+      "query": "\"CD9\"[tiab] AND \"Platelet\"[tiab] AND marker[tiab]",
+      "supported": true,
+      "total_hits": 20,
+      "pmids": [
+        "42514248",
+        "41965511",
+        "41874157"
+      ],
+      "error": ""
+    },
+    {
+      "tissue": "blood",
+      "cell_path": "Platelet",
+      "gene": "CD3D",
+      "polarity": "negative",
+      "query": "\"CD3D\"[tiab] AND \"Platelet\"[tiab] AND (negative OR absence)",
+      "supported": false,
+      "total_hits": 0,
+      "pmids": [],
+      "error": ""
+    },
+    {
+      "tissue": "blood",
+      "cell_path": "Platelet",
+      "gene": "CD19",
+      "polarity": "negative",
+      "query": "\"CD19\"[tiab] AND \"Platelet\"[tiab] AND (negative OR absence)",
+      "supported": true,
+      "total_hits": 20,
+      "pmids": [
+        "42561551",
+        "42510708",
+        "42445171"
+      ],
+      "error": ""
+    },
+    {
+      "tissue": "blood",
+      "cell_path": "Platelet",
+      "gene": "CD14",
+      "polarity": "negative",
+      "query": "\"CD14\"[tiab] AND \"Platelet\"[tiab] AND (negative OR absence)",
+      "supported": true,
+      "total_hits": 20,
+      "pmids": [
+        "41823228",
+        "41226656",
+        "39864016"
+      ],
+      "error": ""
+    },
+    {
+      "tissue": "blood",
+      "cell_path": "Platelet",
+      "gene": "LYZ",
+      "polarity": "negative",
+      "query": "\"LYZ\"[tiab] AND \"Platelet\"[tiab] AND (negative OR absence)",
+      "supported": true,
+      "total_hits": 2,
+      "pmids": [
+        "40740775",
+        "34249963"
+      ],
+      "error": ""
+    }
+  ]
+}

@@ -277,6 +277,20 @@ class TestRunAnnotationPipeline:
                 tmp_output_dir / "missing.h5ad", "leiden", tmp_output_dir / "out"
             )
 
+    def test_auto_detected_unsupported_species_fails_closed(self, tmp_output_dir, monkeypatch):
+        adata = _make_adata(
+            [f"ENSRNOG{i:011d}" for i in range(120)],
+            obs_dict={"leiden": ["0"] * 10 + ["1"] * 10},
+            n_cells=20,
+        )
+        from celltypepilot import data_adapter
+
+        monkeypatch.setattr(data_adapter, "load_h5ad", lambda _: adata)
+        monkeypatch.setattr(data_adapter, "compute_data_hash", lambda _: "0" * 64)
+
+        with pytest.raises(PipelineError, match="supports scoring only human, mouse"):
+            run_annotation_pipeline("rat_input.h5ad", "leiden", tmp_output_dir / "rat_out")
+
 
 class TestWriteAnnotationsToAdata:
     def test_maps_clusters_and_fills_unknown(self, synthetic_pbmc, tmp_output_dir):

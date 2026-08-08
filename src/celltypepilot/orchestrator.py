@@ -19,8 +19,6 @@ from .constants import (
     MARKER_FDR_THRESHOLD,
     MARKER_PCT_THRESHOLD,
     OUTPUT_ANNOTATED,
-    SPECIES_HUMAN,
-    SPECIES_MOUSE,
 )
 
 # progress(step, total, message)
@@ -29,6 +27,48 @@ ProgressFn = Callable[[int, int, str], None] | None
 
 class PipelineError(ValueError):
     """Raised when the annotation pipeline cannot proceed."""
+
+
+def assess_annotation_validation_scope(adata) -> dict:
+    """Describe what an ordinary annotation run can and cannot claim."""
+    from .data_adapter import find_metadata_columns
+
+    metadata = find_metadata_columns(adata)
+    limitations = [
+        "This annotation run is a reviewable draft, not a study/donor holdout validation.",
+        "Marker scoring uses cell-level cluster-vs-rest differential expression and does not model donor as the statistical unit.",
+        "Batch-effect and complex-sample robustness require the benchmark command with locked study/donor metadata.",
+    ]
+    if not metadata["study_keys"] or not metadata["donor_keys"]:
+        limitations.append(
+            "No complete study+donor metadata pair was detected, so independence/generalization cannot be assessed from this run."
+        )
+    else:
+        limitations.append(
+            "Study/donor metadata were detected but not evaluated by the annotation pipeline; run the benchmark workflow before making robustness claims."
+        )
+    if not metadata["batch_keys"]:
+        limitations.append(
+            "No explicit batch/sample/platform key was detected for artifact-level batch auditing."
+        )
+
+    return {
+        "schema_version": "celltypepilot.validation-scope.v1",
+        "run_role": "draft_annotation_for_human_review",
+        "batch_robustness_claim": "not_assessed",
+        "complex_sample_robustness_claim": "not_assessed",
+        "statistical_independence_claim": "not_assessed",
+        "metadata_candidates": metadata,
+        "limitations": limitations,
+        "required_for_robustness_claims": (
+            "Use celltypepilot benchmark/benchmark-run with predeclared study_key, "
+            "donor_key, truth_key, strategy, label map, and comparator configuration."
+        ),
+        "agent_plugin_guidance": (
+            "Plugin hosts should present these annotations as auditable drafts and "
+            "offer benchmark setup when users ask about batch robustness or cross-study generalization."
+        ),
+    }
 
 
 def find_cluster_column(obs: pd.DataFrame) -> str | None:
@@ -42,13 +82,12 @@ def find_cluster_column(obs: pd.DataFrame) -> str | None:
     return None
 
 
-def write_annotations_to_adata(
+def _write_annotations_to_obs(
     adata,
     critic_results: pd.DataFrame,
     cluster_key: str,
-    output_dir: Path,
-) -> Path:
-    """Write annotation results back into adata obs and save."""
+) -> None:
+    """Write annotation results back into adata obs (in-place, no file I/O)."""
     cluster_to_ct = dict(zip(critic_results["cluster"], critic_results["cell_type"], strict=True))
     cluster_to_cl = dict(
         zip(
@@ -61,6 +100,16 @@ def write_annotations_to_adata(
         zip(
             critic_results["cluster"],
             critic_results.get("critic_confidence", [""] * len(critic_results)),
+            strict=True,
+        )
+    )
+    cluster_to_evidence_score = dict(
+        zip(
+            critic_results["cluster"],
+            critic_results.get(
+                "evidence_score",
+                critic_results.get("combined_score", [0.0] * len(critic_results)),
+            ),
             strict=True,
         )
     )
@@ -132,6 +181,9 @@ def write_annotations_to_adata(
     adata.obs["ctp_cell_type"] = cluster_series.map(cluster_to_ct).fillna("Unknown")
     adata.obs["ctp_cl_id"] = cluster_series.map(cluster_to_cl).fillna("")
     adata.obs["ctp_confidence"] = cluster_series.map(cluster_to_conf).fillna("unknown")
+    adata.obs["ctp_evidence_score"] = cluster_series.map(cluster_to_evidence_score).fillna(0.0)
+    adata.obs["ctp_score_semantics"] = "heuristic_evidence_score_not_probability"
+    adata.obs["ctp_confidence_semantics"] = "rule_based_review_category_not_probability"
     adata.obs["ctp_candidate_cell_type"] = cluster_series.map(cluster_to_candidate).fillna(
         "Unknown"
     )
@@ -157,6 +209,15 @@ def write_annotations_to_adata(
     )
     adata.obs["ctp_display_label"] = cluster_series.map(cluster_to_display).fillna("Unknown")
 
+
+def write_annotations_to_adata(
+    adata,
+    critic_results: pd.DataFrame,
+    cluster_key: str,
+    output_dir: Path,
+) -> Path:
+    """Write annotation results back into adata obs and save."""
+    _write_annotations_to_obs(adata, critic_results, cluster_key)
     output_path = Path(output_dir) / OUTPUT_ANNOTATED
     adata.write(output_path)
     return output_path
@@ -184,6 +245,7 @@ def run_annotation_pipeline(
     context_file_path: str | Path | None = None,
     custom_markers_path: str | Path | None = None,
     enable_states: bool = True,
+    packs: list[str] | None = None,
     progress: ProgressFn = None,
 ) -> dict:
     """Run marker, optional reference, ensemble, critic, and artifact generation.
@@ -196,34 +258,20 @@ def run_annotation_pipeline(
         PipelineError: invalid cluster key or no annotations produced.
         FileNotFoundError: input file missing.
     """
-    from .critic import generate_critic_summary, run_critic
     from .data_adapter import (
         compute_data_hash,
         detect_species,
         detect_tissue,
         find_embedding_keys,
-        get_all_markers_for_tissue,
         load_h5ad,
-        load_marker_atlas,
-        summarize_atlas_evidence,
-        validate_atlas_provenance,
+        require_supported_annotation_species,
     )
-    from .ensemble_scorer import (
-        analyze_disagreements,
-        ensemble_scores,
-        generate_ensemble_summary,
-    )
-    from .marker_scorer import compute_marker_scores, generate_annotation_summary
-    from .provenance import create_manifest, save_manifest, update_manifest_outputs
-    from .reporter import generate_html_report, generate_methodology_text, save_evidence_table
-    from .visualizer import generate_all_figures
 
     def _emit(step: int, msg: str):
         if progress is not None:
             progress(step, 8, msg)
 
     output_path = Path(output_dir)
-    output_path.mkdir(parents=True, exist_ok=True)
 
     # Step 1: Load data
     _emit(1, "Loading data...")
@@ -234,10 +282,11 @@ def run_annotation_pipeline(
     _emit(2, "Detecting parameters...")
     if species is None:
         species = detect_species(adata)
-    if species not in (SPECIES_HUMAN, SPECIES_MOUSE):
-        # Marker atlas only covers human/mouse; continue with human symbols
-        # but surface the situation to the caller via the result dict.
-        pass
+    try:
+        require_supported_annotation_species(species)
+    except ValueError as exc:
+        raise PipelineError(str(exc)) from exc
+    validation_scope = assess_annotation_validation_scope(adata)
     if tissue is None:
         tissue = detect_tissue(adata) or "general"
     if embedding_key is None:
@@ -276,17 +325,45 @@ def run_annotation_pipeline(
     context_enabled = bool(context_text or context_file_path or custom_markers_path)
 
     # Step 3: Marker scoring
+    from .critic import generate_critic_summary, run_critic
+    from .data_adapter import (
+        get_all_markers_for_tissue,
+        load_marker_atlas,
+        summarize_atlas_evidence,
+        validate_atlas_provenance,
+    )
+    from .ensemble_scorer import (
+        analyze_disagreements,
+        ensemble_scores,
+        generate_ensemble_summary,
+    )
+    from .marker_scorer import compute_marker_scores, generate_annotation_summary
+    from .pack_manager import (
+        PackError,
+        collect_pack_state_definitions_input,
+        merge_marker_atlas,
+        pack_manifest_parameters,
+        resolve_extension_packs,
+    )
+
     _emit(3, "Computing marker scores...")
     atlas = load_marker_atlas(species)
-    try:
-        atlas_tissue = resolve_atlas_tissue(tissue, atlas, context_pack)
-    except ContextPackError as exc:
-        raise PipelineError(f"Context safety gate failed: {exc}") from exc
     provenance_issues = validate_atlas_provenance(atlas)
     if provenance_issues:
         raise PipelineError(
             "Marker atlas provenance validation failed: " + "; ".join(provenance_issues[:5])
         )
+    extension_pack_records: list[dict] = []
+    if packs:
+        try:
+            extension_pack_records, _ = resolve_extension_packs(packs, species)
+            atlas, _merge_warnings = merge_marker_atlas(atlas, extension_pack_records, species)
+        except PackError as exc:
+            raise PipelineError(f"Extension pack safety gate failed: {exc}") from exc
+    try:
+        atlas_tissue = resolve_atlas_tissue(tissue, atlas, context_pack)
+    except ContextPackError as exc:
+        raise PipelineError(f"Context safety gate failed: {exc}") from exc
     markers = get_all_markers_for_tissue(
         atlas,
         atlas_tissue,
@@ -380,6 +457,9 @@ def run_annotation_pipeline(
         except (json.JSONDecodeError, CalibrationError, KeyError, ValueError) as exc:
             raise PipelineError(f"Invalid calibration policy: {exc}") from exc
         calibration_policy_hash = compute_data_hash(policy_path)
+    from .uncertainty import attach_uncertainty_language, build_uncertainty_language_manifest
+
+    critic_results = attach_uncertainty_language(critic_results, calibration_policy)
     critic_summary = generate_critic_summary(critic_results)
 
     # Step 6: State Lens. This is an independent output axis; the attach
@@ -395,7 +475,12 @@ def run_annotation_pipeline(
         )
 
         try:
-            state_definitions = load_state_definitions(species, tissue, context_pack)
+            state_definitions = load_state_definitions(
+                species,
+                tissue,
+                context_pack,
+                pack_states=collect_pack_state_definitions_input(extension_pack_records),
+            )
             state_results = score_cell_states(
                 adata,
                 cluster_key,
@@ -410,12 +495,17 @@ def run_annotation_pipeline(
     # Step 7: Figures
     figure_paths = []
     if not no_figures and embedding_key:
+        from .visualizer import generate_all_figures
+
         _emit(7, "Generating figures...")
         figure_paths = generate_all_figures(
             adata, cluster_key, embedding_key, critic_results, output_path, tissue
         )
 
     # Step 8: Save all outputs and hash them into one manifest.
+    from .provenance import create_manifest, save_manifest, update_manifest_outputs
+    from .reporter import generate_html_report, generate_methodology_text, save_evidence_table
+
     _emit(8, "Saving outputs...")
 
     evidence_path = save_evidence_table(critic_results, output_path)
@@ -476,6 +566,7 @@ def run_annotation_pipeline(
             "marker_evidence_summary": atlas_evidence_summary,
             "atlas_tissue": atlas_tissue,
             **context_manifest_parameters(context_pack, context_enabled),
+            "extension_packs": pack_manifest_parameters(extension_pack_records) or None,
             "state_lens_enabled": enable_states,
             "state_contract": "identity_invariant_independent_axis_v1",
             "calibration_policy_path": str(calibration_policy_path)
@@ -483,6 +574,11 @@ def run_annotation_pipeline(
             else None,
             "calibration_policy_sha256": calibration_policy_hash,
             "calibration_policy": calibration_policy,
+            "uncertainty_language": build_uncertainty_language_manifest(
+                calibration_policy=calibration_policy,
+                uses_reference=uses_reference,
+            ),
+            "validation_scope": validation_scope,
         },
         output_dir=output_path,
     )
@@ -520,6 +616,7 @@ def run_annotation_pipeline(
         "tissue": tissue,
         "embedding_key": embedding_key,
         "data_hash": data_hash,
+        "validation_scope": validation_scope,
         "paths": {
             "evidence": evidence_path,
             "report": report_path,
@@ -682,3 +779,420 @@ def regenerate_figures_after_override(
     return generate_all_figures(
         adata, cluster_col, candidates[0], None, Path(output_dir), "general"
     )
+
+
+# ──────────────────────────────────────────────
+# Scanpy-native Python API
+# ──────────────────────────────────────────────
+
+
+def annotate(
+    adata,
+    cluster_key: str,
+    species: str | None = None,
+    tissue: str | None = None,
+    layer: str | None = None,
+    embedding_key: str | None = None,
+    reference=None,
+    ref_label_key: str = "cell_type",
+    model_path: str | None = None,
+    reference_backend: str = "auto",
+    marker_weight: float = 0.5,
+    no_ensemble: bool = False,
+    allow_unverified_reference: bool = False,
+    marker_evidence_policy: str = "database",
+    calibration_policy: dict | None = None,
+    context_text: str | None = None,
+    context_file_path: str | Path | None = None,
+    custom_markers_path: str | Path | None = None,
+    enable_states: bool = True,
+    packs: list[str] | None = None,
+    output_dir: str | Path | None = None,
+    no_figures: bool = True,
+    progress: ProgressFn = None,
+):
+    """Annotate cell types in an in-memory AnnData (Scanpy-native API).
+
+    Runs the full CellTypePilot pipeline on an AnnData object without
+    requiring file I/O. Writes ``ctp_*`` columns to ``adata.obs`` in-place
+    and returns the annotated AnnData.
+
+    This is the primary Python API for programmatic use::
+
+        import celltypepilot as ctp
+        adata = ctp.annotate(adata, "leiden", species="human", tissue="blood")
+
+    Args:
+        adata: AnnData with pre-clustered data
+        cluster_key: Column in ``adata.obs`` with cluster labels
+        species: "human" or "mouse" (auto-detected if omitted)
+        tissue: Tissue context, e.g. "blood", "lung" (auto-detected if omitted)
+        layer: Layer to use for expression scoring (default: X)
+        embedding_key: Embedding key in ``adata.obsm`` for figures
+        reference: Optional reference AnnData with cell type labels
+        ref_label_key: Column in ``reference.obs`` with cell type labels
+        model_path: Optional CellTypist model path
+        reference_backend: "auto", "celltypist", "scanvi", "knn", "correlation"
+        marker_weight: Marker ensemble weight (0-1)
+        no_ensemble: Skip ensemble fusion, use reference only
+        allow_unverified_reference: Override reference provenance gate
+        marker_evidence_policy: "database", "literature", "edge_verified", or "primary"
+        calibration_policy: Optional abstention policy dict (pre-loaded)
+        context_text: Free biological context (provenance only, never evidence)
+        context_file_path: Path to governed context JSON
+        custom_markers_path: Path to custom marker CSV
+        enable_states: Enable independent State Lens scoring
+        packs: Optional list of installed extension pack names to merge
+            into the marker/state atlases (e.g. ["premium"])
+        output_dir: If set, write artifacts (figures, report, CSVs) here
+        no_figures: Skip figure generation (default True for API mode)
+        progress: Optional ``progress(step, total, message)`` callback
+
+    Returns:
+        The same AnnData with ``ctp_*`` columns added to ``.obs``.
+
+    Raises:
+        PipelineError: Invalid cluster key or no annotations produced.
+    """
+    from .critic import generate_critic_summary, run_critic
+    from .data_adapter import (
+        detect_species,
+        detect_tissue,
+        find_embedding_keys,
+        get_all_markers_for_tissue,
+        load_marker_atlas,
+        require_supported_annotation_species,
+        validate_atlas_provenance,
+    )
+    from .ensemble_scorer import (
+        ensemble_scores,
+        generate_ensemble_summary,
+    )
+    from .marker_scorer import compute_marker_scores, generate_annotation_summary
+    from .pack_manager import (
+        PackError,
+        collect_pack_state_definitions_input,
+        merge_marker_atlas,
+        pack_manifest_parameters,
+        resolve_extension_packs,
+    )
+
+    def _emit(step: int, msg: str):
+        if progress is not None:
+            progress(step, 8, msg)
+
+    # Validate cluster key
+    if cluster_key not in adata.obs.columns:
+        raise PipelineError(
+            f"cluster key '{cluster_key}' not found in obs. "
+            f"Available columns: {list(adata.obs.columns)}"
+        )
+    if layer is not None and layer not in adata.layers:
+        raise PipelineError(f"layer '{layer}' not found. Available layers: {list(adata.layers)}")
+
+    # Detect/auto-set parameters
+    _emit(1, "Detecting parameters...")
+    if species is None:
+        species = detect_species(adata)
+    try:
+        require_supported_annotation_species(species)
+    except ValueError as exc:
+        raise PipelineError(str(exc)) from exc
+    validation_scope = assess_annotation_validation_scope(adata)
+    if tissue is None:
+        tissue = detect_tissue(adata) or "general"
+    if embedding_key is None:
+        candidates = find_embedding_keys(adata)
+        if candidates:
+            embedding_key = candidates[0]
+
+    # Resolve governed context
+    _emit(2, "Resolving context...")
+    from .context_pack import (
+        ContextPackError,
+        load_context_pack,
+        merge_identity_hypotheses,
+        resolve_atlas_tissue,
+    )
+
+    try:
+        context_pack = load_context_pack(
+            context_text=context_text,
+            context_file=context_file_path,
+            custom_markers_file=custom_markers_path,
+            species=species,
+            tissue=tissue,
+        )
+    except ContextPackError as exc:
+        raise PipelineError(f"Context safety gate failed: {exc}") from exc
+
+    # Marker scoring
+    _emit(3, "Computing marker scores...")
+    atlas = load_marker_atlas(species)
+    provenance_issues = validate_atlas_provenance(atlas)
+    if provenance_issues:
+        raise PipelineError(
+            "Marker atlas provenance validation failed: " + "; ".join(provenance_issues[:5])
+        )
+    extension_pack_records: list[dict] = []
+    if packs:
+        try:
+            extension_pack_records, _ = resolve_extension_packs(packs, species)
+            atlas, _merge_warnings = merge_marker_atlas(atlas, extension_pack_records, species)
+        except PackError as exc:
+            raise PipelineError(f"Extension pack safety gate failed: {exc}") from exc
+    try:
+        atlas_tissue = resolve_atlas_tissue(tissue, atlas, context_pack)
+    except ContextPackError as exc:
+        raise PipelineError(f"Context safety gate failed: {exc}") from exc
+    markers = get_all_markers_for_tissue(
+        atlas, atlas_tissue, evidence_policy=marker_evidence_policy
+    )
+    markers = merge_identity_hypotheses(markers, context_pack)
+
+    scores = compute_marker_scores(adata, cluster_key, markers, layer=layer)
+    summary = generate_annotation_summary(scores, cluster_key)
+
+    if summary.empty and reference is None and model_path is None:
+        raise PipelineError("No annotations generated. Check marker gene overlap with your data.")
+
+    # Optional reference scoring and ensemble fusion
+    _emit(4, "Computing optional reference and ensemble scores...")
+    ref_scores = pd.DataFrame()
+    ensemble_df = pd.DataFrame()
+    uses_reference = reference is not None or model_path is not None
+    if uses_reference:
+        from .reference_registry import ReferenceContractError
+        from .reference_scorer import score_by_reference
+
+        try:
+            ref_scores = score_by_reference(
+                adata,
+                cluster_key,
+                reference=reference,
+                ref_label_key=ref_label_key,
+                model_path=model_path,
+                backend=reference_backend,
+                species=species,
+                tissue=tissue,
+                allow_unverified_reference=allow_unverified_reference,
+            )
+        except ReferenceContractError as exc:
+            raise PipelineError(f"Reference safety gate failed: {exc}") from exc
+        ensemble_df = ensemble_scores(
+            pd.DataFrame() if no_ensemble else scores,
+            ref_scores,
+            marker_weight=marker_weight,
+            adaptive=True,
+        )
+        ensemble_summary = generate_ensemble_summary(ensemble_df)
+        summary = _merge_ensemble_annotation_evidence(ensemble_summary, scores, markers)
+
+    # Critic
+    _emit(5, "Running Annotation Critic...")
+    critic_results = run_critic(
+        adata,
+        cluster_key,
+        summary,
+        atlas,
+        atlas_tissue,
+        ensemble_info=ensemble_df if not ensemble_df.empty else None,
+        layer=layer,
+        evidence_policy=marker_evidence_policy,
+        marker_definitions=markers,
+    )
+
+    # Calibration policy
+    if calibration_policy is not None:
+        from .calibration import CalibrationError, apply_policy_to_annotations
+
+        try:
+            critic_results = apply_policy_to_annotations(critic_results, calibration_policy)
+        except (CalibrationError, KeyError, ValueError) as exc:
+            raise PipelineError(f"Invalid calibration policy: {exc}") from exc
+    from .uncertainty import attach_uncertainty_language, build_uncertainty_language_manifest
+
+    critic_results = attach_uncertainty_language(critic_results, calibration_policy)
+
+    # State Lens
+    _emit(6, "Scoring independent cell states...")
+    if enable_states:
+        from .state_scorer import (
+            StateScoringError,
+            attach_state_results,
+            load_state_definitions,
+            score_cell_states,
+        )
+
+        try:
+            state_definitions = load_state_definitions(
+                species,
+                tissue,
+                context_pack,
+                pack_states=collect_pack_state_definitions_input(extension_pack_records),
+            )
+            state_results = score_cell_states(
+                adata, cluster_key, critic_results, state_definitions, layer=layer
+            )
+            critic_results = attach_state_results(critic_results, state_results)
+        except StateScoringError as exc:
+            raise PipelineError(f"State safety gate failed: {exc}") from exc
+
+    # Write annotations to obs (in-place)
+    _emit(7, "Writing annotations to obs...")
+    _write_annotations_to_obs(adata, critic_results, cluster_key)
+    adata.uns["celltypepilot_validation_scope"] = validation_scope
+    adata.uns["celltypepilot_uncertainty_language"] = build_uncertainty_language_manifest(
+        calibration_policy=calibration_policy,
+        uses_reference=uses_reference,
+    )
+
+    # Optional artifact generation
+    _emit(8, "Saving optional artifacts...")
+    if output_dir is not None:
+        output_path = Path(output_dir)
+        output_path.mkdir(parents=True, exist_ok=True)
+
+        from .provenance import create_manifest, save_manifest, update_manifest_outputs
+        from .reporter import generate_html_report, generate_methodology_text, save_evidence_table
+        from .visualizer import generate_all_figures
+
+        figure_paths = []
+        if not no_figures and embedding_key:
+            figure_paths = generate_all_figures(
+                adata, cluster_key, embedding_key, critic_results, output_path, tissue
+            )
+
+        critic_summary = generate_critic_summary(critic_results)
+        save_evidence_table(critic_results, output_path)
+
+        manifest = create_manifest(
+            input_path="in_memory_anndata",
+            data_hash="n/a",
+            cluster_key=cluster_key,
+            species=species,
+            tissue=tissue,
+            parameters={
+                "embedding_key": embedding_key,
+                "layer": layer,
+                "marker_evidence_policy": marker_evidence_policy,
+                "extension_packs": pack_manifest_parameters(extension_pack_records) or None,
+                "pipeline_stages": [
+                    "marker",
+                    "critic",
+                    "state" if enable_states else "state_skipped",
+                ],
+                "validation_scope": validation_scope,
+                "uncertainty_language": build_uncertainty_language_manifest(
+                    calibration_policy=calibration_policy,
+                    uses_reference=uses_reference,
+                ),
+            },
+            output_dir=output_path,
+        )
+
+        generate_html_report(
+            critic_results, critic_results, critic_summary, manifest, figure_paths, output_path
+        )
+        method_text = generate_methodology_text(manifest, critic_summary, critic_results)
+        method_path = output_path / "methodology_draft.txt"
+        with open(method_path, "w", encoding="utf-8") as f:
+            f.write(method_text)
+
+        annotated_path = output_path / OUTPUT_ANNOTATED
+        adata.write(annotated_path)
+        manifest = update_manifest_outputs(manifest, output_path)
+        save_manifest(manifest, output_path)
+
+    return adata
+
+
+def critic_review(
+    adata,
+    cluster_key: str,
+    focus_cluster: str,
+    species: str | None = None,
+    tissue: str | None = None,
+    layer: str | None = None,
+) -> dict:
+    """Deep-review a specific cluster (Scanpy-native API).
+
+    Runs marker scoring and critic review for a single cluster,
+    returning detailed evidence for human adjudication.
+
+    Args:
+        adata: AnnData with pre-clustered data
+        cluster_key: Column in ``adata.obs`` with cluster labels
+        focus_cluster: The cluster ID to deep-review
+        species: "human" or "mouse" (auto-detected if omitted)
+        tissue: Tissue context (auto-detected if omitted)
+        layer: Layer to use for expression scoring
+
+    Returns:
+        Dict with keys: cluster, candidates, critic_results, summary.
+
+    Raises:
+        PipelineError: If the cluster is not found or scoring fails.
+    """
+    from .critic import run_critic
+    from .data_adapter import (
+        detect_species,
+        detect_tissue,
+        get_all_markers_for_tissue,
+        load_marker_atlas,
+        require_supported_annotation_species,
+    )
+    from .marker_scorer import compute_marker_scores, generate_annotation_summary
+
+    if cluster_key not in adata.obs.columns:
+        raise PipelineError(
+            f"cluster key '{cluster_key}' not found in obs. "
+            f"Available columns: {list(adata.obs.columns)}"
+        )
+
+    if species is None:
+        species = detect_species(adata)
+    try:
+        require_supported_annotation_species(species)
+    except ValueError as exc:
+        raise PipelineError(str(exc)) from exc
+    if tissue is None:
+        tissue = detect_tissue(adata) or "general"
+
+    atlas = load_marker_atlas(species)
+    markers = get_all_markers_for_tissue(atlas, tissue)
+
+    scores = compute_marker_scores(adata, cluster_key, markers, layer=layer)
+    summary = generate_annotation_summary(scores, cluster_key)
+
+    # Filter to focus cluster
+    focus_rows = summary[summary["cluster"] == str(focus_cluster)]
+    if focus_rows.empty:
+        raise PipelineError(
+            f"Cluster '{focus_cluster}' not found in annotations. "
+            f"Available clusters: {sorted(summary['cluster'].unique())}"
+        )
+
+    critic_results = run_critic(adata, cluster_key, focus_rows, atlas, tissue)
+
+    # Top-5 candidates for this cluster
+    cluster_scores = scores[scores["cluster"] == str(focus_cluster)].head(5)
+    candidates = []
+    for _, row in cluster_scores.iterrows():
+        candidates.append({
+            "cell_type": row["cell_type"],
+            "score": round(float(row["combined_score"]), 4),
+            "overlap": round(float(row["pct_overlap"]), 4),
+            "neg_conflict": round(float(row["neg_conflict"]), 4),
+        })
+
+    return {
+        "cluster": str(focus_cluster),
+        "candidates": candidates,
+        "critic_results": critic_results.to_dict(orient="records"),
+        "critic_summary": {
+            "flags": critic_results["critic_flags"].tolist(),
+            "confidence": critic_results["critic_confidence"].tolist(),
+            "evidence": critic_results["critic_evidence"].tolist(),
+        },
+    }

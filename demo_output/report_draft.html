@@ -70,14 +70,14 @@ tr:nth-child(even) { background: var(--card-bg); }
 <body>
 <h1>CellTypePilot Annotation Report</h1>
 <p class="subtitle">
-  Generated: 2026-08-07T17:11:19.939515+00:00 |
-  CellTypePilot v0.1.0 |
+  Generated: 2026-08-08T10:05:40.883415+00:00 |
+  CellTypePilot v0.3.0 |
   MKG: mkg-2026.08
 </p>
 
 <h2>Overview</h2>
 
-<div class="card narrative-box"><p>8 cluster(s) reviewed: 7 passed critic checks, 1 flagged for review. Confidence distribution: 5 high, 2 medium, 1 needs_review. Flag breakdown: POSSIBLE_DOUBLET ×1. Flagged clusters need human adjudication before publication; unflagged clusters carry full marker evidence in evidence_table.csv.</p></div>
+<div class="card narrative-box"><p>8 cluster(s) reviewed: 0 passed critic checks, 8 flagged for review. Confidence distribution: 6 medium, 1 needs_review, 1 low. Flag breakdown: AGGREGATE_PROVENANCE_ONLY ×8, NEG_MARKER_CONFLICT ×1, POSSIBLE_DOUBLET ×1, PARTIAL_EVIDENCE ×1, PARTIAL_DE_SUPPORT ×1. Flagged clusters need human adjudication before publication; unflagged clusters carry full marker evidence in evidence_table.csv.</p></div>
 
 <div class="stats-grid">
   <div class="stat-card">
@@ -89,26 +89,26 @@ tr:nth-child(even) { background: var(--card-bg); }
     <div class="stat-label">Total Clusters</div>
   </div>
   <div class="stat-card">
-    <div class="stat-value" style="color: var(--success)">7</div>
+    <div class="stat-value" style="color: var(--success)">0</div>
     <div class="stat-label">Passed Critic</div>
   </div>
   <div class="stat-card">
-    <div class="stat-value" style="color: var(--danger)">1</div>
+    <div class="stat-value" style="color: var(--danger)">8</div>
     <div class="stat-label">Flagged for Review</div>
   </div>
 </div>
 
 <div class="stats-grid">
   <div class="stat-card">
-    <div class="stat-value" style="color: var(--success)">5</div>
+    <div class="stat-value" style="color: var(--success)">0</div>
     <div class="stat-label">High Confidence</div>
   </div>
   <div class="stat-card">
-    <div class="stat-value" style="color: var(--warning)">2</div>
+    <div class="stat-value" style="color: var(--warning)">6</div>
     <div class="stat-label">Medium Confidence</div>
   </div>
   <div class="stat-card">
-    <div class="stat-value" style="color: var(--danger)">0</div>
+    <div class="stat-value" style="color: var(--danger)">1</div>
     <div class="stat-label">Low Confidence</div>
   </div>
   <div class="stat-card">
@@ -124,7 +124,8 @@ tr:nth-child(even) { background: var(--card-bg); }
 <table>
 <thead>
 <tr>
-  <th>Cluster</th><th>Cell Type</th><th>CL ID</th>
+  <th>Cluster</th><th>Final Cell Type</th><th>Candidate</th><th>Identity Decision</th><th>CL ID</th>
+  <th>State Candidate</th><th>State Decision</th>
   <th>Score</th><th>Confidence</th><th>Critic</th><th>Evidence Summary</th>
 </tr>
 </thead>
@@ -133,81 +134,113 @@ tr:nth-child(even) { background: var(--card-bg); }
 <tr>
   <td><strong>0</strong></td>
   <td>CD4+ T cell</td>
+  <td>CD4+ T cell</td>
+  <td>accepted</td>
   <td>CL:0000624</td>
+  <td>memory_t_cell</td>
+  <td>hypothesis (0.475)</td>
   <td>0.905</td>
-  <td><span class="badge badge-high">high</span></td>
-  <td><span class="badge badge-pass">PASS</span></td>
-  <td class="evidence-text">Cluster 0 → CD4+ T cell [HIGH] PASS | Evidence: marker overlap 100%, score 0.91 | Action: Accept annotation.</td>
+  <td><span class="badge badge-medium">medium</span></td>
+  <td><span class="badge badge-flag">AGGREGATE_PROVENANCE_ONLY</span></td>
+  <td class="evidence-text">Cluster 0 → CD4+ T cell [MEDIUM] FLAGGED (AGGREGATE_PROVENANCE_ONLY) | Evidence: marker overlap 100%, score 0.91 | Action: Treat as a draft; verify marker edges against stable records or primary sources.</td>
 </tr>
 
 <tr>
   <td><strong>1</strong></td>
   <td>Monocyte</td>
+  <td>Monocyte</td>
+  <td>accepted</td>
   <td>CL:0000576</td>
+  <td>Unknown</td>
+  <td>abstain (0.000)</td>
   <td>0.934</td>
-  <td><span class="badge badge-high">high</span></td>
-  <td><span class="badge badge-pass">PASS</span></td>
-  <td class="evidence-text">Cluster 1 → Monocyte [HIGH] PASS | Evidence: marker overlap 100%, score 0.93 | Action: Accept annotation.</td>
+  <td><span class="badge badge-medium">medium</span></td>
+  <td><span class="badge badge-flag">AGGREGATE_PROVENANCE_ONLY</span></td>
+  <td class="evidence-text">Cluster 1 → Monocyte [MEDIUM] FLAGGED (AGGREGATE_PROVENANCE_ONLY) | Evidence: marker overlap 100%, score 0.93 | Action: Treat as a draft; verify marker edges against stable records or primary sources.</td>
 </tr>
 
 <tr>
   <td><strong>2</strong></td>
-  <td>Naive B cell</td>
-  <td>CL:0000788</td>
-  <td>0.903</td>
-  <td><span class="badge badge-high">high</span></td>
-  <td><span class="badge badge-pass">PASS</span></td>
-  <td class="evidence-text">Cluster 2 → Naive B cell [HIGH] PASS | Evidence: marker overlap 100%, score 0.90 | Action: Accept annotation.</td>
+  <td>B cell</td>
+  <td>B cell</td>
+  <td>accepted</td>
+  <td>CL:0000236</td>
+  <td>Unknown</td>
+  <td>abstain (0.000)</td>
+  <td>0.900</td>
+  <td><span class="badge badge-medium">medium</span></td>
+  <td><span class="badge badge-flag">AGGREGATE_PROVENANCE_ONLY</span></td>
+  <td class="evidence-text">Cluster 2 → B cell [MEDIUM] FLAGGED (AGGREGATE_PROVENANCE_ONLY) | Evidence: marker overlap 100%, score 0.90 | Action: Treat as a draft; verify marker edges against stable records or primary sources.</td>
 </tr>
 
 <tr>
   <td><strong>3</strong></td>
   <td>T cell</td>
+  <td>T cell</td>
+  <td>accepted</td>
   <td>CL:0000084</td>
-  <td>0.867</td>
+  <td>Unknown</td>
+  <td>abstain (0.000)</td>
+  <td>0.757</td>
   <td><span class="badge badge-medium">medium</span></td>
-  <td><span class="badge badge-pass">PASS</span></td>
-  <td class="evidence-text">Cluster 3 → T cell [MEDIUM] PASS | Evidence: marker overlap 100%, score 0.87 | Action: Accept annotation.</td>
+  <td><span class="badge badge-flag">AGGREGATE_PROVENANCE_ONLY</span></td>
+  <td class="evidence-text">Cluster 3 → T cell [MEDIUM] FLAGGED (AGGREGATE_PROVENANCE_ONLY) | Evidence: marker overlap 80%, score 0.76 | Action: Treat as a draft; verify marker edges against stable records or primary sources.</td>
 </tr>
 
 <tr>
   <td><strong>4</strong></td>
-  <td>NK cell</td>
-  <td>CL:0000623</td>
-  <td>0.922</td>
-  <td><span class="badge badge-high">high</span></td>
-  <td><span class="badge badge-pass">PASS</span></td>
-  <td class="evidence-text">Cluster 4 → NK cell [HIGH] PASS | Evidence: marker overlap 100%, score 0.92 | Action: Accept annotation.</td>
+  <td>CD56dim NK cell</td>
+  <td>CD56dim NK cell</td>
+  <td>accepted</td>
+  <td>CL:0000939</td>
+  <td>cytotoxic</td>
+  <td>supported (0.860)</td>
+  <td>0.809</td>
+  <td><span class="badge badge-medium">medium</span></td>
+  <td><span class="badge badge-flag">AGGREGATE_PROVENANCE_ONLY</span></td>
+  <td class="evidence-text">Cluster 4 → CD56dim NK cell [MEDIUM] FLAGGED (AGGREGATE_PROVENANCE_ONLY) | Evidence: marker overlap 80%, score 0.81 | Action: Treat as a draft; verify marker edges against stable records or primary sources.</td>
 </tr>
 
 <tr>
   <td><strong>5</strong></td>
   <td>Dendritic cell</td>
+  <td>Dendritic cell</td>
+  <td>accepted</td>
   <td>CL:0000451</td>
+  <td>Unknown</td>
+  <td>abstain (0.000)</td>
   <td>0.900</td>
-  <td><span class="badge badge-high">high</span></td>
-  <td><span class="badge badge-pass">PASS</span></td>
-  <td class="evidence-text">Cluster 5 → Dendritic cell [HIGH] PASS | Evidence: marker overlap 100%, score 0.90 | Action: Accept annotation.</td>
+  <td><span class="badge badge-medium">medium</span></td>
+  <td><span class="badge badge-flag">AGGREGATE_PROVENANCE_ONLY</span></td>
+  <td class="evidence-text">Cluster 5 → Dendritic cell [MEDIUM] FLAGGED (AGGREGATE_PROVENANCE_ONLY) | Evidence: marker overlap 100%, score 0.90 | Action: Treat as a draft; verify marker edges against stable records or primary sources.</td>
 </tr>
 
 <tr>
   <td><strong>6</strong></td>
-  <td>Naive B cell</td>
-  <td>CL:0000788</td>
-  <td>0.849</td>
+  <td>Unknown</td>
+  <td>CD4+ T cell</td>
+  <td>abstain: NEG_MARKER_CONFLICT; POSSIBLE_DOUBLET</td>
+  <td></td>
+  <td>memory_t_cell</td>
+  <td>hypothesis (0.475)</td>
+  <td>0.843</td>
   <td><span class="badge badge-needsreview">needs_review</span></td>
-  <td><span class="badge badge-flag">POSSIBLE_DOUBLET</span></td>
-  <td class="evidence-text">Cluster 6 → Naive B cell [NEEDS_REVIEW] FLAGGED (POSSIBLE_DOUBLET) | Evidence: marker overlap 100%, score 0.85 | Action: Sub-cluster or mark as doublet.</td>
+  <td><span class="badge badge-flag">AGGREGATE_PROVENANCE_ONLY; NEG_MARKER_CO</span></td>
+  <td class="evidence-text">Cluster 6 → Unknown (candidate: CD4+ T cell) [NEEDS_REVIEW] FLAGGED (AGGREGATE_PROVENANCE_ONLY; NEG_MARKER_CONFLICT; POSSIBLE_DOUBLET) | Evidence: marker overlap 100%, score 0.84 | Action: Treat as a draft; verify marker edges against stable records or primary sources. Likely misannotation or doublet; verify markers. Sub-cluster or mark as doublet.</td>
 </tr>
 
 <tr>
   <td><strong>7</strong></td>
+  <td>Unknown</td>
   <td>pDC</td>
-  <td>CL:0000784</td>
-  <td>0.853</td>
-  <td><span class="badge badge-medium">medium</span></td>
-  <td><span class="badge badge-pass">PASS</span></td>
-  <td class="evidence-text">Cluster 7 → pDC [MEDIUM] PASS | Evidence: marker overlap 100%, score 0.85 | Action: Accept annotation.</td>
+  <td>abstain: PARTIAL_DE_SUPPORT; PARTIAL_EVIDENCE</td>
+  <td></td>
+  <td>Unknown</td>
+  <td>abstain (0.000)</td>
+  <td>0.413</td>
+  <td><span class="badge badge-low">low</span></td>
+  <td><span class="badge badge-flag">AGGREGATE_PROVENANCE_ONLY; PARTIAL_EVIDE</span></td>
+  <td class="evidence-text">Cluster 7 → Unknown (candidate: pDC) [LOW] FLAGGED (AGGREGATE_PROVENANCE_ONLY; PARTIAL_EVIDENCE; PARTIAL_DE_SUPPORT) | Evidence: marker overlap 20%, score 0.41 | Action: Treat as a draft; verify marker edges against stable records or primary sources. Review; may be correct for rare/transitional states. Partial directional DE support; review before labeling.</td>
 </tr>
 
 </tbody>
@@ -236,26 +269,116 @@ tr:nth-child(even) { background: var(--card-bg); }
   <div class="caption">Confidence Distribution</div>
 </div>
 
+<div class="figure-card">
+  <img src="figures/umap_identity_state.png" alt="Umap Identity State" loading="lazy">
+  <div class="caption">Umap Identity State</div>
+</div>
+
+<div class="figure-card">
+  <img src="figures/identity_state_distribution.png" alt="Identity State Distribution" loading="lazy">
+  <div class="caption">Identity State Distribution</div>
+</div>
+
 </div>
 
 
 <h2>Critic Details — Flagged Clusters</h2>
 <div class="warning-box">
-  1 cluster(s) flagged for review. See details below.
+  8 cluster(s) flagged for review. See details below.
 </div>
 
 <div class="card">
-  <div class="card-header">Cluster: 6 → Naive B cell</div>
-  <p class="evidence-summary"><strong>Summary:</strong> Cluster 6 → Naive B cell [NEEDS_REVIEW] FLAGGED (POSSIBLE_DOUBLET) | Evidence: marker overlap 100%, score 0.85 | Action: Sub-cluster or mark as doublet.</p>
-  <p><strong>Flags:</strong> POSSIBLE_DOUBLET</p>
-  <p class="evidence-text"><strong>Evidence:</strong> Coverage: 2/2 (100%) positive markers expressed | All 0 negative markers appropriately absent | Cross-lineage co-expression of CD4+ T cell (100%) and B cell (100%) markers | Ensemble: not available</p>
-  <p class="evidence-text"><strong>Notes:</strong> Two distinct lineage signatures co-expressed — possible doublet or transitional state. Consider sub-clustering.</p>
+  <div class="card-header">Cluster: 0 | Final: CD4+ T cell | Candidate: CD4+ T cell</div>
+  <p><strong>Decision:</strong> accepted</p>
+  <p><strong>State:</strong> memory_t_cell — hypothesis</p>
+  <p class="evidence-text"><strong>State evidence:</strong> support=1/4; expressed=25%; missing=3; silent=0</p>
+  <p class="evidence-summary"><strong>Summary:</strong> Cluster 0 → CD4+ T cell [MEDIUM] FLAGGED (AGGREGATE_PROVENANCE_ONLY) | Evidence: marker overlap 100%, score 0.91 | Action: Treat as a draft; verify marker edges against stable records or primary sources.</p>
+  <p><strong>Flags:</strong> AGGREGATE_PROVENANCE_ONLY</p>
+  <p class="evidence-text"><strong>Evidence:</strong> Coverage: 4/4 (100%) expected markers expressed; 0 missing from matrix; 0 present but silent | All 2 negative markers appropriately absent | No doublet signal detected | Ensemble: not available</p>
+  <p class="evidence-text"><strong>Notes:</strong> Marker relations cite database-level sources but have not been verified against a stable database record or primary-source evidence locator</p>
+</div>
+
+<div class="card">
+  <div class="card-header">Cluster: 1 | Final: Monocyte | Candidate: Monocyte</div>
+  <p><strong>Decision:</strong> accepted</p>
+  <p><strong>State:</strong> Unknown — abstain</p>
+  <p class="evidence-text"><strong>State evidence:</strong> support=0/8; expressed=0%; missing=8; silent=0</p>
+  <p class="evidence-summary"><strong>Summary:</strong> Cluster 1 → Monocyte [MEDIUM] FLAGGED (AGGREGATE_PROVENANCE_ONLY) | Evidence: marker overlap 100%, score 0.93 | Action: Treat as a draft; verify marker edges against stable records or primary sources.</p>
+  <p><strong>Flags:</strong> AGGREGATE_PROVENANCE_ONLY</p>
+  <p class="evidence-text"><strong>Evidence:</strong> Coverage: 5/5 (100%) expected markers expressed; 0 missing from matrix; 0 present but silent | All 3 negative markers appropriately absent | No doublet signal detected | Ensemble: not available</p>
+  <p class="evidence-text"><strong>Notes:</strong> Marker relations cite database-level sources but have not been verified against a stable database record or primary-source evidence locator</p>
+</div>
+
+<div class="card">
+  <div class="card-header">Cluster: 2 | Final: B cell | Candidate: B cell</div>
+  <p><strong>Decision:</strong> accepted</p>
+  <p><strong>State:</strong> Unknown — abstain</p>
+  <p class="evidence-text"><strong>State evidence:</strong> support=0/8; expressed=0%; missing=8; silent=0</p>
+  <p class="evidence-summary"><strong>Summary:</strong> Cluster 2 → B cell [MEDIUM] FLAGGED (AGGREGATE_PROVENANCE_ONLY) | Evidence: marker overlap 100%, score 0.90 | Action: Treat as a draft; verify marker edges against stable records or primary sources.</p>
+  <p><strong>Flags:</strong> AGGREGATE_PROVENANCE_ONLY</p>
+  <p class="evidence-text"><strong>Evidence:</strong> Coverage: 5/5 (100%) expected markers expressed; 0 missing from matrix; 0 present but silent | All 3 negative markers appropriately absent | No doublet signal detected | Ensemble: not available</p>
+  <p class="evidence-text"><strong>Notes:</strong> Marker relations cite database-level sources but have not been verified against a stable database record or primary-source evidence locator</p>
+</div>
+
+<div class="card">
+  <div class="card-header">Cluster: 3 | Final: T cell | Candidate: T cell</div>
+  <p><strong>Decision:</strong> accepted</p>
+  <p><strong>State:</strong> Unknown — abstain</p>
+  <p class="evidence-text"><strong>State evidence:</strong> support=0/8; expressed=0%; missing=8; silent=0</p>
+  <p class="evidence-summary"><strong>Summary:</strong> Cluster 3 → T cell [MEDIUM] FLAGGED (AGGREGATE_PROVENANCE_ONLY) | Evidence: marker overlap 80%, score 0.76 | Action: Treat as a draft; verify marker edges against stable records or primary sources.</p>
+  <p><strong>Flags:</strong> AGGREGATE_PROVENANCE_ONLY</p>
+  <p class="evidence-text"><strong>Evidence:</strong> Coverage: 4/5 (80%) expected markers expressed; 1 missing from matrix; 0 present but silent | All 4 negative markers appropriately absent | No doublet signal detected | Ensemble: not available</p>
+  <p class="evidence-text"><strong>Notes:</strong> Marker relations cite database-level sources but have not been verified against a stable database record or primary-source evidence locator</p>
+</div>
+
+<div class="card">
+  <div class="card-header">Cluster: 4 | Final: CD56dim NK cell | Candidate: CD56dim NK cell</div>
+  <p><strong>Decision:</strong> accepted</p>
+  <p><strong>State:</strong> cytotoxic — supported</p>
+  <p class="evidence-text"><strong>State evidence:</strong> support=4/5; expressed=80%; missing=1; silent=0</p>
+  <p class="evidence-summary"><strong>Summary:</strong> Cluster 4 → CD56dim NK cell [MEDIUM] FLAGGED (AGGREGATE_PROVENANCE_ONLY) | Evidence: marker overlap 80%, score 0.81 | Action: Treat as a draft; verify marker edges against stable records or primary sources.</p>
+  <p><strong>Flags:</strong> AGGREGATE_PROVENANCE_ONLY</p>
+  <p class="evidence-text"><strong>Evidence:</strong> Coverage: 4/5 (80%) expected markers expressed; 1 missing from matrix; 0 present but silent | All 1 negative markers appropriately absent | No doublet signal detected | Ensemble: not available</p>
+  <p class="evidence-text"><strong>Notes:</strong> Marker relations cite database-level sources but have not been verified against a stable database record or primary-source evidence locator</p>
+</div>
+
+<div class="card">
+  <div class="card-header">Cluster: 5 | Final: Dendritic cell | Candidate: Dendritic cell</div>
+  <p><strong>Decision:</strong> accepted</p>
+  <p><strong>State:</strong> Unknown — abstain</p>
+  <p class="evidence-text"><strong>State evidence:</strong> support=0/8; expressed=0%; missing=8; silent=0</p>
+  <p class="evidence-summary"><strong>Summary:</strong> Cluster 5 → Dendritic cell [MEDIUM] FLAGGED (AGGREGATE_PROVENANCE_ONLY) | Evidence: marker overlap 100%, score 0.90 | Action: Treat as a draft; verify marker edges against stable records or primary sources.</p>
+  <p><strong>Flags:</strong> AGGREGATE_PROVENANCE_ONLY</p>
+  <p class="evidence-text"><strong>Evidence:</strong> Coverage: 5/5 (100%) expected markers expressed; 0 missing from matrix; 0 present but silent | All 4 negative markers appropriately absent | No doublet signal detected | Ensemble: not available</p>
+  <p class="evidence-text"><strong>Notes:</strong> Marker relations cite database-level sources but have not been verified against a stable database record or primary-source evidence locator</p>
+</div>
+
+<div class="card">
+  <div class="card-header">Cluster: 6 | Final: Unknown | Candidate: CD4+ T cell</div>
+  <p><strong>Decision:</strong> abstain (NEG_MARKER_CONFLICT; POSSIBLE_DOUBLET)</p>
+  <p><strong>State:</strong> memory_t_cell — hypothesis</p>
+  <p class="evidence-text"><strong>State evidence:</strong> support=1/4; expressed=25%; missing=3; silent=0</p>
+  <p class="evidence-summary"><strong>Summary:</strong> Cluster 6 → Unknown (candidate: CD4+ T cell) [NEEDS_REVIEW] FLAGGED (AGGREGATE_PROVENANCE_ONLY; NEG_MARKER_CONFLICT; POSSIBLE_DOUBLET) | Evidence: marker overlap 100%, score 0.84 | Action: Treat as a draft; verify marker edges against stable records or primary sources. Likely misannotation or doublet; verify markers. Sub-cluster or mark as doublet.</p>
+  <p><strong>Flags:</strong> AGGREGATE_PROVENANCE_ONLY; NEG_MARKER_CONFLICT; POSSIBLE_DOUBLET</p>
+  <p class="evidence-text"><strong>Evidence:</strong> Coverage: 4/4 (100%) expected markers expressed; 0 missing from matrix; 0 present but silent | Negative markers expressed: CD8B (21%) | Cross-lineage co-expression of CD4+ T cell (100%) and B cell (100%) markers | Ensemble: not available</p>
+  <p class="evidence-text"><strong>Notes:</strong> Marker relations cite database-level sources but have not been verified against a stable database record or primary-source evidence locator; 1 negative marker(s) unexpectedly expressed — possible misannotation or doublet; Two distinct lineage signatures co-expressed — possible doublet or transitional state. Consider sub-clustering.</p>
+</div>
+
+<div class="card">
+  <div class="card-header">Cluster: 7 | Final: Unknown | Candidate: pDC</div>
+  <p><strong>Decision:</strong> abstain (PARTIAL_DE_SUPPORT; PARTIAL_EVIDENCE)</p>
+  <p><strong>State:</strong> Unknown — abstain</p>
+  <p class="evidence-text"><strong>State evidence:</strong> support=0/8; expressed=0%; missing=8; silent=0</p>
+  <p class="evidence-summary"><strong>Summary:</strong> Cluster 7 → Unknown (candidate: pDC) [LOW] FLAGGED (AGGREGATE_PROVENANCE_ONLY; PARTIAL_EVIDENCE; PARTIAL_DE_SUPPORT) | Evidence: marker overlap 20%, score 0.41 | Action: Treat as a draft; verify marker edges against stable records or primary sources. Review; may be correct for rare/transitional states. Partial directional DE support; review before labeling.</p>
+  <p><strong>Flags:</strong> AGGREGATE_PROVENANCE_ONLY; PARTIAL_EVIDENCE; PARTIAL_DE_SUPPORT</p>
+  <p class="evidence-text"><strong>Evidence:</strong> Coverage: 1/5 (20%) expected markers expressed; 4 missing from matrix; 0 present but silent | DE support: 20% of expected markers | All 3 negative markers appropriately absent | No doublet signal detected | Ensemble: not available</p>
+  <p class="evidence-text"><strong>Notes:</strong> Marker relations cite database-level sources but have not been verified against a stable database record or primary-source evidence locator; Moderate marker coverage (20%) — consider manual review; Partial directional DE support; candidate requires review</p>
 </div>
 
 
 <hr class="report-footer">
 <p class="report-footer-text">
-  Generated by CellTypePilot v0.1.0 | MKG mkg-2026.08 | 2026-08-07 17:11 UTC
+  Generated by CellTypePilot v0.3.0 | MKG mkg-2026.08 | 2026-08-08 10:05 UTC
 </p>
 </body>
 </html>

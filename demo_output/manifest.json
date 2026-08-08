@@ -1,7 +1,7 @@
 {
-  "celltypepilot_version": "0.1.0",
+  "celltypepilot_version": "0.3.0",
   "mkg_version": "mkg-2026.08",
-  "timestamp": "2026-08-07T17:11:19.939515+00:00",
+  "timestamp": "2026-08-08T10:05:40.883415+00:00",
   "input": {
     "path": "demo_pbmc.h5ad",
     "sha256": "7acd3c0e554d51dab6d92928edc73ce00d573fccab04fe5e02dc6faca69b9872"
@@ -10,41 +10,106 @@
     "cluster_key": "leiden",
     "species": "human",
     "tissue": "blood",
-    "embedding_key": "X_umap",
-    "layer": null
+    "embedding_key": "X_pca",
+    "layer": null,
+    "reference_path": null,
+    "ref_label_key": null,
+    "model_path": null,
+    "reference_backend": null,
+    "marker_weight": null,
+    "no_ensemble": null,
+    "reference_sha256": null,
+    "model_sha256": null,
+    "reference_contract": null,
+    "allow_unverified_reference": null,
+    "de_method": "wilcoxon",
+    "de_direction": "positive",
+    "de_log2fc_min": 0.5,
+    "de_fdr_max": 0.05,
+    "marker_expression_fraction_min": 0.25,
+    "pipeline_stages": [
+      "context",
+      "marker",
+      "reference_skipped",
+      "ensemble_skipped",
+      "critic",
+      "state",
+      "writeback",
+      "report",
+      "manifest"
+    ],
+    "marker_atlas_schema": "celltypepilot.marker-atlas.v2",
+    "marker_relationships_in_scope": 193,
+    "marker_relationships_total_tissue": 193,
+    "marker_provenance_validation": "passed",
+    "marker_evidence_policy": "database",
+    "marker_evidence_summary": {
+      "total_relationships": 193,
+      "verification_counts": {
+        "aggregate_source_only_not_edge_verified": 193
+      },
+      "edge_verified_fraction": 0.0,
+      "primary_verified_fraction": 0.0
+    },
+    "atlas_tissue": "blood",
+    "context_enabled": false,
+    "context_schema_version": "celltypepilot.context.v1",
+    "context_sha256": null,
+    "context_source_hashes": {},
+    "context_review_status": null,
+    "context_free_text_present": false,
+    "context_identity_hypotheses": 0,
+    "context_state_hypotheses": 0,
+    "state_lens_enabled": true,
+    "state_contract": "identity_invariant_independent_axis_v1",
+    "calibration_policy_path": null,
+    "calibration_policy_sha256": null,
+    "calibration_policy": null
   },
   "outputs": {
     "data.annotated.h5ad": {
-      "sha256": "fbcc61e74d34a2d9c929fed8e4167d499ed66d29cb66ab8da44714d2d08e2771",
-      "size_bytes": 675344
+      "sha256": "62e8df59aba9f9bd6d0df6a13ff8e4b2c73ac850a67af474898d1aef76f72a31",
+      "size_bytes": 2494320
     },
     "evidence_table.csv": {
-      "sha256": "3b47d578d862666816631ec515d87794341ef5eb49b5462b6fc84e5180199058",
-      "size_bytes": 3048
+      "sha256": "b841ab23270cbbf51d1cca5e7c4a97ea3c99bebb7924760aab428ba636e9b8fe",
+      "size_bytes": 11672
     },
     "methodology_draft.txt": {
-      "sha256": "d2879653d2180917da1f9a8c055233a6924a8cc2d8aed9c8a649a741bd442b79",
-      "size_bytes": 857
+      "sha256": "7afdf9b312681de79d44f58551bd1fa08beead14567b247c572ae4adc9af014e",
+      "size_bytes": 1440
     },
     "report_draft.html": {
-      "sha256": "88f63b5b7cca721eb734c08a528c859ed8b7549234c6385fe523256bc56c0473",
-      "size_bytes": 10170
+      "sha256": "527f5249e76213a2f9d245475eff3ad5ab25a8aba93894cef8caa47827ff5ea1",
+      "size_bytes": 21704
+    },
+    "state_results.csv": {
+      "sha256": "3677dd1cbc547a43a8b9d071ca7844d0ce2e6529ff3edf25c537c06996fdcd80",
+      "size_bytes": 2157
     },
     "figures\\confidence_distribution.png": {
-      "sha256": "eed2d2599b04371833c52194e8708c254187b5bc01d32dcd02615da33295b30c",
-      "size_bytes": 26492
+      "sha256": "da7df5f015507c1524d956e2b237f9576e3b417837304acce7799f87dffd176f",
+      "size_bytes": 27032
+    },
+    "figures\\identity_state_distribution.png": {
+      "sha256": "783c236fabe17cbf2f8ba7c19fcb553ed97548fc2fdeef2e9f69a2715fae20ae",
+      "size_bytes": 32656
     },
     "figures\\umap_celltype.png": {
-      "sha256": "7888400456114e3c6f759170d417f8b9a04f9f6ec65e7a9a924bc382ac947d2c",
-      "size_bytes": 51318
+      "sha256": "5ebf8a85fd58d49c571c0a9a463a22924419e50843bda21dded35545e0240a09",
+      "size_bytes": 49916
     },
     "figures\\umap_clusters.png": {
-      "sha256": "d424173f614dc0e3388f411672c0832402cc9c1668c32f492a0c7bd47337a2ff",
-      "size_bytes": 45021
+      "sha256": "88151be8e20bd8de947fdff121fe5a14632ff722303e86d525b18359c7c20682",
+      "size_bytes": 42853
     },
     "figures\\umap_confidence.png": {
-      "sha256": "8233fa9bdd0d9e542f1646ca846feb8b3d4ba2f0a7e6bb57ba10ab948707e6d5",
-      "size_bytes": 53822
+      "sha256": "77a1d5fdb36feeba1d8a02b335727cd4dbebfaf75cbd7cf8ebe5fdde643ef8e7",
+      "size_bytes": 47279
+    },
+    "figures\\umap_identity_state.png": {
+      "sha256": "eb018a5c5db66ddc6879fcacf23f498be7517106a43b0757413d5a353e1c90ec",
+      "size_bytes": 55952
     }
   }
 }

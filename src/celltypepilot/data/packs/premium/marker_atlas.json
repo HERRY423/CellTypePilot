@@ -1,7 +1,6 @@
 {
   "version": "premium-atlas-2026.08.1",
   "description": "CellTypePilot Premium Atlas — Extended cell types for academic and commercial users",
-  "license_required": "academic",
   "tissues": {
     "tumor_microenvironment": {
       "name": "Tumor Microenvironment",
@@ -999,7 +998,7 @@
           "display_label": "regulatory_T_cell_tumor"
         },
         "myeloid_derived_suppressor_cell": {
-          "cl_id": "CL:0002393",
+          "cl_id": "CL:0000889",
           "synonyms": [
             "MDSC",
             "granulocytic MDSC",
@@ -1253,7 +1252,7 @@
             }
           ],
           "ontology_evidence": {
-            "cl_id": "CL:0002393",
+            "cl_id": "CL:0000889",
             "source": {
               "source_id": "cell_ontology",
               "name": "Cell Ontology 2016",
@@ -1542,7 +1541,7 @@
       "organ_system": "neuroscience_developmental",
       "cell_types": {
         "radial_glia": {
-          "cl_id": "CL:0000647",
+          "cl_id": "CL:0000681",
           "synonyms": [
             "neural progenitor",
             "RG"
@@ -1795,7 +1794,7 @@
             }
           ],
           "ontology_evidence": {
-            "cl_id": "CL:0000647",
+            "cl_id": "CL:0000681",
             "source": {
               "source_id": "cell_ontology",
               "name": "Cell Ontology 2016",

@@ -20,11 +20,11 @@
                 <div class="value">{{ stats.total_clusters }}</div>
             </div>
             <div class="stat-card">
-                <div class="label">High Confidence</div>
+                <div class="label">High Review Level</div>
                 <div class="value high">{{ stats.high }}</div>
             </div>
             <div class="stat-card">
-                <div class="label">Medium Confidence</div>
+                <div class="label">Medium Review Level</div>
                 <div class="value medium">{{ stats.medium }}</div>
             </div>
             <div class="stat-card">
@@ -34,6 +34,56 @@
             <div class="stat-card">
                 <div class="label">Critic Flags</div>
                 <div class="value" style="color: var(--info);">{{ stats.flagged }}</div>
+            </div>
+        </div>
+
+        <div class="panel">
+            <div class="panel-header">Score & Uncertainty Language</div>
+            <div class="panel-body">
+                <p>
+                    Evidence Score is a deterministic evidence-ranking signal, not a calibrated
+                    probability. Review Level is a rule-based Critic category. Unknown means
+                    fail-closed abstention, not a biological cell class. Statistical robustness,
+                    OOD/novelty, and selective-risk claims require separate benchmark or
+                    calibration artifacts.
+                </p>
+            </div>
+        </div>
+
+        <!-- Review Audit Status -->
+        <div class="panel">
+            <div class="panel-header">
+                <span>Review Audit</span>
+                <button class="btn" onclick="refreshAudit()">Refresh</button>
+            </div>
+            <div class="panel-body">
+                <div class="audit-grid">
+                    <div>
+                        <div class="audit-label">Artifact State</div>
+                        <div class="audit-state" id="artifactState">{{ artifact_status.review_state }}</div>
+                        <p class="audit-message" id="artifactMessage">{{ artifact_status.message }}</p>
+                    </div>
+                    <div>
+                        <div class="audit-label">Stale Artifacts</div>
+                        <ul class="audit-list" id="staleArtifacts">
+                            {% for item in artifact_status.stale_artifacts %}
+                            <li>{{ item }}</li>
+                            {% else %}
+                            <li>None</li>
+                            {% endfor %}
+                        </ul>
+                    </div>
+                    <div>
+                        <div class="audit-label">Recent Events</div>
+                        <ul class="audit-list" id="auditEvents">
+                            {% for event in audit_tail[-5:] %}
+                            <li>{{ event.timestamp }} — {{ event.event_type }}</li>
+                            {% else %}
+                            <li>No review events yet</li>
+                            {% endfor %}
+                        </ul>
+                    </div>
+                </div>
             </div>
         </div>
 
@@ -69,8 +119,8 @@
                             <th>Cluster</th>
                             <th>Cell Type</th>
                             <th>CL ID</th>
-                            <th>Score</th>
-                            <th>Confidence</th>
+                            <th>Evidence Score</th>
+                            <th>Review Level</th>
                             <th>Critic Flags</th>
                             <th>Cells</th>
                             <th>Actions</th>

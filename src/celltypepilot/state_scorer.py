@@ -71,14 +71,14 @@ def validate_state_atlas(atlas: dict) -> list[str]:
     return issues
 
 
-def load_state_definitions(
-    species: str, tissue: str, context_pack: dict | None = None
+def _definitions_from_state_atlas(
+    atlas: dict,
+    species: str,
+    tissue: str,
+    source_prefix: str,
+    review_status: str,
 ) -> list[dict]:
-    """Load built-in and context state definitions for the declared scope."""
-    atlas = json.loads(Path(STATE_ATLAS_PATH).read_text(encoding="utf-8"))
-    issues = validate_state_atlas(atlas)
-    if issues:
-        raise StateScoringError("State atlas validation failed: " + "; ".join(issues[:5]))
+    """Convert one state atlas (built-in or extension pack) into scoped definitions."""
     definitions = []
     for state_name, raw in atlas.get("states", {}).items():
         species_scope = raw.get("species", [])
@@ -98,10 +98,46 @@ def load_state_definitions(
                 "parent_cell_types": list(raw.get("parent_cell_types", [])),
                 "positive_markers": positive,
                 "negative_markers": negative,
-                "source": f"builtin:{atlas.get('version', 'unknown')}",
-                "review_status": "reviewed",
+                "source": f"{source_prefix}:{atlas.get('version', 'unknown')}",
+                "review_status": review_status,
                 "marker_evidence": list(raw.get("marker_evidence", [])),
             }
+        )
+    return definitions
+
+
+def load_state_definitions(
+    species: str,
+    tissue: str,
+    context_pack: dict | None = None,
+    pack_states: list[dict] | None = None,
+) -> list[dict]:
+    """Load built-in, extension-pack, and context state definitions for the scope.
+
+    ``pack_states`` entries are ``{"pack_name", "pack_version", "trust", "atlas"}``
+    dicts produced by :func:`pack_manager.collect_pack_state_definitions_input`.
+    Atlas-trust packs join as reviewed definitions; hypothesis-trust packs
+    join as draft and can therefore never reach a "supported" decision.
+    """
+    atlas = json.loads(Path(STATE_ATLAS_PATH).read_text(encoding="utf-8"))
+    issues = validate_state_atlas(atlas)
+    if issues:
+        raise StateScoringError("State atlas validation failed: " + "; ".join(issues[:5]))
+    definitions = _definitions_from_state_atlas(atlas, species, tissue, "builtin", "reviewed")
+    for entry in pack_states or []:
+        pack_atlas = entry.get("atlas") or {}
+        pack_issues = validate_state_atlas(pack_atlas)
+        if pack_issues:
+            raise StateScoringError(
+                f"Pack {entry.get('pack_name', '?')!r} state atlas validation failed: "
+                + "; ".join(pack_issues[:5])
+            )
+        review_status = "reviewed" if entry.get("trust") == "atlas" else "draft"
+        source_prefix = f"pack:{entry.get('pack_name', 'unknown')}"
+        definitions.extend(
+            _definitions_from_state_atlas(
+                pack_atlas, species, tissue, source_prefix, review_status
+            )
         )
     for raw in (context_pack or {}).get("state_hypotheses", []):
         definitions.append(

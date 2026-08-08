@@ -2,6 +2,7 @@
 
 import json
 
+from click import unstyle
 from typer.testing import CliRunner
 
 from celltypepilot.cli import app
@@ -25,8 +26,9 @@ class TestCLIBasic:
     def test_annotate_help_exposes_governed_context_and_state_controls(self):
         result = runner.invoke(app, ["annotate", "--help"])
         assert result.exit_code == 0
+        output = unstyle(result.output)
         for option in ("--context", "--context-file", "--custom-markers", "--no-states"):
-            assert option in result.output
+            assert option in output
 
     def test_doctor(self):
         result = runner.invoke(app, ["doctor"])
@@ -54,6 +56,19 @@ class TestCLIBasic:
         assert result.exit_code == 0
         # Falls back to "general" tissue markers, so should still produce output
         assert len(result.output) > 20
+
+    def test_markers_unsupported_species_fails_closed(self):
+        result = runner.invoke(app, ["markers", "--species", "rat"])
+        assert result.exit_code == 1
+        normalized = " ".join(result.output.split())
+        assert "supports scoring only human, mouse" in normalized
+
+    def test_atlas_governance_json(self):
+        result = runner.invoke(app, ["atlas-governance", "--json", "--no-packs"])
+        assert result.exit_code == 0
+        data = json.loads(result.output)
+        assert data["schema_version"] == "celltypepilot.atlas-governance.v1"
+        assert data["supported_annotation_species"] == ["human", "mouse"]
 
 
 class TestCLIInspect:

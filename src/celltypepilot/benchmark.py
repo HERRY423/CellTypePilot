@@ -254,6 +254,22 @@ def save_benchmark_plan(
         "comparators": list(COMPARATOR_METHODS),
         "prediction_policy": "out_of_fold_only",
         "missing_method_policy": "report_not_provided_do_not_impute",
+        "validation_scope": {
+            "schema_version": "celltypepilot.validation-scope.v1",
+            "run_role": "locked_study_donor_holdout_benchmark",
+            "batch_robustness_claim": "evaluated_only_after_predictions_are_scored",
+            "complex_sample_robustness_claim": "limited_to_declared_benchmark_distribution",
+            "statistical_independence_claim": "study_or_donor_fold_isolated",
+            "claim_boundary": (
+                "Benchmark results support only the predeclared species, tissue, labels, "
+                "studies, donors, comparators, and calibration policy recorded in this manifest."
+            ),
+            "agent_plugin_guidance": (
+                "Plugin hosts may use benchmark_results.csv and benchmark_results_by_fold.csv "
+                "as robustness evidence only after all requested methods report completed or "
+                "not_provided status without fold-validation errors."
+            ),
+        },
     }
     manifest_path = output / "benchmark_manifest.json"
     manifest_path.write_text(json.dumps(manifest, indent=2), encoding="utf-8")

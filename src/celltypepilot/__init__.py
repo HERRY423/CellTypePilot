@@ -9,11 +9,16 @@ from __future__ import annotations
 from importlib import import_module
 
 __version__ = "0.3.0"
-MKG_VERSION = "mkg-2026.08"  # Marker Knowledge Graph version
+MKG_VERSION = "mkg-2026.08.1"  # Marker Knowledge Graph version
 
 __all__ = [
     "__version__",
     "MKG_VERSION",
+    # Scanpy-native Python API (primary entry points)
+    "annotate",
+    "inspect",
+    "critic_review",
+    # Low-level scoring functions
     "compute_marker_scores",
     "generate_annotation_summary",
     "score_by_reference",
@@ -27,6 +32,11 @@ __all__ = [
 ]
 
 _LAZY_EXPORTS = {
+    # Scanpy-native Python API (primary entry points)
+    "annotate": (".orchestrator", "annotate"),
+    "inspect": (".data_adapter", "inspect"),
+    "critic_review": (".orchestrator", "critic_review"),
+    # Low-level scoring functions
     "compute_marker_scores": (".marker_scorer", "compute_marker_scores"),
     "generate_annotation_summary": (".marker_scorer", "generate_annotation_summary"),
     "score_by_reference": (".reference_scorer", "score_by_reference"),

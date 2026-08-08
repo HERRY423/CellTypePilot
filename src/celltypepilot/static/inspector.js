@@ -37,7 +37,7 @@ function showEvidence(cluster) {
     container.textContent = '';
 
     container.appendChild(_makeTextParagraph('Cell Type:', ev.cell_type || 'N/A'));
-    container.appendChild(_makeTextParagraph('Score:', (ev.combined_score || 0).toFixed(3)));
+    container.appendChild(_makeTextParagraph('Evidence score:', (ev.combined_score || 0).toFixed(3)));
     container.appendChild(_makeTextParagraph('Marker Overlap:', ((ev.pct_overlap || 0) * 100).toFixed(0) + '%'));
 
     const h4 = document.createElement('h4');
@@ -152,6 +152,43 @@ function exportOverrides() {
     });
 }
 
+function _renderList(id, values, emptyText) {
+    const list = document.getElementById(id);
+    if (!list) return;
+    list.textContent = '';
+    if (!values || values.length === 0) {
+        const li = document.createElement('li');
+        li.textContent = emptyText;
+        list.appendChild(li);
+        return;
+    }
+    values.forEach(value => {
+        const li = document.createElement('li');
+        li.textContent = value;
+        list.appendChild(li);
+    });
+}
+
+function refreshAudit() {
+    fetch('/api/artifact-status')
+    .then(r => r.json())
+    .then(data => {
+        const status = data.artifact_status || {};
+        const state = document.getElementById('artifactState');
+        const message = document.getElementById('artifactMessage');
+        if (state) state.textContent = status.review_state || 'unknown';
+        if (message) message.textContent = status.message || '';
+        _renderList('staleArtifacts', status.stale_artifacts || [], 'None');
+    });
+
+    fetch('/api/audit?limit=5')
+    .then(r => r.json())
+    .then(data => {
+        const events = (data.events || []).map(ev => (ev.timestamp || '') + ' - ' + (ev.event_type || 'unknown'));
+        _renderList('auditEvents', events, 'No review events yet');
+    });
+}
+
 function closeModal(id) {
     document.getElementById(id).style.display = 'none';
 }
@@ -167,4 +204,5 @@ document.addEventListener('DOMContentLoaded', () => {
         Object.assign(overrides, data.overrides || {});
         if (Object.keys(overrides).length > 0) showSaveBar();
     });
+    refreshAudit();
 });

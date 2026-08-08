@@ -25,7 +25,7 @@
   "interface": {
     "displayName": "CellTypePilot",
     "shortDescription": "Auditable single-cell annotation review with conservative abstention",
-    "longDescription": "CellTypePilot is a local-first annotation review plugin for pre-clustered single-cell data. It compiles governed user context into auditable marker hypotheses, keeps canonical identity separate from cell state, abstains when identity evidence is insufficient, and writes reviewable reports and provenance artifacts. Outputs are drafts requiring qualified human adjudication; the critic is not an independent biological replicate.",
+    "longDescription": "CellTypePilot is a local-first annotation review plugin for pre-clustered single-cell data. It compiles governed user context into auditable marker hypotheses, keeps canonical identity separate from cell state, abstains when identity evidence is insufficient, and writes reviewable reports, manifests, atlas governance reports, and Web Review audit artifacts. A native local MCP facade exposes deterministic tools for Agent hosts. Outputs are drafts requiring qualified human adjudication; the critic is not an independent biological replicate.",
     "developerName": "HERRY423",
     "category": "Scientific Computing",
     "capabilities": [
@@ -38,6 +38,8 @@
       "Annotate my single-cell clusters",
       "What cell types are in this h5ad?",
       "Review the flagged clusters with the critic",
+      "Generate an atlas governance report",
+      "Open the Web Review audit workbench",
       "Annotate with this disease context and custom marker panel",
       "Separate canonical cell identity from exploratory cell state"
     ],

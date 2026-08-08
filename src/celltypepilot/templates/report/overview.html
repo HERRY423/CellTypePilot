@@ -49,3 +49,28 @@
 <p><strong>Species:</strong> {{ params.get('species', 'N/A') }} |
    <strong>Tissue:</strong> {{ params.get('tissue', 'N/A') }} |
    <strong>Cluster key:</strong> {{ params.get('cluster_key', 'N/A') }}</p>
+
+{% set validation_scope = params.get('validation_scope') %}
+{% if validation_scope %}
+<div class="warning-box">
+  <strong>Validation scope:</strong>
+  {{ validation_scope.get('run_role', 'draft_annotation_for_human_review') }}.
+  Batch robustness: {{ validation_scope.get('batch_robustness_claim', 'not_assessed') }};
+  complex-sample robustness: {{ validation_scope.get('complex_sample_robustness_claim', 'not_assessed') }}.
+  {{ validation_scope.get('required_for_robustness_claims', '') }}
+</div>
+{% endif %}
+
+{% set uncertainty_language = params.get('uncertainty_language') %}
+{% if uncertainty_language %}
+<div class="warning-box">
+  <strong>Score and uncertainty language:</strong>
+  combined_score/evidence_score =
+  {{ uncertainty_language.get('score_columns', {}).get('evidence_score', 'heuristic_evidence_score_not_probability') }};
+  critic_confidence =
+  {{ uncertainty_language.get('confidence_columns', {}).get('critic_confidence', 'rule_based_review_category_not_probability') }}.
+  Calibrated probability:
+  {{ uncertainty_language.get('probability_columns', {}).get('calibrated_probability', 'not_available_from_annotation_run') }}.
+  Unknown = {{ uncertainty_language.get('abstention', {}).get('unknown_label', 'safety_abstention_not_biological_class') }}.
+</div>
+{% endif %}

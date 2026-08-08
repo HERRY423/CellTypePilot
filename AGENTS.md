@@ -35,6 +35,7 @@ No MCP servers, no pixi, no conda environment needed for the basic path.
 
 Optional extras:
 - `pip install -e ".[web]"` — Web Inspector (Flask-based interactive review panel)
+- `pip install -e ".[mcp]"` — Native local CellTypePilot MCP facade for Agent hosts
 - `pip install -e ".[seurat]"` — Seurat .rds conversion (requires rpy2 or R)
 - `pip install -e ".[all]"` — All optional features
 
@@ -49,7 +50,8 @@ celltypepilot inspect --input <path-to-h5ad> --json
 ```
 
 This reports:
-- Species (auto-detected from gene naming: human ALL-CAPS vs mouse capitalized)
+- Species (detected for routing from Ensembl prefixes / symbol conventions)
+- Whether the detected species is supported by the bundled annotation atlas
 - Tissue (from obs metadata if available)
 - Cluster keys found (leiden, louvain, etc.)
 - Embedding keys found (UMAP, tSNE, etc.)
@@ -70,6 +72,10 @@ After inspection, confirm with the user:
 
 Free text is context and provenance only. Never treat prose as marker evidence. Use a governed
 JSON Context Pack and/or custom marker CSV for hypotheses that may enter scoring.
+Detection does not imply annotation support. The inspection layer can detect rat, zebrafish,
+chicken, pig, cow, macaque, and dog identifiers for Agent routing, but the bundled annotation
+atlas scores only human and mouse today. Unsupported species must fail closed; do not continue
+with human symbols unless the user explicitly confirms the data are human.
 
 ### Stage 2: Annotate
 
@@ -90,13 +96,17 @@ celltypepilot annotate \
 
 This produces:
 - `data.annotated.h5ad` — AnnData with separate identity and state fields, candidate, decision, abstain reason, CL ID, and confidence in obs
-- `evidence_table.csv` — per-cluster evidence: scores, markers, critic flags, confidence
+- `evidence_table.csv` — per-cluster evidence: scores, score semantics, markers, critic flags, confidence, uncertainty-language fields
 - `state_results.csv` — independent state candidates, decisions, missing/silent markers, and evidence
 - `context_pack.normalized.json` — normalized and hashed governed context, when supplied
 - `figures/` — UMAP (clusters, cell types, confidence), dotplot, confidence distribution
 - `report_draft.html` — comprehensive HTML report with all figures embedded
 - `methodology_draft.txt` — draft methods paragraph for papers
 - `manifest.json` — run provenance: versions, parameters, data hash, output hashes
+  and `validation_scope` declaring whether the run is a draft annotation or benchmark evidence
+- Web Review overrides additionally write `annotation_audit_log.jsonl` and
+  `artifact_status.json`; after applying overrides, derived report/evidence/figure/manifest
+  artifacts are stale until regenerated
 
 After annotation, present the results:
 1. How many clusters annotated, confidence distribution
@@ -140,7 +150,9 @@ Useful when the critic flags a cluster and you want additional validation.
 | `celltypepilot calibrate ...` | Fit a downgrade-only abstention policy on a separate calibration dataset |
 | `celltypepilot critic -i <path> -k <key> -f <cluster>` | Deep-review a specific cluster |
 | `celltypepilot markers -t <tissue>` | List available cell types and markers |
+| `celltypepilot atlas-governance` | Build offline atlas governance report |
 | `celltypepilot literature -c <type> -m <markers>` | Literature validation via PubMed |
+| `celltypepilot pack install/list/validate/remove` | Manage data-only domain extension packs |
 | `celltypepilot inspect-web -o <dir>` | Launch Web Inspector (interactive review panel) |
 | `celltypepilot convert-rds -i <path.rds>` | Convert Seurat .rds → .h5ad |
 | `celltypepilot license status` | Check license tier and features |
@@ -198,6 +210,10 @@ Premium atlas (requires academic/commercial license):
 7. **Fail closed** — insufficient/conflicting evidence writes `Unknown` and preserves a separate candidate
 8. **Governed context** — free text never becomes evidence; structured markers use the ordinary evidence and critic gates
 9. **Identity × State** — state is an independent exploratory axis and cannot overwrite or rescue identity
+10. **Statistical language is bounded** — `combined_score`/`evidence_score` are evidence-ranking signals, not calibrated probabilities; `critic_confidence` is a rule-based review category; `Unknown` is a safety abstention, not a biological cell class; robustness, OOD/novelty, and selective-risk claims require separate benchmark/calibration artifacts
+10. **Detection ≠ support** — detecting a species, tissue, or batch axis helps the Agent host route the workflow; it does not authorize unsupported atlas scoring or robustness claims
+11. **Agent-native but deterministic** — MCP tools expose bounded CellTypePilot operations; do not add autonomous planning or self-directed biological claims
+12. **Review auditability** — manual Web Review edits must leave an append-only audit trail and mark derived artifacts stale after write-back
 
 ## Project layout
 
@@ -226,12 +242,13 @@ celltypepilot/
 │   ├── constants.py             # Thresholds, species/tissue constants
 │   ├── data/
 │   │   ├── marker_atlas.json    # Built-in marker knowledge graph (80+ types)
-│   │   ├── premium_atlas.json   # Premium identity atlas with legal base CL IDs
+│   │   ├── packs/premium/       # First-party premium pack (academic license)
 │   │   └── state_atlas.json     # Versioned exploratory cell-state modules
 │   ├── templates/               # Jinja2 templates (HTML report, web dashboard)
 │   ├── marker_scorer.py         # DE + marker overlap scoring
 │   ├── reference_scorer.py      # Reference embedding scoring (4 backends)
 │   ├── ensemble_scorer.py       # Adaptive ensemble fusion
+│   ├── pack_manager.py          # Extension pack install/validate/merge (data-only)
 │   ├── critic.py                # Annotation Critic review
 │   ├── visualizer.py            # UMAP, dotplot, confidence figures
 │   ├── web_inspector.py         # Flask web review panel

@@ -1,0 +1,294 @@
+{
+  "marker_atlas": [
+    {
+      "severity": "warning",
+      "path": "blood/T cell/CD4+ T cell",
+      "cl_id": "CL:0000624",
+      "issue": "atlas key 'CD4+ T cell' does not lexically match ontology label 'CD4-positive, alpha-beta T cell' (may be an intentional refinement)"
+    },
+    {
+      "severity": "warning",
+      "path": "blood/T cell/CD4+ T cell/Memory CD4+ T cell",
+      "cl_id": "CL:0000897",
+      "issue": "atlas key 'Memory CD4+ T cell' does not lexically match ontology label 'CD4-positive, alpha-beta memory T cell' (may be an intentional refinement)"
+    },
+    {
+      "severity": "warning",
+      "path": "blood/T cell/CD8+ T cell",
+      "cl_id": "CL:0000625",
+      "issue": "atlas key 'CD8+ T cell' does not lexically match ontology label 'CD8-positive, alpha-beta T cell' (may be an intentional refinement)"
+    },
+    {
+      "severity": "warning",
+      "path": "blood/T cell/CD8+ T cell/Effector CD8+ T cell",
+      "cl_id": "CL:0000910",
+      "issue": "atlas key 'Effector CD8+ T cell' does not lexically match ontology label 'cytotoxic T cell' (may be an intentional refinement)"
+    },
+    {
+      "severity": "warning",
+      "path": "blood/NK cell/CD56bright NK cell",
+      "cl_id": "CL:0000938",
+      "issue": "atlas key 'CD56bright NK cell' does not lexically match ontology label 'CD16-negative, CD56-bright natural killer cell, human' (may be an intentional refinement)"
+    },
+    {
+      "severity": "warning",
+      "path": "blood/NK cell/CD56dim NK cell",
+      "cl_id": "CL:0000939",
+      "issue": "atlas key 'CD56dim NK cell' does not lexically match ontology label 'CD16-positive, CD56-dim natural killer cell, human' (may be an intentional refinement)"
+    },
+    {
+      "severity": "warning",
+      "path": "blood/Dendritic cell/cDC1",
+      "cl_id": "CL:0002394",
+      "issue": "atlas key 'cDC1' does not lexically match ontology label 'CD141-positive myeloid dendritic cell' (may be an intentional refinement)"
+    },
+    {
+      "severity": "warning",
+      "path": "blood/Dendritic cell/cDC2",
+      "cl_id": "CL:0002399",
+      "issue": "atlas key 'cDC2' does not lexically match ontology label 'CD1c-positive myeloid dendritic cell' (may be an intentional refinement)"
+    },
+    {
+      "severity": "warning",
+      "path": "lung/Alveolar type 1 cell",
+      "cl_id": "CL:0002062",
+      "issue": "atlas key 'Alveolar type 1 cell' does not lexically match ontology label 'pulmonary alveolar type 1 cell' (may be an intentional refinement)"
+    },
+    {
+      "severity": "warning",
+      "path": "lung/Alveolar type 2 cell",
+      "cl_id": "CL:0002063",
+      "issue": "atlas key 'Alveolar type 2 cell' does not lexically match ontology label 'pulmonary alveolar type 2 cell' (may be an intentional refinement)"
+    },
+    {
+      "severity": "warning",
+      "path": "lung/Ciliated cell",
+      "cl_id": "CL:0002145",
+      "issue": "atlas key 'Ciliated cell' does not lexically match ontology label 'multiciliated columnar cell of tracheobronchial tree' (may be an intentional refinement)"
+    },
+    {
+      "severity": "warning",
+      "path": "lung/Goblet cell",
+      "cl_id": "CL:0002370",
+      "issue": "atlas key 'Goblet cell' does not lexically match ontology label 'respiratory tract goblet cell' (may be an intentional refinement)"
+    },
+    {
+      "severity": "warning",
+      "path": "lung/Basal cell",
+      "cl_id": "CL:0002633",
+      "issue": "atlas key 'Basal cell' does not lexically match ontology label 'respiratory basal cell' (may be an intentional refinement)"
+    },
+    {
+      "severity": "warning",
+      "path": "liver/Liver endothelial cell",
+      "cl_id": "CL:1000398",
+      "issue": "atlas key 'Liver endothelial cell' does not lexically match ontology label 'endothelial cell of hepatic sinusoid' (may be an intentional refinement)"
+    },
+    {
+      "severity": "warning",
+      "path": "brain/Excitatory neuron",
+      "cl_id": "CL:0000679",
+      "issue": "atlas key 'Excitatory neuron' does not lexically match ontology label 'glutamatergic neuron' (may be an intentional refinement)"
+    },
+    {
+      "severity": "warning",
+      "path": "brain/Inhibitory neuron",
+      "cl_id": "CL:0000617",
+      "issue": "atlas key 'Inhibitory neuron' does not lexically match ontology label 'GABAergic neuron' (may be an intentional refinement)"
+    },
+    {
+      "severity": "warning",
+      "path": "kidney/Proximal tubule cell",
+      "cl_id": "CL:0002306",
+      "issue": "atlas key 'Proximal tubule cell' does not lexically match ontology label 'epithelial cell of proximal tubule' (may be an intentional refinement)"
+    },
+    {
+      "severity": "warning",
+      "path": "kidney/Loop of Henle cell",
+      "cl_id": "CL:1000909",
+      "issue": "atlas key 'Loop of Henle cell' does not lexically match ontology label 'kidney loop of Henle epithelial cell' (may be an intentional refinement)"
+    },
+    {
+      "severity": "warning",
+      "path": "kidney/Distal convoluted tubule cell",
+      "cl_id": "CL:1000849",
+      "issue": "atlas key 'Distal convoluted tubule cell' does not lexically match ontology label 'kidney distal convoluted tubule epithelial cell' (may be an intentional refinement)"
+    },
+    {
+      "severity": "warning",
+      "path": "kidney/Collecting duct cell",
+      "cl_id": "CL:1000454",
+      "issue": "atlas key 'Collecting duct cell' does not lexically match ontology label 'kidney collecting duct epithelial cell' (may be an intentional refinement)"
+    },
+    {
+      "severity": "warning",
+      "path": "gut/Goblet cell (intestinal)",
+      "cl_id": "CL:0000160",
+      "issue": "atlas key 'Goblet cell (intestinal)' does not lexically match ontology label 'goblet cell' (may be an intentional refinement)"
+    },
+    {
+      "severity": "warning",
+      "path": "gut/Enteroendocrine cell",
+      "cl_id": "CL:0000165",
+      "issue": "atlas key 'Enteroendocrine cell' does not lexically match ontology label 'neuroendocrine cell' (may be an intentional refinement)"
+    },
+    {
+      "severity": "warning",
+      "path": "gut/Intestinal stem cell",
+      "cl_id": "CL:0002250",
+      "issue": "atlas key 'Intestinal stem cell' does not lexically match ontology label 'intestinal crypt stem cell' (may be an intentional refinement)"
+    },
+    {
+      "severity": "warning",
+      "path": "skin/Dermal fibroblast",
+      "cl_id": "CL:0002551",
+      "issue": "atlas key 'Dermal fibroblast' does not lexically match ontology label 'fibroblast of dermis' (may be an intentional refinement)"
+    },
+    {
+      "severity": "warning",
+      "path": "heart/Cardiac endothelial cell",
+      "cl_id": "CL:0010006",
+      "issue": "atlas key 'Cardiac endothelial cell' does not lexically match ontology label 'cardiac blood vessel endothelial cell' (may be an intentional refinement)"
+    },
+    {
+      "severity": "warning",
+      "path": "heart/Cardiac smooth muscle cell",
+      "cl_id": "CL:0000359",
+      "issue": "atlas key 'Cardiac smooth muscle cell' does not lexically match ontology label 'vascular associated smooth muscle cell' (may be an intentional refinement)"
+    },
+    {
+      "severity": "warning",
+      "path": "pancreas/Alpha cell",
+      "cl_id": "CL:0000171",
+      "issue": "atlas key 'Alpha cell' does not lexically match ontology label 'pancreatic A cell' (may be an intentional refinement)"
+    },
+    {
+      "severity": "warning",
+      "path": "pancreas/Delta cell",
+      "cl_id": "CL:0000173",
+      "issue": "atlas key 'Delta cell' does not lexically match ontology label 'pancreatic D cell' (may be an intentional refinement)"
+    },
+    {
+      "severity": "warning",
+      "path": "pancreas/Ductal cell",
+      "cl_id": "CL:0002079",
+      "issue": "atlas key 'Ductal cell' does not lexically match ontology label 'pancreatic ductal cell' (may be an intentional refinement)"
+    },
+    {
+      "severity": "warning",
+      "path": "muscle/Myofiber",
+      "cl_id": "CL:0008002",
+      "issue": "atlas key 'Myofiber' does not lexically match ontology label 'skeletal muscle fiber' (may be an intentional refinement)"
+    },
+    {
+      "severity": "warning",
+      "path": "muscle/Satellite cell",
+      "cl_id": "CL:0000594",
+      "issue": "atlas key 'Satellite cell' does not lexically match ontology label 'skeletal muscle satellite cell' (may be an intentional refinement)"
+    },
+    {
+      "severity": "warning",
+      "path": "muscle/Fibro-adipogenic progenitor",
+      "cl_id": "CL:0002540",
+      "issue": "atlas key 'Fibro-adipogenic progenitor' does not lexically match ontology label 'mesenchymal stem cell of the bone marrow' (may be an intentional refinement)"
+    }
+  ],
+  "pack:premium": [
+    {
+      "severity": "warning",
+      "path": "tumor_microenvironment/cancer_associated_fibroblast",
+      "cl_id": "CL:0000057",
+      "issue": "atlas key 'cancer_associated_fibroblast' does not lexically match ontology label 'fibroblast' (may be an intentional refinement)"
+    },
+    {
+      "severity": "warning",
+      "path": "tumor_microenvironment/tumor_associated_macrophage_M1",
+      "cl_id": "CL:0000235",
+      "issue": "atlas key 'tumor_associated_macrophage_M1' does not lexically match ontology label 'macrophage' (may be an intentional refinement)"
+    },
+    {
+      "severity": "warning",
+      "path": "tumor_microenvironment/tumor_associated_macrophage_M2",
+      "cl_id": "CL:0000235",
+      "issue": "atlas key 'tumor_associated_macrophage_M2' does not lexically match ontology label 'macrophage' (may be an intentional refinement)"
+    },
+    {
+      "severity": "warning",
+      "path": "tumor_microenvironment/regulatory_T_cell_tumor",
+      "cl_id": "CL:0000815",
+      "issue": "atlas key 'regulatory_T_cell_tumor' does not lexically match ontology label 'regulatory T cell' (may be an intentional refinement)"
+    },
+    {
+      "severity": "warning",
+      "path": "tumor_microenvironment/myeloid_derived_suppressor_cell",
+      "cl_id": "CL:0000889",
+      "issue": "atlas key 'myeloid_derived_suppressor_cell' does not lexically match ontology label 'myeloid suppressor cell' (may be an intentional refinement)"
+    },
+    {
+      "severity": "warning",
+      "path": "tumor_microenvironment/exhausted_T_cell",
+      "cl_id": "CL:0000084",
+      "issue": "atlas key 'exhausted_T_cell' does not lexically match ontology label 'T cell' (may be an intentional refinement)"
+    },
+    {
+      "severity": "warning",
+      "path": "developing_brain/radial_glia",
+      "cl_id": "CL:0000681",
+      "issue": "atlas key 'radial_glia' does not lexically match ontology label 'radial glial cell' (may be an intentional refinement)"
+    },
+    {
+      "severity": "warning",
+      "path": "developing_brain/intermediate_progenitor",
+      "cl_id": "CL:0011020",
+      "issue": "atlas key 'intermediate_progenitor' does not lexically match ontology label 'neural progenitor cell' (may be an intentional refinement)"
+    },
+    {
+      "severity": "warning",
+      "path": "developing_brain/migrating_neuroblast",
+      "cl_id": "CL:0000031",
+      "issue": "atlas key 'migrating_neuroblast' does not lexically match ontology label 'neuroblast (sensu Vertebrata)' (may be an intentional refinement)"
+    },
+    {
+      "severity": "warning",
+      "path": "developing_brain/microglia_developing",
+      "cl_id": "CL:0000129",
+      "issue": "atlas key 'microglia_developing' does not lexically match ontology label 'microglial cell' (may be an intentional refinement)"
+    },
+    {
+      "severity": "warning",
+      "path": "inflamed_tissue/inflammatory_macrophage",
+      "cl_id": "CL:0000235",
+      "issue": "atlas key 'inflammatory_macrophage' does not lexically match ontology label 'macrophage' (may be an intentional refinement)"
+    },
+    {
+      "severity": "warning",
+      "path": "inflamed_tissue/plasma_cell_inflamed",
+      "cl_id": "CL:0000786",
+      "issue": "atlas key 'plasma_cell_inflamed' does not lexically match ontology label 'plasma cell' (may be an intentional refinement)"
+    },
+    {
+      "severity": "warning",
+      "path": "inflamed_tissue/activated_fibroblast",
+      "cl_id": "CL:0000057",
+      "issue": "atlas key 'activated_fibroblast' does not lexically match ontology label 'fibroblast' (may be an intentional refinement)"
+    },
+    {
+      "severity": "warning",
+      "path": "immune_activation/activated_CD4_T_cell",
+      "cl_id": "CL:0000624",
+      "issue": "atlas key 'activated_CD4_T_cell' does not lexically match ontology label 'CD4-positive, alpha-beta T cell' (may be an intentional refinement)"
+    },
+    {
+      "severity": "warning",
+      "path": "immune_activation/activated_CD8_T_cell",
+      "cl_id": "CL:0000625",
+      "issue": "atlas key 'activated_CD8_T_cell' does not lexically match ontology label 'CD8-positive, alpha-beta T cell' (may be an intentional refinement)"
+    },
+    {
+      "severity": "warning",
+      "path": "immune_activation/NK_cell_activated",
+      "cl_id": "CL:0000623",
+      "issue": "atlas key 'NK_cell_activated' does not lexically match ontology label 'natural killer cell' (may be an intentional refinement)"
+    }
+  ]
+}

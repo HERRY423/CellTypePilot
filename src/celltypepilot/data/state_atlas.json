@@ -19,6 +19,24 @@
       "pmid": "21739672",
       "doi": "10.1038/ni.2035",
       "url": "https://pubmed.ncbi.nlm.nih.gov/21739672/"
+    },
+    "puram2017": {
+      "name": "Single-Cell Transcriptomic Analysis of Primary and Metastatic Tumor Ecosystems in Head and Neck Cancer",
+      "pmid": "29198524",
+      "doi": "10.1016/j.cell.2017.10.044",
+      "url": "https://pubmed.ncbi.nlm.nih.gov/29198524/"
+    },
+    "saldana2019": {
+      "name": "Macrophage polarization and cellular states in inflammatory microenvironments",
+      "pmid": "31034870",
+      "doi": "10.1186/s12967-019-1886-4",
+      "url": "https://pubmed.ncbi.nlm.nih.gov/31034870/"
+    },
+    "zheng2021": {
+      "name": "Pan-cancer single-cell landscape of tumor-infiltrating T cells",
+      "pmid": "34914999",
+      "doi": "10.1126/science.abe6474",
+      "url": "https://pubmed.ncbi.nlm.nih.gov/34914999/"
     }
   },
   "states": {
@@ -851,6 +869,818 @@
             "general"
           ],
           "state": "exhausted",
+          "atlas_version": "state-atlas-2026.08"
+        }
+      ]
+    },
+    "activated_t_cell": {
+      "species": [
+        "human",
+        "mouse"
+      ],
+      "tissues": [
+        "general"
+      ],
+      "parent_cell_types": [
+        "T cell",
+        "CD4",
+        "CD8"
+      ],
+      "positive_markers": [
+        "CD69",
+        "IL2RA",
+        "CD44",
+        "IFNG"
+      ],
+      "negative_markers": [],
+      "marker_evidence": [
+        {
+          "gene": "CD69",
+          "polarity": "positive",
+          "source_ids": [
+            "zheng2021"
+          ],
+          "verification_status": "aggregate_source_only_not_edge_verified",
+          "species": [
+            "human",
+            "mouse"
+          ],
+          "tissues": [
+            "general"
+          ],
+          "state": "activated_t_cell",
+          "atlas_version": "state-atlas-2026.08"
+        },
+        {
+          "gene": "IL2RA",
+          "polarity": "positive",
+          "source_ids": [
+            "zheng2021"
+          ],
+          "verification_status": "aggregate_source_only_not_edge_verified",
+          "species": [
+            "human",
+            "mouse"
+          ],
+          "tissues": [
+            "general"
+          ],
+          "state": "activated_t_cell",
+          "atlas_version": "state-atlas-2026.08"
+        },
+        {
+          "gene": "CD44",
+          "polarity": "positive",
+          "source_ids": [
+            "zheng2021"
+          ],
+          "verification_status": "aggregate_source_only_not_edge_verified",
+          "species": [
+            "human",
+            "mouse"
+          ],
+          "tissues": [
+            "general"
+          ],
+          "state": "activated_t_cell",
+          "atlas_version": "state-atlas-2026.08"
+        },
+        {
+          "gene": "IFNG",
+          "polarity": "positive",
+          "source_ids": [
+            "zheng2021"
+          ],
+          "verification_status": "aggregate_source_only_not_edge_verified",
+          "species": [
+            "human",
+            "mouse"
+          ],
+          "tissues": [
+            "general"
+          ],
+          "state": "activated_t_cell",
+          "atlas_version": "state-atlas-2026.08"
+        }
+      ]
+    },
+    "memory_t_cell": {
+      "species": [
+        "human",
+        "mouse"
+      ],
+      "tissues": [
+        "general"
+      ],
+      "parent_cell_types": [
+        "T cell",
+        "CD4",
+        "CD8"
+      ],
+      "positive_markers": [
+        "IL7R",
+        "TCF7",
+        "LEF1",
+        "CCR7"
+      ],
+      "negative_markers": [],
+      "marker_evidence": [
+        {
+          "gene": "IL7R",
+          "polarity": "positive",
+          "source_ids": [
+            "zheng2021"
+          ],
+          "verification_status": "aggregate_source_only_not_edge_verified",
+          "species": [
+            "human",
+            "mouse"
+          ],
+          "tissues": [
+            "general"
+          ],
+          "state": "memory_t_cell",
+          "atlas_version": "state-atlas-2026.08"
+        },
+        {
+          "gene": "TCF7",
+          "polarity": "positive",
+          "source_ids": [
+            "zheng2021"
+          ],
+          "verification_status": "aggregate_source_only_not_edge_verified",
+          "species": [
+            "human",
+            "mouse"
+          ],
+          "tissues": [
+            "general"
+          ],
+          "state": "memory_t_cell",
+          "atlas_version": "state-atlas-2026.08"
+        },
+        {
+          "gene": "LEF1",
+          "polarity": "positive",
+          "source_ids": [
+            "zheng2021"
+          ],
+          "verification_status": "aggregate_source_only_not_edge_verified",
+          "species": [
+            "human",
+            "mouse"
+          ],
+          "tissues": [
+            "general"
+          ],
+          "state": "memory_t_cell",
+          "atlas_version": "state-atlas-2026.08"
+        },
+        {
+          "gene": "CCR7",
+          "polarity": "positive",
+          "source_ids": [
+            "zheng2021"
+          ],
+          "verification_status": "aggregate_source_only_not_edge_verified",
+          "species": [
+            "human",
+            "mouse"
+          ],
+          "tissues": [
+            "general"
+          ],
+          "state": "memory_t_cell",
+          "atlas_version": "state-atlas-2026.08"
+        }
+      ]
+    },
+    "cytotoxic": {
+      "species": [
+        "human",
+        "mouse"
+      ],
+      "tissues": [
+        "general"
+      ],
+      "parent_cell_types": [
+        "T cell",
+        "CD8",
+        "NK cell"
+      ],
+      "positive_markers": [
+        "GZMB",
+        "PRF1",
+        "GNLY",
+        "NKG7",
+        "GZMA"
+      ],
+      "negative_markers": [],
+      "marker_evidence": [
+        {
+          "gene": "GZMB",
+          "polarity": "positive",
+          "source_ids": [
+            "zheng2021"
+          ],
+          "verification_status": "aggregate_source_only_not_edge_verified",
+          "species": [
+            "human",
+            "mouse"
+          ],
+          "tissues": [
+            "general"
+          ],
+          "state": "cytotoxic",
+          "atlas_version": "state-atlas-2026.08"
+        },
+        {
+          "gene": "PRF1",
+          "polarity": "positive",
+          "source_ids": [
+            "zheng2021"
+          ],
+          "verification_status": "aggregate_source_only_not_edge_verified",
+          "species": [
+            "human",
+            "mouse"
+          ],
+          "tissues": [
+            "general"
+          ],
+          "state": "cytotoxic",
+          "atlas_version": "state-atlas-2026.08"
+        },
+        {
+          "gene": "GNLY",
+          "polarity": "positive",
+          "source_ids": [
+            "zheng2021"
+          ],
+          "verification_status": "aggregate_source_only_not_edge_verified",
+          "species": [
+            "human",
+            "mouse"
+          ],
+          "tissues": [
+            "general"
+          ],
+          "state": "cytotoxic",
+          "atlas_version": "state-atlas-2026.08"
+        },
+        {
+          "gene": "NKG7",
+          "polarity": "positive",
+          "source_ids": [
+            "zheng2021"
+          ],
+          "verification_status": "aggregate_source_only_not_edge_verified",
+          "species": [
+            "human",
+            "mouse"
+          ],
+          "tissues": [
+            "general"
+          ],
+          "state": "cytotoxic",
+          "atlas_version": "state-atlas-2026.08"
+        },
+        {
+          "gene": "GZMA",
+          "polarity": "positive",
+          "source_ids": [
+            "zheng2021"
+          ],
+          "verification_status": "aggregate_source_only_not_edge_verified",
+          "species": [
+            "human",
+            "mouse"
+          ],
+          "tissues": [
+            "general"
+          ],
+          "state": "cytotoxic",
+          "atlas_version": "state-atlas-2026.08"
+        }
+      ]
+    },
+    "regulatory_t_state": {
+      "species": [
+        "human",
+        "mouse"
+      ],
+      "tissues": [
+        "general"
+      ],
+      "parent_cell_types": [
+        "T cell",
+        "CD4"
+      ],
+      "positive_markers": [
+        "FOXP3",
+        "IL2RA",
+        "IKZF2",
+        "CTLA4"
+      ],
+      "negative_markers": [],
+      "marker_evidence": [
+        {
+          "gene": "FOXP3",
+          "polarity": "positive",
+          "source_ids": [
+            "zheng2021"
+          ],
+          "verification_status": "aggregate_source_only_not_edge_verified",
+          "species": [
+            "human",
+            "mouse"
+          ],
+          "tissues": [
+            "general"
+          ],
+          "state": "regulatory_t_state",
+          "atlas_version": "state-atlas-2026.08"
+        },
+        {
+          "gene": "IL2RA",
+          "polarity": "positive",
+          "source_ids": [
+            "zheng2021"
+          ],
+          "verification_status": "aggregate_source_only_not_edge_verified",
+          "species": [
+            "human",
+            "mouse"
+          ],
+          "tissues": [
+            "general"
+          ],
+          "state": "regulatory_t_state",
+          "atlas_version": "state-atlas-2026.08"
+        },
+        {
+          "gene": "IKZF2",
+          "polarity": "positive",
+          "source_ids": [
+            "zheng2021"
+          ],
+          "verification_status": "aggregate_source_only_not_edge_verified",
+          "species": [
+            "human",
+            "mouse"
+          ],
+          "tissues": [
+            "general"
+          ],
+          "state": "regulatory_t_state",
+          "atlas_version": "state-atlas-2026.08"
+        },
+        {
+          "gene": "CTLA4",
+          "polarity": "positive",
+          "source_ids": [
+            "zheng2021"
+          ],
+          "verification_status": "aggregate_source_only_not_edge_verified",
+          "species": [
+            "human",
+            "mouse"
+          ],
+          "tissues": [
+            "general"
+          ],
+          "state": "regulatory_t_state",
+          "atlas_version": "state-atlas-2026.08"
+        }
+      ]
+    },
+    "m1_proinflammatory": {
+      "species": [
+        "human",
+        "mouse"
+      ],
+      "tissues": [
+        "general"
+      ],
+      "parent_cell_types": [
+        "macrophage",
+        "monocyte",
+        "dendritic cell"
+      ],
+      "positive_markers": [
+        "CD86",
+        "IL1B",
+        "TNF",
+        "CXCL10",
+        "IL6"
+      ],
+      "negative_markers": [],
+      "marker_evidence": [
+        {
+          "gene": "CD86",
+          "polarity": "positive",
+          "source_ids": [
+            "saldana2019"
+          ],
+          "verification_status": "aggregate_source_only_not_edge_verified",
+          "species": [
+            "human",
+            "mouse"
+          ],
+          "tissues": [
+            "general"
+          ],
+          "state": "m1_proinflammatory",
+          "atlas_version": "state-atlas-2026.08"
+        },
+        {
+          "gene": "IL1B",
+          "polarity": "positive",
+          "source_ids": [
+            "saldana2019"
+          ],
+          "verification_status": "aggregate_source_only_not_edge_verified",
+          "species": [
+            "human",
+            "mouse"
+          ],
+          "tissues": [
+            "general"
+          ],
+          "state": "m1_proinflammatory",
+          "atlas_version": "state-atlas-2026.08"
+        },
+        {
+          "gene": "TNF",
+          "polarity": "positive",
+          "source_ids": [
+            "saldana2019"
+          ],
+          "verification_status": "aggregate_source_only_not_edge_verified",
+          "species": [
+            "human",
+            "mouse"
+          ],
+          "tissues": [
+            "general"
+          ],
+          "state": "m1_proinflammatory",
+          "atlas_version": "state-atlas-2026.08"
+        },
+        {
+          "gene": "CXCL10",
+          "polarity": "positive",
+          "source_ids": [
+            "saldana2019"
+          ],
+          "verification_status": "aggregate_source_only_not_edge_verified",
+          "species": [
+            "human",
+            "mouse"
+          ],
+          "tissues": [
+            "general"
+          ],
+          "state": "m1_proinflammatory",
+          "atlas_version": "state-atlas-2026.08"
+        },
+        {
+          "gene": "IL6",
+          "polarity": "positive",
+          "source_ids": [
+            "saldana2019"
+          ],
+          "verification_status": "aggregate_source_only_not_edge_verified",
+          "species": [
+            "human",
+            "mouse"
+          ],
+          "tissues": [
+            "general"
+          ],
+          "state": "m1_proinflammatory",
+          "atlas_version": "state-atlas-2026.08"
+        }
+      ]
+    },
+    "m2_antiinflammatory": {
+      "species": [
+        "human",
+        "mouse"
+      ],
+      "tissues": [
+        "general"
+      ],
+      "parent_cell_types": [
+        "macrophage",
+        "monocyte"
+      ],
+      "positive_markers": [
+        "CD163",
+        "MRC1",
+        "MSR1",
+        "TGFB1"
+      ],
+      "negative_markers": [],
+      "marker_evidence": [
+        {
+          "gene": "CD163",
+          "polarity": "positive",
+          "source_ids": [
+            "saldana2019"
+          ],
+          "verification_status": "aggregate_source_only_not_edge_verified",
+          "species": [
+            "human",
+            "mouse"
+          ],
+          "tissues": [
+            "general"
+          ],
+          "state": "m2_antiinflammatory",
+          "atlas_version": "state-atlas-2026.08"
+        },
+        {
+          "gene": "MRC1",
+          "polarity": "positive",
+          "source_ids": [
+            "saldana2019"
+          ],
+          "verification_status": "aggregate_source_only_not_edge_verified",
+          "species": [
+            "human",
+            "mouse"
+          ],
+          "tissues": [
+            "general"
+          ],
+          "state": "m2_antiinflammatory",
+          "atlas_version": "state-atlas-2026.08"
+        },
+        {
+          "gene": "MSR1",
+          "polarity": "positive",
+          "source_ids": [
+            "saldana2019"
+          ],
+          "verification_status": "aggregate_source_only_not_edge_verified",
+          "species": [
+            "human",
+            "mouse"
+          ],
+          "tissues": [
+            "general"
+          ],
+          "state": "m2_antiinflammatory",
+          "atlas_version": "state-atlas-2026.08"
+        },
+        {
+          "gene": "TGFB1",
+          "polarity": "positive",
+          "source_ids": [
+            "saldana2019"
+          ],
+          "verification_status": "aggregate_source_only_not_edge_verified",
+          "species": [
+            "human",
+            "mouse"
+          ],
+          "tissues": [
+            "general"
+          ],
+          "state": "m2_antiinflammatory",
+          "atlas_version": "state-atlas-2026.08"
+        }
+      ]
+    },
+    "myofibroblast_active": {
+      "species": [
+        "human",
+        "mouse"
+      ],
+      "tissues": [
+        "general"
+      ],
+      "parent_cell_types": [
+        "fibroblast",
+        "pericyte",
+        "smooth muscle cell"
+      ],
+      "positive_markers": [
+        "ACTA2",
+        "FAP",
+        "COL1A1",
+        "POSTN",
+        "TAGLN"
+      ],
+      "negative_markers": [],
+      "marker_evidence": [
+        {
+          "gene": "ACTA2",
+          "polarity": "positive",
+          "source_ids": [
+            "puram2017"
+          ],
+          "verification_status": "aggregate_source_only_not_edge_verified",
+          "species": [
+            "human",
+            "mouse"
+          ],
+          "tissues": [
+            "general"
+          ],
+          "state": "myofibroblast_active",
+          "atlas_version": "state-atlas-2026.08"
+        },
+        {
+          "gene": "FAP",
+          "polarity": "positive",
+          "source_ids": [
+            "puram2017"
+          ],
+          "verification_status": "aggregate_source_only_not_edge_verified",
+          "species": [
+            "human",
+            "mouse"
+          ],
+          "tissues": [
+            "general"
+          ],
+          "state": "myofibroblast_active",
+          "atlas_version": "state-atlas-2026.08"
+        },
+        {
+          "gene": "COL1A1",
+          "polarity": "positive",
+          "source_ids": [
+            "puram2017"
+          ],
+          "verification_status": "aggregate_source_only_not_edge_verified",
+          "species": [
+            "human",
+            "mouse"
+          ],
+          "tissues": [
+            "general"
+          ],
+          "state": "myofibroblast_active",
+          "atlas_version": "state-atlas-2026.08"
+        },
+        {
+          "gene": "POSTN",
+          "polarity": "positive",
+          "source_ids": [
+            "puram2017"
+          ],
+          "verification_status": "aggregate_source_only_not_edge_verified",
+          "species": [
+            "human",
+            "mouse"
+          ],
+          "tissues": [
+            "general"
+          ],
+          "state": "myofibroblast_active",
+          "atlas_version": "state-atlas-2026.08"
+        },
+        {
+          "gene": "TAGLN",
+          "polarity": "positive",
+          "source_ids": [
+            "puram2017"
+          ],
+          "verification_status": "aggregate_source_only_not_edge_verified",
+          "species": [
+            "human",
+            "mouse"
+          ],
+          "tissues": [
+            "general"
+          ],
+          "state": "myofibroblast_active",
+          "atlas_version": "state-atlas-2026.08"
+        }
+      ]
+    },
+    "apoptotic_stress": {
+      "species": [
+        "human",
+        "mouse"
+      ],
+      "tissues": [
+        "general"
+      ],
+      "parent_cell_types": [],
+      "positive_markers": [
+        "BAX",
+        "BAK1",
+        "CASP3",
+        "FOS",
+        "JUN",
+        "HSP90AA1"
+      ],
+      "negative_markers": [],
+      "marker_evidence": [
+        {
+          "gene": "BAX",
+          "polarity": "positive",
+          "source_ids": [
+            "msigdb_hallmark"
+          ],
+          "verification_status": "aggregate_source_only_not_edge_verified",
+          "species": [
+            "human",
+            "mouse"
+          ],
+          "tissues": [
+            "general"
+          ],
+          "state": "apoptotic_stress",
+          "atlas_version": "state-atlas-2026.08"
+        },
+        {
+          "gene": "BAK1",
+          "polarity": "positive",
+          "source_ids": [
+            "msigdb_hallmark"
+          ],
+          "verification_status": "aggregate_source_only_not_edge_verified",
+          "species": [
+            "human",
+            "mouse"
+          ],
+          "tissues": [
+            "general"
+          ],
+          "state": "apoptotic_stress",
+          "atlas_version": "state-atlas-2026.08"
+        },
+        {
+          "gene": "CASP3",
+          "polarity": "positive",
+          "source_ids": [
+            "msigdb_hallmark"
+          ],
+          "verification_status": "aggregate_source_only_not_edge_verified",
+          "species": [
+            "human",
+            "mouse"
+          ],
+          "tissues": [
+            "general"
+          ],
+          "state": "apoptotic_stress",
+          "atlas_version": "state-atlas-2026.08"
+        },
+        {
+          "gene": "FOS",
+          "polarity": "positive",
+          "source_ids": [
+            "msigdb_hallmark"
+          ],
+          "verification_status": "aggregate_source_only_not_edge_verified",
+          "species": [
+            "human",
+            "mouse"
+          ],
+          "tissues": [
+            "general"
+          ],
+          "state": "apoptotic_stress",
+          "atlas_version": "state-atlas-2026.08"
+        },
+        {
+          "gene": "JUN",
+          "polarity": "positive",
+          "source_ids": [
+            "msigdb_hallmark"
+          ],
+          "verification_status": "aggregate_source_only_not_edge_verified",
+          "species": [
+            "human",
+            "mouse"
+          ],
+          "tissues": [
+            "general"
+          ],
+          "state": "apoptotic_stress",
+          "atlas_version": "state-atlas-2026.08"
+        },
+        {
+          "gene": "HSP90AA1",
+          "polarity": "positive",
+          "source_ids": [
+            "msigdb_hallmark"
+          ],
+          "verification_status": "aggregate_source_only_not_edge_verified",
+          "species": [
+            "human",
+            "mouse"
+          ],
+          "tissues": [
+            "general"
+          ],
+          "state": "apoptotic_stress",
           "atlas_version": "state-atlas-2026.08"
         }
       ]

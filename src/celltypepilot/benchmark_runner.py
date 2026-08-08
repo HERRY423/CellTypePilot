@@ -180,7 +180,7 @@ def run_celltypepilot_fold(
         "implementation": "celltypepilot.orchestrator",
         "version": version,
         "reference_policy": "fold_train_only",
-        "confidence_semantics": "cluster_combined_score_not_probability_calibrated",
+        "confidence_semantics": "cluster_evidence_score_not_probability_calibrated",
     }
 
 

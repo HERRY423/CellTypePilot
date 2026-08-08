@@ -15,7 +15,7 @@ from __future__ import annotations
 
 import importlib.resources
 import json
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import Path
 
 from flask import Flask, jsonify, render_template, request
@@ -39,6 +39,20 @@ _evidence_cache = None
 
 # Server-side override store (persists across page reloads)
 _overrides: dict = {}  # {cluster_id: {new_type, reason, timestamp}}
+
+AUDIT_LOG_FILENAME = "annotation_audit_log.jsonl"
+ARTIFACT_STATUS_FILENAME = "artifact_status.json"
+STALE_AFTER_OVERRIDE_APPLY = [
+    "evidence_table.csv",
+    "report_draft.html",
+    "methodology_draft.txt",
+    "manifest.json",
+    "figures/",
+]
+
+
+def _utc_now() -> str:
+    return datetime.now(timezone.utc).isoformat()
 
 
 def _load_data():
@@ -71,6 +85,93 @@ def _overrides_path() -> Path:
     return _output_dir / "annotation_overrides.json"
 
 
+def _audit_log_path() -> Path:
+    return _output_dir / AUDIT_LOG_FILENAME
+
+
+def _artifact_status_path() -> Path:
+    return _output_dir / ARTIFACT_STATUS_FILENAME
+
+
+def _append_audit_event(event_type: str, payload: dict | None = None) -> dict:
+    """Append one immutable Web Review event to the audit log."""
+    event = {
+        "schema_version": "celltypepilot.web-audit.v1",
+        "timestamp": _utc_now(),
+        "event_type": event_type,
+        "payload": payload or {},
+    }
+    path = _audit_log_path()
+    path.parent.mkdir(parents=True, exist_ok=True)
+    with path.open("a", encoding="utf-8") as handle:
+        handle.write(json.dumps(event, ensure_ascii=False) + "\n")
+    return event
+
+
+def _audit_tail(limit: int = 20) -> list[dict]:
+    path = _audit_log_path()
+    if not path.is_file():
+        return []
+    rows = []
+    for line in path.read_text(encoding="utf-8").splitlines()[-limit:]:
+        if not line.strip():
+            continue
+        try:
+            rows.append(json.loads(line))
+        except json.JSONDecodeError:
+            rows.append({"event_type": "unparseable_audit_line", "raw": line})
+    return rows
+
+
+def _default_artifact_status() -> dict:
+    return {
+        "schema_version": "celltypepilot.artifact-status.v1",
+        "updated_at": _utc_now(),
+        "review_state": "current",
+        "stale_artifacts": [],
+        "current_artifacts": ["data.annotated.h5ad"],
+        "message": "No applied Web Review overrides have marked derived artifacts stale.",
+    }
+
+
+def _load_artifact_status() -> dict:
+    path = _artifact_status_path()
+    if not path.is_file():
+        return _default_artifact_status()
+    try:
+        return json.loads(path.read_text(encoding="utf-8"))
+    except json.JSONDecodeError:
+        status = _default_artifact_status()
+        status["review_state"] = "status_unreadable"
+        status["message"] = f"{ARTIFACT_STATUS_FILENAME} is not valid JSON"
+        return status
+
+
+def _save_artifact_status(status: dict) -> None:
+    status["updated_at"] = _utc_now()
+    _artifact_status_path().write_text(
+        json.dumps(status, indent=2, ensure_ascii=False) + "\n",
+        encoding="utf-8",
+    )
+
+
+def _mark_artifacts_stale_after_apply(result: dict) -> dict:
+    status = {
+        "schema_version": "celltypepilot.artifact-status.v1",
+        "review_state": "applied_overrides_artifacts_stale",
+        "stale_artifacts": STALE_AFTER_OVERRIDE_APPLY,
+        "current_artifacts": ["data.annotated.h5ad"],
+        "last_apply_result": result,
+        "message": (
+            "Manual overrides were written to data.annotated.h5ad. Derived evidence, "
+            "figures, report, methodology, and manifest should be regenerated before "
+            "publication or downstream automated use."
+        ),
+    }
+    _save_artifact_status(status)
+    return status
+
+
 def _load_overrides_from_disk():
     """Load existing overrides from disk if present."""
     global _overrides
@@ -85,7 +186,7 @@ def _load_overrides_from_disk():
 def _save_overrides_to_disk():
     """Persist current overrides to disk."""
     opath = _overrides_path()
-    opath.write_text(json.dumps(_overrides, indent=2), encoding="utf-8")
+    opath.write_text(json.dumps(_overrides, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
 
 
 def _apply_overrides_to_h5ad() -> dict:
@@ -175,6 +276,8 @@ def dashboard():
         stats=stats,
         annotations=annotations,
         evidence_json=json.dumps(evidence_dict),
+        artifact_status=_load_artifact_status(),
+        audit_tail=_audit_tail(),
     )
 
 
@@ -240,11 +343,15 @@ def api_add_override():
     _overrides[cluster] = {
         "new_type": new_type,
         "reason": reason,
-        "timestamp": datetime.now().isoformat(),
+        "timestamp": _utc_now(),
     }
 
     # Persist to disk immediately
     _save_overrides_to_disk()
+    _append_audit_event(
+        "override_saved",
+        {"cluster": cluster, "new_type": new_type, "reason": reason},
+    )
 
     return jsonify(
         {
@@ -261,8 +368,10 @@ def api_delete_override(cluster_id):
     """Remove a single override."""
     global _overrides
     if cluster_id in _overrides:
+        removed = _overrides[cluster_id]
         del _overrides[cluster_id]
         _save_overrides_to_disk()
+        _append_audit_event("override_deleted", {"cluster": cluster_id, "override": removed})
         return jsonify({"ok": True, "removed": cluster_id})
     return jsonify({"ok": False, "error": "Override not found"}), 404
 
@@ -274,12 +383,17 @@ def api_apply_overrides():
     Creates a timestamped backup of the original file before modifying.
     Returns a summary of applied/skipped overrides.
     """
+    global _overrides
     if not _overrides:
         return jsonify({"ok": False, "error": "No overrides to apply"}), 400
 
     try:
         result = _apply_overrides_to_h5ad()
-        return jsonify({"ok": True, "result": result})
+        status = _mark_artifacts_stale_after_apply(result)
+        _append_audit_event("overrides_applied", {"result": result, "artifact_status": status})
+        _overrides = {}
+        _save_overrides_to_disk()
+        return jsonify({"ok": True, "result": result, "artifact_status": status})
     except FileNotFoundError as e:
         return jsonify({"ok": False, "error": str(e)}), 404
     except Exception as e:
@@ -293,7 +407,22 @@ def api_clear_overrides():
     count = len(_overrides)
     _overrides = {}
     _save_overrides_to_disk()
+    _append_audit_event("overrides_cleared", {"cleared": count})
     return jsonify({"ok": True, "cleared": count})
+
+
+@app.route("/api/audit", methods=["GET"])
+def api_audit_log():
+    """Return the tail of the append-only Web Review audit log."""
+    limit = request.args.get("limit", default=20, type=int)
+    limit = max(1, min(limit, 200))
+    return jsonify({"ok": True, "events": _audit_tail(limit), "path": str(_audit_log_path())})
+
+
+@app.route("/api/artifact-status", methods=["GET"])
+def api_artifact_status():
+    """Return whether derived artifacts are current or stale after review edits."""
+    return jsonify({"ok": True, "artifact_status": _load_artifact_status()})
 
 
 def run_inspector(output_dir: str | Path, host: str = "127.0.0.1", port: int = 8765):

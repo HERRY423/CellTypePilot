@@ -19,6 +19,7 @@ from celltypepilot.context_pack import (
 from celltypepilot.critic import run_critic
 from celltypepilot.data_adapter import load_marker_atlas, validate_atlas_provenance
 from celltypepilot.orchestrator import write_annotations_to_adata
+from celltypepilot.provenance import create_manifest, load_manifest, save_manifest
 from celltypepilot.state_scorer import (
     attach_state_results,
     load_state_definitions,
@@ -132,6 +133,32 @@ def test_custom_marker_file_is_hashed_and_manifested(tmp_path):
     assert len(parameters["context_source_hashes"]["custom_markers_sha256"]) == 64
     assert parameters["context_identity_hypotheses"] == 1
     assert pack["identity_hypotheses"][0]["review_status"] == "reviewed"
+
+
+def test_manifest_normalizes_numpy_reference_contract(tmp_path):
+    manifest = create_manifest(
+        input_path="test.h5ad",
+        data_hash="abc123",
+        cluster_key="leiden",
+        species="human",
+        tissue="blood",
+        parameters={
+            "reference_contract": {
+                "training_studies": np.array(["study-a", "study-b"]),
+                "distance": np.float64(0.25),
+            }
+        },
+        output_dir=tmp_path,
+    )
+    assert manifest["parameters"]["reference_contract"] == {
+        "training_studies": ["study-a", "study-b"],
+        "distance": 0.25,
+    }
+    path = save_manifest(manifest, tmp_path)
+    assert load_manifest(path)["parameters"]["reference_contract"]["training_studies"] == [
+        "study-a",
+        "study-b",
+    ]
 
 
 def test_free_text_cannot_unlock_unsupported_tissue():
@@ -338,7 +365,10 @@ def test_state_atlas_and_premium_ontology_are_structurally_valid():
     assert validate_state_atlas(state_atlas) == []
     assert load_state_definitions("human", "kidney")
 
-    premium_path = Path(__file__).parents[1] / "src/celltypepilot/data/premium_atlas.json"
+    premium_path = (
+        Path(__file__).parents[1]
+        / "src/celltypepilot/data/packs/premium/marker_atlas.json"
+    )
     premium = json.loads(premium_path.read_text(encoding="utf-8"))
     assert validate_atlas_provenance(premium) == []
     for tissue in premium["tissues"].values():

@@ -183,13 +183,17 @@ def test_study_holdout_evaluation_is_abstention_aware_and_reports_missing_method
 
 def test_every_bundled_marker_relationship_has_structured_provenance():
     assert validate_atlas_provenance(load_marker_atlas("human")) == []
-    premium_path = Path(__file__).parents[1] / "src/celltypepilot/data/premium_atlas.json"
+    premium_path = (
+        Path(__file__).parents[1]
+        / "src/celltypepilot/data/packs/premium/marker_atlas.json"
+    )
     premium = json.loads(premium_path.read_text(encoding="utf-8"))
     assert validate_atlas_provenance(premium) == []
 
     evidence = summarize_atlas_evidence(load_marker_atlas("human"))
     assert evidence["total_relationships"] == 599
-    assert evidence["edge_verified_fraction"] == 0.0
+    # After literature sweep: 280 edges at literature_cooccurrence_supported
+    assert 0.4 < evidence["edge_verified_fraction"] < 0.5
     assert evidence["primary_verified_fraction"] == 0.0
 
 
@@ -383,6 +387,11 @@ def test_reference_ensemble_critic_writeback_report_and_manifest_are_one_pipelin
         "report",
         "manifest",
     ]
+    validation_scope = result["manifest"]["parameters"]["validation_scope"]
+    assert validation_scope["run_role"] == "draft_annotation_for_human_review"
+    assert validation_scope["batch_robustness_claim"] == "not_assessed"
+    assert validation_scope["complex_sample_robustness_claim"] == "not_assessed"
+    assert "benchmark" in validation_scope["required_for_robustness_claims"]
     annotated = ad.read_h5ad(result["paths"]["annotated"])
     assert {"ctp_cell_type", "ctp_candidate_cell_type", "ctp_decision"} <= set(
         annotated.obs.columns

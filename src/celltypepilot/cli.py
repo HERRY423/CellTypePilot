@@ -117,7 +117,7 @@ def annotate(
     marker_evidence_policy: str = typer.Option(
         "database",
         "--marker-evidence-policy",
-        help="database, edge_verified, or primary; stricter policies exclude unverified edges",
+        help="database, literature, edge_verified, or primary; stricter policies exclude unverified edges",
     ),
     calibration_policy: str | None = typer.Option(
         None,
@@ -143,6 +143,11 @@ def annotate(
         False,
         "--no-states",
         help="Disable the independent State Lens without changing identity scoring",
+    ),
+    pack: list[str] = typer.Option(
+        [],
+        "--pack",
+        help="Installed extension pack name to merge (repeatable), e.g. --pack premium",
     ),
 ):
     """Run the full annotation pipeline: marker scoring → critic → report."""
@@ -174,6 +179,7 @@ def annotate(
             context_file_path=context_file,
             custom_markers_path=custom_markers,
             enable_states=not no_states,
+            packs=pack or None,
             progress=_progress,
         )
     except PipelineError as e:
@@ -239,7 +245,11 @@ def critic(
     if tissue is None:
         tissue = detect_tissue(adata) or "general"
 
-    atlas = load_marker_atlas(species)
+    try:
+        atlas = load_marker_atlas(species)
+    except ValueError as exc:
+        console.print(f"[red]Error: {exc}[/red]")
+        raise typer.Exit(1) from exc
     from .data_adapter import get_all_markers_for_tissue
 
     markers = get_all_markers_for_tissue(atlas, tissue)
@@ -260,8 +270,8 @@ def critic(
     for _, row in critic_results.iterrows():
         console.print(f"  Cell Type:   {row.get('cell_type', 'N/A')}")
         console.print(f"  CL ID:       {row.get('cl_id', 'N/A')}")
-        console.print(f"  Score:       {row.get('combined_score', 0):.3f}")
-        console.print(f"  Confidence:  {row.get('critic_confidence', 'N/A')}")
+        console.print(f"  Evidence score: {row.get('combined_score', 0):.3f}")
+        console.print(f"  Review level:   {row.get('critic_confidence', 'N/A')}")
         console.print(f"  Flags:       {row.get('critic_flags', 'PASS')}")
         if row.get("evidence_summary"):
             console.print(f"  [bold]Summary:[/bold]    {row.get('evidence_summary')}")
@@ -273,7 +283,7 @@ def critic(
     cluster_scores = scores[scores["cluster"] == focus].head(5)
     for _, row in cluster_scores.iterrows():
         console.print(
-            f"  #{int(row['rank'])} {row['cell_type']} (score={row['combined_score']:.3f}, "
+            f"  #{int(row['rank'])} {row['cell_type']} (evidence_score={row['combined_score']:.3f}, "
             f"overlap={row['pct_overlap']:.0%}, neg_conflict={row['neg_conflict']:.0%})"
         )
 
@@ -285,12 +295,36 @@ def critic(
 def markers(
     tissue: str | None = typer.Option(None, "--tissue", "-t", help="Tissue to list markers for"),
     species: str = typer.Option("human", "--species", "-s", help="Species: human/mouse"),
+    pack: list[str] = typer.Option(
+        [],
+        "--pack",
+        help="Include cell types from this installed extension pack (repeatable)",
+    ),
     json_output: bool = typer.Option(False, "--json", help="Output as JSON"),
 ):
     """List available cell types and markers in the knowledge graph."""
     from .data_adapter import get_all_markers_for_tissue, load_marker_atlas
 
-    atlas = load_marker_atlas(species)
+    try:
+        atlas = load_marker_atlas(species)
+    except ValueError as exc:
+        console.print(f"[red]Error: {exc}[/red]")
+        raise typer.Exit(1) from exc
+    if pack:
+        from .pack_manager import (
+            PackError,
+            merge_marker_atlas,
+            resolve_extension_packs,
+        )
+
+        try:
+            records, warnings = resolve_extension_packs(list(pack), species)
+            atlas, merge_warnings = merge_marker_atlas(atlas, records, species)
+        except PackError as exc:
+            console.print(f"[red]Extension pack error: {exc}[/red]")
+            raise typer.Exit(1) from exc
+        for warning in warnings + merge_warnings:
+            console.print(f"[yellow]{warning}[/yellow]")
     available_tissues = list(atlas.get("tissues", {}).keys())
 
     if tissue is None:
@@ -307,7 +341,7 @@ def markers(
         return
 
     if json_output:
-        console.print(json.dumps(markers_dict, indent=2))
+        print(json.dumps(markers_dict, indent=2))
     else:
         console.print(f"\n[bold]Cell types and markers for '{tissue}':[/bold]\n")
         for ct_name, info in markers_dict.items():
@@ -324,6 +358,45 @@ def markers(
 # ──────────────────────────────────────────────
 # literature command (MCP-backed literature search)
 # ──────────────────────────────────────────────
+@app.command("atlas-governance")
+def atlas_governance(
+    output: str | None = typer.Option(
+        None,
+        "--output",
+        "-o",
+        help="Optional JSON path for the atlas governance report",
+    ),
+    no_packs: bool = typer.Option(
+        False,
+        "--no-packs",
+        help="Skip first-party/user extension pack inventory",
+    ),
+    json_output: bool = typer.Option(False, "--json", help="Print full report as JSON"),
+):
+    """Build an offline atlas governance report for release and Agent hosts."""
+    from .atlas_governance import build_atlas_governance_report, write_atlas_governance_report
+
+    report = build_atlas_governance_report(include_packs=not no_packs)
+    if output:
+        path = write_atlas_governance_report(output, include_packs=not no_packs)
+        console.print(f"[green]Atlas governance report written:[/green] {path}")
+    if json_output:
+        print(json.dumps(report, indent=2, ensure_ascii=False))
+        return
+    aggregate = report["aggregate"]
+    console.print("[bold]Atlas governance[/bold]")
+    console.print(f"  Assets: {aggregate['n_assets']}")
+    console.print(f"  Marker relationships: {aggregate['n_marker_relationships']}")
+    console.print(f"  Needs edge curation: {aggregate['needs_edge_curation']}")
+    console.print(
+        "  Supported annotation species: "
+        + ", ".join(report["supported_annotation_species"])
+    )
+    ontology = report.get("ontology", {})
+    cache = ontology.get("cache", {})
+    console.print(f"  Ontology cache: {'present' if cache.get('cached') else 'missing'}")
+
+
 @app.command()
 def literature(
     cell_type: str = typer.Option(..., "--cell-type", "-c", help="Cell type to search"),
@@ -604,7 +677,7 @@ def annotate_embedding(
     marker_evidence_policy: str = typer.Option(
         "database",
         "--marker-evidence-policy",
-        help="database, edge_verified, or primary; stricter policies exclude unverified edges",
+        help="database, literature, edge_verified, or primary; stricter policies exclude unverified edges",
     ),
     calibration_policy: str | None = typer.Option(
         None,
@@ -676,6 +749,7 @@ def annotate_embedding(
         get_all_markers_for_tissue,
         load_h5ad,
         load_marker_atlas,
+        require_supported_annotation_species,
     )
     from .ensemble_scorer import analyze_disagreements, ensemble_scores, generate_ensemble_summary
     from .marker_scorer import compute_marker_scores, generate_annotation_summary
@@ -694,6 +768,11 @@ def annotate_embedding(
 
     if species is None:
         species = detect_species(adata)
+    try:
+        require_supported_annotation_species(species)
+    except ValueError as exc:
+        console.print(f"[red]Error: {exc}[/red]")
+        raise typer.Exit(1) from exc
     if tissue is None:
         tissue = detect_tissue(adata) or "general"
 
@@ -1109,6 +1188,296 @@ def license(
     else:
         console.print(f"[red]Unknown action: {action}. Use: status, activate, deactivate[/red]")
         raise typer.Exit(1)
+
+
+# ──────────────────────────────────────────────
+# curate command (literature co-occurrence sweep)
+# ──────────────────────────────────────────────
+@app.command()
+def curate(
+    atlas_path: str | None = typer.Option(
+        None,
+        "--atlas",
+        help="Atlas JSON to sweep (default: bundled marker atlas)",
+    ),
+    tissue: str | None = typer.Option(None, "--tissue", help="Restrict sweep to one tissue"),
+    limit: int | None = typer.Option(None, "--limit", help="Max edges to sweep (pilot runs)"),
+    delay: float = typer.Option(
+        0.34, "--delay", help="Seconds between PubMed requests (rate limit)"
+    ),
+    output: str | None = typer.Option(
+        None, "--output", "-o", help="Path for the sweep report JSON"
+    ),
+    apply: bool = typer.Option(
+        False,
+        "--apply",
+        help="Write supported upgrades back into the atlas file (requires --new-version)",
+    ),
+    new_version: str | None = typer.Option(
+        None, "--new-version", help="New atlas version when applying upgrades"
+    ),
+    json_output: bool = typer.Option(False, "--json", help="Output summary as JSON"),
+):
+    """Sweep aggregate-status marker edges for PubMed co-occurrence evidence.
+
+    Supported edges are reported; with --apply they are upgraded to
+    literature_cooccurrence_supported with a full evidence locator.
+    """
+    from .atlas_curation import (
+        CurationError,
+        apply_sweep_results,
+        sweep_edges,
+        write_sweep_report,
+    )
+    from .constants import ATLAS_PATH
+
+    path = Path(atlas_path) if atlas_path else ATLAS_PATH
+    try:
+        atlas = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError) as exc:
+        console.print(f"[red]Cannot read atlas {path}: {exc}[/red]")
+        raise typer.Exit(1) from exc
+
+    def _progress(step: int, total: int, message: str):
+        console.print(f"[dim]\rSweeping edge {step}/{total}: {message}[/dim]", end="")
+
+    sweep = sweep_edges(atlas, tissue=tissue, delay_seconds=delay, limit=limit, progress=_progress)
+    console.print()
+
+    report_path = Path(output) if output else path.with_name(f"{path.stem}.sweep.json")
+    write_sweep_report(sweep, report_path)
+
+    applied = 0
+    if apply:
+        if not new_version:
+            console.print("[red]--apply requires --new-version[/red]")
+            raise typer.Exit(1)
+        try:
+            updated, applied = apply_sweep_results(atlas, sweep["results"], new_version)
+        except CurationError as exc:
+            console.print(f"[red]Apply failed (fail closed): {exc}[/red]")
+            raise typer.Exit(1) from exc
+        path.write_text(json.dumps(updated, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
+
+    summary = {
+        "atlas": str(path),
+        "swept": sweep["swept"],
+        "supported": sweep["supported"],
+        "errors": sweep["errors"],
+        "report": str(report_path),
+        "applied_upgrades": applied,
+        "new_version": new_version if apply else None,
+    }
+    if json_output:
+        print(json.dumps(summary, indent=2))
+    else:
+        console.print(
+            f"Swept [cyan]{sweep['swept']}[/cyan] edges; "
+            f"[green]{sweep['supported']}[/green] supported by literature co-occurrence; "
+            f"[red]{sweep['errors']}[/red] search errors"
+        )
+        console.print(f"Report: {report_path}")
+        if apply:
+            console.print(f"Applied [green]{applied}[/green] upgrades → atlas version {new_version}")
+
+
+# ──────────────────────────────────────────────
+# ontology commands (live Cell Ontology checks)
+# ──────────────────────────────────────────────
+ontology_app = typer.Typer(
+    name="ontology",
+    help="Cell Ontology cache and live identifier validation",
+    add_completion=False,
+)
+app.add_typer(ontology_app, name="ontology")
+
+
+@ontology_app.command("update")
+def ontology_update(
+    force: bool = typer.Option(False, "--force", help="Re-download even if cached"),
+):
+    """Download and cache the Cell Ontology (cl.obo) from the OBO Foundry."""
+    from .ontology import OntologyError, download_ontology, ontology_cache_status
+
+    try:
+        metadata = download_ontology(force=force)
+    except OntologyError as exc:
+        console.print(f"[red]{exc}[/red]")
+        raise typer.Exit(1) from exc
+    console.print(f"[green]Cell Ontology cache ready[/green] ({metadata.get('path')})")
+    print(json.dumps(ontology_cache_status(), indent=2))
+
+
+@ontology_app.command("check")
+def ontology_check(
+    json_output: bool = typer.Option(False, "--json", help="Output as JSON"),
+):
+    """Validate bundled and installed atlas CL identifiers against the cache."""
+    from .constants import ATLAS_PATH, FIRST_PARTY_PACKS_DIR
+    from .ontology import (
+        OntologyError,
+        check_atlas_ontology,
+        load_ontology,
+        ontology_cache_status,
+        summarize_findings,
+    )
+
+    status = ontology_cache_status()
+    if not status.get("cached"):
+        console.print(f"[yellow]{status['detail']}[/yellow]")
+        raise typer.Exit(1)
+    try:
+        service = load_ontology()
+    except OntologyError as exc:
+        console.print(f"[red]{exc}[/red]")
+        raise typer.Exit(1) from exc
+
+    targets = [("marker_atlas", ATLAS_PATH)]
+    if FIRST_PARTY_PACKS_DIR.is_dir():
+        for child in sorted(FIRST_PARTY_PACKS_DIR.iterdir()):
+            atlas_file = child / "marker_atlas.json"
+            if atlas_file.is_file():
+                targets.append((f"pack:{child.name}", atlas_file))
+    packs_root = None
+    try:
+        from .pack_manager import packs_dir
+
+        packs_root = packs_dir()
+    except Exception:
+        pass
+    if packs_root is not None and packs_root.is_dir():
+        for child in sorted(packs_root.iterdir()):
+            atlas_file = child / "marker_atlas.json"
+            if atlas_file.is_file():
+                targets.append((f"pack:{child.name}", atlas_file))
+
+    report = {}
+    exit_code = 0
+    for label, atlas_path in targets:
+        atlas = json.loads(atlas_path.read_text(encoding="utf-8"))
+        findings = check_atlas_ontology(service, atlas)
+        summary = summarize_findings(findings)
+        report[label] = {"summary": summary, "findings": findings}
+        if not summary["ok"]:
+            exit_code = 1
+
+    if json_output:
+        print(json.dumps(report, indent=2, ensure_ascii=False))
+    else:
+        for label, entry in report.items():
+            summary = entry["summary"]
+            badge = "[green]OK[/green]" if summary["ok"] else "[red]ERRORS[/red]"
+            console.print(
+                f"{label}: {badge} | {summary['errors']} errors, "
+                f"{summary['warnings']} label warnings"
+            )
+            for finding in entry["findings"]:
+                if finding["severity"] == "error":
+                    console.print(f"  [red]- {finding['path']} [{finding['cl_id']}]: {finding['issue']}[/red]")
+    if exit_code:
+        raise typer.Exit(exit_code)
+
+
+# ──────────────────────────────────────────────
+# pack commands (domain extension packs)
+# ──────────────────────────────────────────────
+pack_app = typer.Typer(
+    name="pack",
+    help="Manage domain extension packs (data-only marker/state atlases)",
+    add_completion=False,
+)
+app.add_typer(pack_app, name="pack")
+
+
+@pack_app.command("install")
+def pack_install(
+    source: str = typer.Argument(
+        ..., help="Local pack directory or git URL (e.g. https://.../celltypepilot-tme-pack.git)"
+    ),
+    trust: str = typer.Option(
+        "atlas",
+        "--trust",
+        help="atlas: require full provenance validation; hypothesis: accept as draft evidence",
+    ),
+    force: bool = typer.Option(False, "--force", help="Reinstall over an existing pack"),
+):
+    """Install a domain extension pack from a local path or git URL."""
+    from .pack_manager import PackError, install_pack
+
+    try:
+        summary = install_pack(source, trust=trust, force=force)
+    except PackError as exc:
+        console.print(f"[red]Pack install failed: {exc}[/red]")
+        raise typer.Exit(1) from exc
+    console.print(f"[green]Installed pack {summary['name']!r} v{summary['version']}[/green]")
+    console.print(f"  Trust:   {summary['trust']}")
+    console.print(f"  Path:    {summary['path']}")
+    console.print(f"  Tissues: {', '.join(summary['tissues']) or '(none declared)'}")
+    if summary["validation_issues"]:
+        console.print("[yellow]  Installed at hypothesis trust with issues:[/yellow]")
+        for issue in summary["validation_issues"][:5]:
+            console.print(f"[yellow]  - {issue}[/yellow]")
+
+
+@pack_app.command("list")
+def pack_list(
+    json_output: bool = typer.Option(False, "--json", help="Output as JSON"),
+):
+    """List first-party and installed extension packs."""
+    from .pack_manager import list_installed_packs
+
+    entries = list_installed_packs()
+    if json_output:
+        console.print(json.dumps(entries, indent=2))
+        return
+    if not entries:
+        console.print("No extension packs installed. Use: celltypepilot pack install <source>")
+        return
+    for entry in entries:
+        console.print(f"[cyan]{entry['name']}[/cyan] v{entry['version']} ({entry['origin']})")
+        console.print(f"  Trust: {entry['trust']} | License: {entry['license_tier']}")
+        console.print(f"  Species: {', '.join(entry['species'])}")
+        console.print(f"  Tissues: {', '.join(entry['tissues']) or '(none declared)'}")
+        if entry["description"]:
+            console.print(f"  [dim]{entry['description']}[/dim]")
+        console.print()
+
+
+@pack_app.command("validate")
+def pack_validate(
+    name: str = typer.Argument(..., help="Installed pack name"),
+):
+    """Re-validate an installed pack against schema and provenance gates."""
+    from pathlib import Path
+
+    from .pack_manager import list_installed_packs, validate_pack
+
+    index = {entry["name"]: entry for entry in list_installed_packs()}
+    if name not in index:
+        console.print(f"[red]Pack {name!r} is not installed[/red]")
+        raise typer.Exit(1)
+    issues = validate_pack(Path(index[name]["path"]))
+    if issues:
+        console.print(f"[red]Pack {name!r} FAILED validation:[/red]")
+        for issue in issues:
+            console.print(f"  - {issue}")
+        raise typer.Exit(1)
+    console.print(f"[green]Pack {name!r} passed schema and provenance validation[/green]")
+
+
+@pack_app.command("remove")
+def pack_remove(
+    name: str = typer.Argument(..., help="Installed pack name"),
+):
+    """Remove a user-installed extension pack."""
+    from .pack_manager import PackError, remove_pack
+
+    try:
+        remove_pack(name)
+    except PackError as exc:
+        console.print(f"[red]{exc}[/red]")
+        raise typer.Exit(1) from exc
+    console.print(f"[green]Removed pack {name!r}[/green]")
 
 
 if __name__ == "__main__":

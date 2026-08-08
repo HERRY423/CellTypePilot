@@ -204,11 +204,24 @@ def generate_methodology_text(
     evidence_summary = params.get("marker_evidence_summary", {})
     primary_fraction = float(evidence_summary.get("primary_verified_fraction", 0.0) or 0.0)
     calibration_policy = params.get("calibration_policy")
+    uncertainty_language = params.get("uncertainty_language", {})
+    score_semantics = (
+        uncertainty_language.get("score_columns", {}).get("evidence_score")
+        or "heuristic_evidence_score_not_probability"
+    )
     confidence_statement = (
         "A downgrade-only abstention threshold fitted on a separately designated calibration "
-        "dataset was applied. "
+        "dataset was applied; it could only convert calls to Unknown and did not produce "
+        "per-cluster calibrated probabilities. "
         if calibration_policy
         else "Confidence categories were rule-based heuristics and were not probability-calibrated. "
+    )
+    uncertainty_statement = (
+        f"The exported combined_score/evidence_score columns were interpreted as {score_semantics}; "
+        "they were used for evidence ranking and review triage, not as posterior probabilities. "
+        "Unknown denoted a fail-closed abstention decision rather than a biological cell class. "
+        "OOD/novelty detection and selective-risk guarantees were not inferred from this annotation "
+        "run unless separate calibration or benchmark artifacts were supplied. "
     )
     context_statement = (
         "A versioned user context pack expanded candidate identity and state hypotheses; free-text "
@@ -221,6 +234,14 @@ def generate_methodology_text(
         "results were prohibited from changing canonical identity decisions. "
         if params.get("state_lens_enabled")
         else "Independent cell-state scoring was disabled. "
+    )
+    validation_scope = params.get("validation_scope", {})
+    validation_statement = (
+        "This run was a draft annotation for human review and did not assess batch-effect, "
+        "complex-sample, or cross-study robustness; such claims require the separate locked "
+        "study/donor benchmark workflow. "
+        if validation_scope
+        else ""
     )
 
     text = (
@@ -239,7 +260,8 @@ def generate_methodology_text(
         f"Candidates with insufficient or conflicting evidence were explicitly reported as Unknown "
         f"while retaining the best candidate label for human adjudication. "
         f"{context_statement}{state_statement}"
-        f"{confidence_statement}"
+        f"{confidence_statement}{uncertainty_statement}"
+        f"{validation_statement}"
         f"Of {total} clusters, {high} were assigned high confidence, {med} medium confidence, "
         f"and {flagged} were flagged for manual review. "
         f"Species: {params.get('species', 'N/A')}; tissue context: {params.get('tissue', 'N/A')}."

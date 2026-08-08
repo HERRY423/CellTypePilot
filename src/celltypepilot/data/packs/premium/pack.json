@@ -1,0 +1,20 @@
+{
+  "schema_version": "celltypepilot.pack.v1",
+  "name": "premium",
+  "version": "premium-atlas-2026.08.1",
+  "description": "CellTypePilot Premium Atlas — Extended cell types for academic and commercial users",
+  "species": [
+    "human",
+    "mouse"
+  ],
+  "tissues": [
+    "developing_brain",
+    "immune_activation",
+    "inflamed_tissue",
+    "tumor_microenvironment"
+  ],
+  "license_tier": "academic",
+  "files": [
+    "marker_atlas.json"
+  ]
+}

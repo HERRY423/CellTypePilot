@@ -92,6 +92,7 @@ def run_doctor() -> DoctorReport:
         ("scvi_tools", "reference mapping (Phase 2)", False),
         ("decoupler", "pathway scoring (Phase 2)", False),
         ("flask", "Web Inspector", False),
+        ("fastmcp", "Native CellTypePilot MCP facade", False),
         ("rpy2", "Seurat .rds support", False),
     ]
     for dep_name, desc, req in opt_deps:
@@ -112,6 +113,9 @@ def run_doctor() -> DoctorReport:
         report.mcp_status = check_mcp_availability()
     except Exception:
         report.mcp_status = {"pubmed_direct": False}
+    report.mcp_status["celltypepilot_native"] = check_dependency(
+        "fastmcp", required=False
+    ).installed
 
     # Determine capability level
     all_core_installed = all(d.installed for d in report.dependencies)
@@ -221,6 +225,45 @@ def format_doctor_report(report: DoctorReport) -> str:
             lines.append("  [red]EXPIRED — renew at https://celltypepilot.io/license[/red]")
         elif lic.tier.value == "free":
             lines.append("  Upgrade: https://celltypepilot.io/license")
+    except Exception:
+        pass
+
+    # Extension packs
+    try:
+        from .pack_manager import list_installed_packs
+
+        packs = list_installed_packs()
+        lines.append("")
+        lines.append("Extension packs:")
+        if packs:
+            for entry in packs:
+                lines.append(
+                    f"  {entry['name']} v{entry['version']} "
+                    f"({entry['origin']}, trust={entry['trust']}, "
+                    f"license={entry['license_tier']})"
+                )
+        else:
+            lines.append("  (none installed)")
+    except Exception:
+        pass
+
+    # Cell Ontology cache
+    try:
+        from .ontology import ontology_cache_status
+
+        status = ontology_cache_status()
+        lines.append("")
+        lines.append("Cell Ontology cache:")
+        if status.get("cached"):
+            downloaded = status.get("downloaded_at", "unknown date")
+            lines.append(
+                f"  [green]cached[/green] ({status.get('size_bytes', '?')} bytes, "
+                f"downloaded {downloaded})"
+            )
+            lines.append(f"  Path: {status.get('path')}")
+        else:
+            lines.append("  [yellow]not cached[/yellow]")
+            lines.append(f"  {status.get('detail', 'Run: celltypepilot ontology update')}")
     except Exception:
         pass
 

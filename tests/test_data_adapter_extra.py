@@ -15,6 +15,7 @@ from celltypepilot.data_adapter import (
     format_inspect_report,
     get_all_markers_flat,
     get_all_markers_for_tissue,
+    inspect,
     inspect_adata,
     load_h5ad,
     load_marker_atlas,
@@ -153,6 +154,24 @@ class TestInspectAdata:
         report = inspect_adata(str(h5ad_path))
         assert len(report["warnings"]) > 0
 
+    def test_detected_unsupported_species_is_reported_not_scored(self):
+        adata = ad.AnnData(
+            X=np.zeros((4, 3)),
+            obs=pd.DataFrame({"cluster": ["0", "0", "1", "1"]}),
+            var=pd.DataFrame(
+                index=[
+                    "ENSRNOG00000000001",
+                    "ENSRNOG00000000002",
+                    "ENSRNOG00000000003",
+                ]
+            ),
+        )
+        report = inspect(adata, cluster_key="cluster")
+        assert report["species"] == "rat"
+        assert report["annotation_species_supported"] is False
+        assert report["supported_annotation_species"] == ["human", "mouse"]
+        assert any("fails closed" in warning for warning in report["warnings"])
+
 
 class TestFormatInspectReport:
     def test_format(self, h5ad_path):
@@ -179,6 +198,10 @@ class TestLoadMarkerAtlas:
                 assert m[0].isupper()
                 if len(m) > 1:
                     assert m[1].islower()
+
+    def test_unsupported_species_fails_closed(self):
+        with pytest.raises(ValueError, match="supports scoring only human, mouse"):
+            load_marker_atlas("rat")
 
 
 class TestGetAllMarkersForTissue:

@@ -224,7 +224,7 @@ class TestProvenance:
                 output_dir=tmpdir,
             )
             assert manifest["celltypepilot_version"] == "0.3.0"
-            assert manifest["mkg_version"] == "mkg-2026.08"
+            assert manifest["mkg_version"] == "mkg-2026.08.1"
 
             path = save_manifest(manifest, tmpdir)
             loaded = load_manifest(path)

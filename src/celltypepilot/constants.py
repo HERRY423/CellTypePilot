@@ -8,6 +8,8 @@ PKG_ROOT = Path(__file__).resolve().parent
 # Built-in marker atlas path
 ATLAS_PATH = PKG_ROOT / "data" / "marker_atlas.json"
 STATE_ATLAS_PATH = PKG_ROOT / "data" / "state_atlas.json"
+# First-party extension packs shipped with the package (e.g. premium)
+FIRST_PARTY_PACKS_DIR = PKG_ROOT / "data" / "packs"
 
 # Confidence tiers
 CONFIDENCE_HIGH = "high"
@@ -71,6 +73,11 @@ SPECIES_MACAQUE = "macaque"
 SPECIES_DOG = "dog"
 SPECIES_UNKNOWN = "unknown"
 
+# Species that the bundled annotation atlas can score. Detection may identify
+# additional species for routing, but scoring must fail closed unless a species
+# is explicitly supported by the annotation atlas/pack layer.
+ANNOTATION_SUPPORTED_SPECIES = (SPECIES_HUMAN, SPECIES_MOUSE)
+
 # Ensembl gene ID prefix → species (longer prefixes first to avoid
 # ambiguity, e.g. ENSGALG would otherwise match the ENSG prefix).
 ENSEMBL_PREFIX_SPECIES = [
@@ -114,6 +121,39 @@ TISSUE_COLUMN_SYNONYMS = [
 
 # Fallback keywords scanned as substrings of obs column names
 TISSUE_COLUMN_KEYWORDS = ["tissue", "organ", "anatom", "body_site"]
+
+# obs column names commonly used to describe sample independence / batch axes.
+STUDY_COLUMN_SYNONYMS = [
+    "study",
+    "study_id",
+    "dataset",
+    "dataset_id",
+    "cohort",
+    "cohort_id",
+    "project",
+    "project_id",
+]
+DONOR_COLUMN_SYNONYMS = [
+    "donor",
+    "donor_id",
+    "patient",
+    "patient_id",
+    "subject",
+    "subject_id",
+    "individual",
+    "individual_id",
+]
+BATCH_COLUMN_SYNONYMS = [
+    "batch",
+    "batch_id",
+    "sample",
+    "sample_id",
+    "library",
+    "library_id",
+    "lane",
+    "platform",
+    "chemistry",
+]
 
 # Color-blind friendly palette (Wong palette)
 CB_PALETTE = [

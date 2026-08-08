@@ -15,13 +15,17 @@ import pandas as pd
 from rich.console import Console
 
 from .constants import (
+    ANNOTATION_SUPPORTED_SPECIES,
     ATLAS_PATH,
+    BATCH_COLUMN_SYNONYMS,
+    DONOR_COLUMN_SYNONYMS,
     ENSEMBL_PREFIX_SPECIES,
     MIN_CLUSTER_SIZE,
     SPECIES_DOMINANCE_RATIO,
     SPECIES_HUMAN,
     SPECIES_MOUSE,
     SPECIES_SYMBOL_RATIO,
+    STUDY_COLUMN_SYNONYMS,
     TISSUE_COLUMN_KEYWORDS,
     TISSUE_COLUMN_SYNONYMS,
 )
@@ -58,6 +62,30 @@ def match_ensembl_species(gene: str) -> str | None:
         if gene.startswith(prefix):
             return species
     return None
+
+
+def is_supported_annotation_species(species: str | None) -> bool:
+    """Return whether the bundled annotation atlas can score this species."""
+    return species in ANNOTATION_SUPPORTED_SPECIES
+
+
+def unsupported_species_message(species: str | None) -> str:
+    """Explain the fail-closed species boundary for users and plugin hosts."""
+    supported = ", ".join(ANNOTATION_SUPPORTED_SPECIES)
+    return (
+        f"Detected/requested species {species!r} is recognized for data routing, "
+        f"but CellTypePilot's bundled annotation atlas currently supports scoring only "
+        f"{supported}. Annotation fails closed to avoid applying human/mouse marker "
+        "biology to an unsupported species. Use --species human|mouse only when that "
+        "is biologically correct, or install a species-scoped extension pack after "
+        "pack support for that species is enabled."
+    )
+
+
+def require_supported_annotation_species(species: str | None) -> None:
+    """Fail closed before any marker scoring when species support is absent."""
+    if not is_supported_annotation_species(species):
+        raise ValueError(unsupported_species_message(species))
 
 
 def detect_species(adata: ad.AnnData) -> str:
@@ -215,24 +243,32 @@ def find_layer_keys(adata: ad.AnnData) -> dict:
     return result
 
 
-def inspect_adata(
-    path: str | Path,
+def inspect(
+    adata: ad.AnnData,
     cluster_key: str | None = None,
     embedding_key: str | None = None,
 ) -> dict:
-    """Full inspection report of an h5ad file.
+    """Inspect an in-memory AnnData object (Scanpy-native API).
 
-    Returns a structured dict with all relevant metadata.
+    Returns a structured dict with species, tissue, clusters, embeddings,
+    layers, and warnings. No file I/O required.
+
+    Args:
+        adata: AnnData object with pre-clustered data
+        cluster_key: Optional cluster column to inspect sizes for
+        embedding_key: Optional embedding column to report shape for
+
+    Returns:
+        Dict with inspection metadata, same schema as ``inspect_adata``
+        but without file-specific fields (path, sha256).
     """
-    adata = load_h5ad(path)
-    data_hash = compute_data_hash(path)
-
+    species = detect_species(adata)
     report = {
-        "path": str(path),
-        "sha256": data_hash,
         "n_obs": adata.n_obs,
         "n_vars": adata.n_vars,
-        "species": detect_species(adata),
+        "species": species,
+        "annotation_species_supported": is_supported_annotation_species(species),
+        "supported_annotation_species": list(ANNOTATION_SUPPORTED_SPECIES),
         "tissue": detect_tissue(adata),
         "obs_columns": list(adata.obs.columns),
         "obsm_keys": list(adata.obsm.keys()),
@@ -245,6 +281,9 @@ def inspect_adata(
         "warnings": [],
         "fatal": [],
     }
+
+    if not report["annotation_species_supported"]:
+        report["warnings"].append(unsupported_species_message(species))
 
     # Cluster info
     if cluster_key and cluster_key in adata.obs.columns:
@@ -259,7 +298,7 @@ def inspect_adata(
     elif not cluster_key:
         candidates = find_cluster_keys(adata)
         if candidates:
-            report["warnings"].append(f"No --cluster-key specified. Candidates found: {candidates}")
+            report["warnings"].append(f"No cluster_key specified. Candidates found: {candidates}")
         else:
             report["fatal"].append(
                 "No cluster key found in obs. Cannot proceed without clustering."
@@ -272,10 +311,10 @@ def inspect_adata(
         candidates = find_embedding_keys(adata)
         if candidates:
             report["warnings"].append(
-                f"No --embedding-key specified. Candidates found: {candidates}"
+                f"No embedding_key specified. Candidates found: {candidates}"
             )
 
-    # Gene ID convention (majority vote over sampled genes)
+    # Gene ID convention
     sample_genes = [str(g) for g in adata.var_names[:100]]
     ensembl_votes: dict[str, int] = {}
     for g in sample_genes:
@@ -303,6 +342,24 @@ def inspect_adata(
     else:
         report["gene_id_convention"] = "unknown"
 
+    return report
+
+
+def inspect_adata(
+    path: str | Path,
+    cluster_key: str | None = None,
+    embedding_key: str | None = None,
+) -> dict:
+    """Full inspection report of an h5ad file.
+
+    Returns a structured dict with all relevant metadata.
+    """
+    adata = load_h5ad(path)
+    data_hash = compute_data_hash(path)
+
+    report = inspect(adata, cluster_key, embedding_key)
+    report["path"] = str(path)
+    report["sha256"] = data_hash
     return report
 
 
@@ -365,6 +422,7 @@ def format_inspect_report(report: dict) -> str:
 
 def load_marker_atlas(species: str = "human") -> dict:
     """Load the built-in marker knowledge graph."""
+    require_supported_annotation_species(species)
     with open(ATLAS_PATH, encoding="utf-8") as f:
         atlas = json.load(f)
 
@@ -373,6 +431,34 @@ def load_marker_atlas(species: str = "human") -> dict:
         atlas = _convert_atlas_to_mouse(atlas)
 
     return atlas
+
+
+def find_metadata_columns(adata: ad.AnnData) -> dict[str, list[str]]:
+    """Find likely study/donor/batch metadata columns without making claims."""
+
+    def find(synonyms: list[str]) -> list[str]:
+        synonym_set = {item.lower() for item in synonyms}
+        matches = []
+        for column in adata.obs.columns:
+            lowered = str(column).strip().lower()
+            if lowered in synonym_set:
+                matches.append(str(column))
+        return matches
+
+    return {
+        "study_keys": find(STUDY_COLUMN_SYNONYMS),
+        "donor_keys": find(DONOR_COLUMN_SYNONYMS),
+        "batch_keys": find(BATCH_COLUMN_SYNONYMS),
+    }
+
+
+def convert_atlas_to_mouse(atlas: dict) -> dict:
+    """Convert gene symbols in any atlas-shaped dict to mouse conventions.
+
+    Public wrapper around the built-in conversion so extension packs can be
+    normalized with the exact same rules as the bundled atlas.
+    """
+    return _convert_atlas_to_mouse(atlas)
 
 
 def _convert_atlas_to_mouse(atlas: dict) -> dict:
@@ -407,15 +493,19 @@ def _convert_atlas_to_mouse(atlas: dict) -> dict:
 
 EVIDENCE_POLICY_MINIMUM = {
     "database": 0,
-    "edge_verified": 1,
-    "primary": 2,
+    "literature": 1,
+    "edge_verified": 2,
+    "primary": 3,
 }
 
 EVIDENCE_STATUS_RANK = {
     "aggregate_source_only_not_edge_verified": 0,
-    "database_record_verified": 1,
-    "primary_source_verified": 2,
+    "literature_cooccurrence_supported": 1,
+    "database_record_verified": 2,
+    "primary_source_verified": 3,
 }
+
+LITERATURE_COOCCURRENCE_STATUS = "literature_cooccurrence_supported"
 
 
 def get_all_markers_for_tissue(
@@ -578,6 +668,13 @@ def validate_atlas_provenance(atlas: dict) -> list[str]:
                     issues.append(
                         f"{node_path}/marker_evidence/{index}: invalid verification_status"
                     )
+                if verification_status == "literature_cooccurrence_supported":
+                    for field in ("evidence_locator", "curator", "verified_at"):
+                        if not record.get(field):
+                            issues.append(
+                                f"{node_path}/marker_evidence/{index}: "
+                                f"literature co-occurrence verification missing {field}"
+                            )
                 if verification_status == "database_record_verified":
                     for field in (
                         "source_record_id",

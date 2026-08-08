@@ -111,3 +111,26 @@ class TestGenerateAllFigures:
         )
         # Should still generate confidence bar
         assert isinstance(paths, list)
+
+    def test_identity_state_plots(self, synthetic_pbmc, tmp_output_dir):
+        annotations = pd.DataFrame(
+            {
+                "cluster": ["0", "1", "2", "3"],
+                "cell_type": ["T cell", "B cell", "NK cell", "Monocyte"],
+                "cell_state_candidate": ["exhausted", "cycling_s_phase", "Unknown", "m1_proinflammatory"],
+                "display_label": [
+                    "T cell · exhausted",
+                    "B cell · cycling_s_phase",
+                    "NK cell",
+                    "Monocyte · m1_proinflammatory",
+                ],
+                "critic_confidence": ["high", "high", "medium", "high"],
+            }
+        )
+        paths = generate_all_figures(
+            synthetic_pbmc, "leiden", "X_umap", annotations, tmp_output_dir, "blood"
+        )
+        filenames = [Path(p).name for p in paths]
+        assert "umap_identity_state.png" in filenames
+        assert "identity_state_distribution.png" in filenames
+

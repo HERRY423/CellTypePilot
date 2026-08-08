@@ -11,6 +11,24 @@ from . import MKG_VERSION, __version__
 from .constants import OUTPUT_MANIFEST
 
 
+def _json_compatible(value):
+    """Recursively normalize scientific Python values for stable JSON artifacts."""
+    if isinstance(value, dict):
+        return {str(key): _json_compatible(item) for key, item in value.items()}
+    if isinstance(value, (list, tuple, set)):
+        return [_json_compatible(item) for item in value]
+    if isinstance(value, Path):
+        return str(value)
+    if hasattr(value, "tolist"):
+        return _json_compatible(value.tolist())
+    if hasattr(value, "item"):
+        try:
+            return _json_compatible(value.item())
+        except (TypeError, ValueError):
+            pass
+    return value
+
+
 def create_manifest(
     input_path: str,
     data_hash: str,
@@ -37,7 +55,7 @@ def create_manifest(
         },
         "outputs": {},
     }
-    return manifest
+    return _json_compatible(manifest)
 
 
 def update_manifest_outputs(manifest: dict, output_dir: str | Path) -> dict:
@@ -60,7 +78,7 @@ def save_manifest(manifest: dict, output_dir: str | Path) -> Path:
     output_dir.mkdir(parents=True, exist_ok=True)
     manifest_path = output_dir / OUTPUT_MANIFEST
     with open(manifest_path, "w", encoding="utf-8") as f:
-        json.dump(manifest, f, indent=2, ensure_ascii=False)
+        json.dump(_json_compatible(manifest), f, indent=2, ensure_ascii=False)
     return manifest_path
 
 
