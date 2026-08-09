@@ -1,0 +1,24 @@
+{
+  "schema_version": "celltypepilot.label-map-audit.v1",
+  "cohort_id": "pelka_crc_stromal_2021",
+  "evaluation_level": "predeclared_broad_cell_class",
+  "truth_labels": 11,
+  "celltypepilot_atlas_labels": 7,
+  "canonical_classes": [
+    "Unknown",
+    "endothelial",
+    "epithelial",
+    "fibroblast_stromal",
+    "mast_cell",
+    "myeloid",
+    "other",
+    "pericyte",
+    "smooth_muscle"
+  ],
+  "other_truth_labels": [
+    "Schwann cell"
+  ],
+  "mapping_policy": "ordered_token_aware_rules_in_scripts/build_public_label_maps.py",
+  "label_map_sha256": "4eeebf3d495faca8f60c39523e0e0b44d2340566740519913b9143460aeb8e77",
+  "frozen_before_prediction_scoring": true
+}

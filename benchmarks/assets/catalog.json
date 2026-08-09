@@ -1,0 +1,488 @@
+{
+  "schema_version": "celltypepilot.immutable-asset-catalog.v1",
+  "catalog_id": "celltypepilot-public-assets-v1.0.0",
+  "frozen_at_utc": "2026-08-09T12:00:00Z",
+  "description": "Immutable asset index for CELLxGENE datasets, Azimuth references, label maps, and Docker images. Parallel to public_v1 registry; does not own fold run state.",
+  "storage_policy_path": "storage_policy.json",
+  "linked_benchmark_registry": "benchmarks/public_v1/registry.json",
+  "linked_benchmark_release_id": "celltypepilot-public-multicohort-v1.0.1-2026-08-08",
+  "assets": [
+    {
+      "asset_id": "cellxgene-garrido-trigo-ibd-2023",
+      "kind": "cellxgene_dataset",
+      "version": "5e75dd8f-5c5f-4056-ade2-117748429022",
+      "title": "IBD and healthy-control colon mucosa (CELLxGENE dataset version)",
+      "url": "https://datasets.cellxgene.cziscience.com/5e75dd8f-5c5f-4056-ade2-117748429022.h5ad",
+      "source_url": "https://datasets.cellxgene.cziscience.com/5e75dd8f-5c5f-4056-ade2-117748429022.h5ad",
+      "cdn_url": "https://cdn.celltypepilot.example/assets/v1/cellxgene_dataset/cellxgene-garrido-trigo-ibd-2023/5e75dd8f-5c5f-4056-ade2-117748429022/sha256/64b5595c7c5375353918a2728c0f82c118cdfb731e4543e7cce43c461a20f1e9",
+      "sha256": "64b5595c7c5375353918a2728c0f82c118cdfb731e4543e7cce43c461a20f1e9",
+      "byte_size": 183688176,
+      "license": "CC-BY-4.0",
+      "species": "human",
+      "tissue": "gut",
+      "media_type": "application/x-hdf5",
+      "availability": "source_available",
+      "related_cohort_ids": [
+        "garrido_trigo_ibd_2023"
+      ],
+      "dataset_version_id": "5e75dd8f-5c5f-4056-ade2-117748429022",
+      "collection_url": "https://cellxgene.cziscience.com/collections/7c7bd6c2-925b-4034-baab-620ef1b760e1",
+      "citation_doi": "10.1038/s41467-023-40156-6",
+      "training_study_provenance": {
+        "summary": "Query dataset for public multicohort holdouts; not a pretrained classifier reference.",
+        "source_studies": [
+          {
+            "study_id": "garrido_trigo_2023",
+            "role": "evaluation_query_asset",
+            "doi": "10.1038/s41467-023-40156-6"
+          }
+        ],
+        "overlap_audit_status": "not_applicable",
+        "eligible_for_primary_holdout_track": true
+      },
+      "notes": "CDN mirror is declarative until upload; source_url is authoritative."
+    },
+    {
+      "asset_id": "cellxgene-pelka-crc-stromal-2021",
+      "kind": "cellxgene_dataset",
+      "version": "3e97852a-0caf-4e9b-9355-9d5f408b4fcb",
+      "title": "Colorectal cancer stromal compartment (CELLxGENE dataset version)",
+      "url": "https://datasets.cellxgene.cziscience.com/3e97852a-0caf-4e9b-9355-9d5f408b4fcb.h5ad",
+      "source_url": "https://datasets.cellxgene.cziscience.com/3e97852a-0caf-4e9b-9355-9d5f408b4fcb.h5ad",
+      "cdn_url": "https://cdn.celltypepilot.example/assets/v1/cellxgene_dataset/cellxgene-pelka-crc-stromal-2021/3e97852a-0caf-4e9b-9355-9d5f408b4fcb/sha256/5e4aa9fae7674d7245a310a33b6b6734cb590d9ed90439ec031cda766c60e3c8",
+      "sha256": "5e4aa9fae7674d7245a310a33b6b6734cb590d9ed90439ec031cda766c60e3c8",
+      "byte_size": 176252181,
+      "license": "CC-BY-4.0",
+      "species": "human",
+      "tissue": "general",
+      "media_type": "application/x-hdf5",
+      "availability": "source_available",
+      "related_cohort_ids": [
+        "pelka_crc_stromal_2021"
+      ],
+      "dataset_version_id": "3e97852a-0caf-4e9b-9355-9d5f408b4fcb",
+      "collection_url": "https://cellxgene.cziscience.com/collections/4d82bd8e-8827-410b-8fc7-685b7dd92585",
+      "citation_doi": "10.1016/j.cell.2021.08.003",
+      "training_study_provenance": {
+        "summary": "Query dataset for tumor/stromal stress test; labels are reference annotations, not fold-training material for CellTypePilot.",
+        "source_studies": [
+          {
+            "study_id": "pelka_2021",
+            "role": "evaluation_query_asset",
+            "doi": "10.1016/j.cell.2021.08.003"
+          }
+        ],
+        "overlap_audit_status": "not_applicable",
+        "eligible_for_primary_holdout_track": true
+      }
+    },
+    {
+      "asset_id": "cellxgene-travaglini-lung-10x-2020",
+      "kind": "cellxgene_dataset",
+      "version": "f5568ea3-c249-4e4e-91f8-46abc30a5612",
+      "title": "Human lung atlas 10x (CELLxGENE dataset version)",
+      "url": "https://datasets.cellxgene.cziscience.com/f5568ea3-c249-4e4e-91f8-46abc30a5612.h5ad",
+      "source_url": "https://datasets.cellxgene.cziscience.com/f5568ea3-c249-4e4e-91f8-46abc30a5612.h5ad",
+      "cdn_url": "https://cdn.celltypepilot.example/assets/v1/cellxgene_dataset/cellxgene-travaglini-lung-10x-2020/f5568ea3-c249-4e4e-91f8-46abc30a5612/sha256/b93b256c2acb4fff13a74e21640b127f739dd75745909af8943dd5d40ae7d8c5",
+      "sha256": "b93b256c2acb4fff13a74e21640b127f739dd75745909af8943dd5d40ae7d8c5",
+      "byte_size": 596270115,
+      "license": "CC-BY-4.0",
+      "species": "human",
+      "tissue": "lung",
+      "media_type": "application/x-hdf5",
+      "availability": "source_available",
+      "related_cohort_ids": [
+        "travaglini_lung_10x_2020"
+      ],
+      "dataset_version_id": "f5568ea3-c249-4e4e-91f8-46abc30a5612",
+      "collection_url": "https://cellxgene.cziscience.com/collections/5d445965-6f1a-4b68-ba3a-b8f765155d3a",
+      "citation_doi": "10.1038/s41586-020-2922-4",
+      "training_study_provenance": {
+        "summary": "Query dataset (10x platform stratum). Shared donor namespace with Smart-seq2 asset.",
+        "source_studies": [
+          {
+            "study_id": "travaglini_2020",
+            "role": "evaluation_query_asset",
+            "doi": "10.1038/s41586-020-2922-4",
+            "platform": "10x"
+          }
+        ],
+        "overlap_audit_status": "not_applicable",
+        "eligible_for_primary_holdout_track": true
+      }
+    },
+    {
+      "asset_id": "cellxgene-travaglini-lung-smartseq2-2020",
+      "kind": "cellxgene_dataset",
+      "version": "c0ee0004-7bd1-4986-9b66-8a9d3593c0e6",
+      "title": "Human lung atlas Smart-seq2 (CELLxGENE dataset version)",
+      "url": "https://datasets.cellxgene.cziscience.com/c0ee0004-7bd1-4986-9b66-8a9d3593c0e6.h5ad",
+      "source_url": "https://datasets.cellxgene.cziscience.com/c0ee0004-7bd1-4986-9b66-8a9d3593c0e6.h5ad",
+      "cdn_url": "https://cdn.celltypepilot.example/assets/v1/cellxgene_dataset/cellxgene-travaglini-lung-smartseq2-2020/c0ee0004-7bd1-4986-9b66-8a9d3593c0e6/sha256/e99da4d25e3000ee1bbe04d379ac5dc35594ead69d58bcc846e87cfd3c5e6927",
+      "sha256": "e99da4d25e3000ee1bbe04d379ac5dc35594ead69d58bcc846e87cfd3c5e6927",
+      "byte_size": 186675192,
+      "license": "CC-BY-4.0",
+      "species": "human",
+      "tissue": "lung",
+      "media_type": "application/x-hdf5",
+      "availability": "source_available",
+      "related_cohort_ids": [
+        "travaglini_lung_smartseq2_2020"
+      ],
+      "dataset_version_id": "c0ee0004-7bd1-4986-9b66-8a9d3593c0e6",
+      "collection_url": "https://cellxgene.cziscience.com/collections/5d445965-6f1a-4b68-ba3a-b8f765155d3a",
+      "citation_doi": "10.1038/s41586-020-2922-4",
+      "training_study_provenance": {
+        "summary": "Query dataset (Smart-seq2 platform stratum). Shared donor namespace with 10x asset; not an Azimuth training ref.",
+        "source_studies": [
+          {
+            "study_id": "travaglini_2020",
+            "role": "evaluation_query_asset",
+            "doi": "10.1038/s41586-020-2922-4",
+            "platform": "Smart-seq2"
+          }
+        ],
+        "overlap_audit_status": "not_applicable",
+        "eligible_for_primary_holdout_track": true
+      }
+    },
+    {
+      "asset_id": "cellxgene-smillie-healthy-colon-portal-subset-2019",
+      "kind": "cellxgene_dataset",
+      "version": "774d77e7-210d-4237-8ca8-8d2bb841a2e4",
+      "title": "Smillie healthy-colon portal subset (CELLxGENE dataset version)",
+      "url": "https://datasets.cellxgene.cziscience.com/774d77e7-210d-4237-8ca8-8d2bb841a2e4.h5ad",
+      "source_url": "https://datasets.cellxgene.cziscience.com/774d77e7-210d-4237-8ca8-8d2bb841a2e4.h5ad",
+      "cdn_url": "https://cdn.celltypepilot.example/assets/v1/cellxgene_dataset/cellxgene-smillie-healthy-colon-portal-subset-2019/774d77e7-210d-4237-8ca8-8d2bb841a2e4/sha256/f23a1e4cd66cc376067cbd48b6c7d80c21b26be15f750b2d555a40d6f8aa8e31",
+      "sha256": "f23a1e4cd66cc376067cbd48b6c7d80c21b26be15f750b2d555a40d6f8aa8e31",
+      "byte_size": 223403705,
+      "license": "CC-BY-4.0",
+      "species": "human",
+      "tissue": "gut",
+      "media_type": "application/x-hdf5",
+      "availability": "source_available",
+      "related_cohort_ids": [
+        "smillie_healthy_colon_portal_subset_2019"
+      ],
+      "dataset_version_id": "774d77e7-210d-4237-8ca8-8d2bb841a2e4",
+      "collection_url": "https://cellxgene.cziscience.com/collections/33d19f34-87f5-455b-8ca5-9023a2e5453d",
+      "citation_doi": "10.1016/j.cell.2019.06.029",
+      "training_study_provenance": {
+        "summary": "Portal subset retains only healthy/normal donors; excluded from inflamed-tissue claims. Collection title is not outcome metadata.",
+        "source_studies": [
+          {
+            "study_id": "smillie_2019_healthy_subset",
+            "role": "evaluation_query_asset_healthy_control",
+            "doi": "10.1016/j.cell.2019.06.029"
+          }
+        ],
+        "overlap_audit_status": "not_applicable",
+        "eligible_for_primary_holdout_track": true
+      }
+    },
+    {
+      "asset_id": "labelmap-garrido-trigo-ibd-2023",
+      "kind": "label_map",
+      "version": "public-v1.0.1",
+      "title": "Predeclared broad-class label map for garrido_trigo_ibd_2023",
+      "url": "file:../public_v1/label_maps/garrido_trigo_ibd_2023.csv",
+      "source_url": "file:../public_v1/label_maps/garrido_trigo_ibd_2023.csv",
+      "cdn_url": "https://cdn.celltypepilot.example/assets/v1/label_map/labelmap-garrido-trigo-ibd-2023/public-v1.0.1/sha256/25631896039d74593d2bdef623d2c3a88d1803d7397a27961ecccc1c542fe972",
+      "sha256": "25631896039d74593d2bdef623d2c3a88d1803d7397a27961ecccc1c542fe972",
+      "byte_size": 1638,
+      "license": "MIT",
+      "species": "human",
+      "tissue": "gut",
+      "media_type": "text/csv",
+      "availability": "available",
+      "related_cohort_ids": [
+        "garrido_trigo_ibd_2023"
+      ],
+      "local_cache_relpath": "objects/v1/label_map/labelmap-garrido-trigo-ibd-2023/public-v1.0.1/sha256/25631896039d74593d2bdef623d2c3a88d1803d7397a27961ecccc1c542fe972",
+      "training_study_provenance": {
+        "summary": "Evaluation label harmonization only; frozen before prediction scoring. Not a training atlas.",
+        "source_studies": [
+          {
+            "study_id": "garrido_trigo_2023",
+            "role": "evaluation_label_map"
+          }
+        ],
+        "overlap_audit_status": "not_applicable",
+        "eligible_for_primary_holdout_track": true
+      }
+    },
+    {
+      "asset_id": "labelmap-pelka-crc-stromal-2021",
+      "kind": "label_map",
+      "version": "public-v1.0.1",
+      "title": "Predeclared broad-class label map for pelka_crc_stromal_2021",
+      "url": "file:../public_v1/label_maps/pelka_crc_stromal_2021.csv",
+      "source_url": "file:../public_v1/label_maps/pelka_crc_stromal_2021.csv",
+      "cdn_url": "https://cdn.celltypepilot.example/assets/v1/label_map/labelmap-pelka-crc-stromal-2021/public-v1.0.1/sha256/4eeebf3d495faca8f60c39523e0e0b44d2340566740519913b9143460aeb8e77",
+      "sha256": "4eeebf3d495faca8f60c39523e0e0b44d2340566740519913b9143460aeb8e77",
+      "byte_size": 3234,
+      "license": "MIT",
+      "species": "human",
+      "tissue": "general",
+      "media_type": "text/csv",
+      "availability": "available",
+      "related_cohort_ids": [
+        "pelka_crc_stromal_2021"
+      ],
+      "local_cache_relpath": "objects/v1/label_map/labelmap-pelka-crc-stromal-2021/public-v1.0.1/sha256/4eeebf3d495faca8f60c39523e0e0b44d2340566740519913b9143460aeb8e77",
+      "training_study_provenance": {
+        "summary": "Evaluation label harmonization only; frozen before prediction scoring.",
+        "source_studies": [
+          {
+            "study_id": "pelka_2021",
+            "role": "evaluation_label_map"
+          }
+        ],
+        "overlap_audit_status": "not_applicable",
+        "eligible_for_primary_holdout_track": true
+      }
+    },
+    {
+      "asset_id": "labelmap-travaglini-lung-10x-2020",
+      "kind": "label_map",
+      "version": "public-v1.0.1",
+      "title": "Predeclared broad-class label map for travaglini_lung_10x_2020",
+      "url": "file:../public_v1/label_maps/travaglini_lung_10x_2020.csv",
+      "source_url": "file:../public_v1/label_maps/travaglini_lung_10x_2020.csv",
+      "cdn_url": "https://cdn.celltypepilot.example/assets/v1/label_map/labelmap-travaglini-lung-10x-2020/public-v1.0.1/sha256/2886efd1df4fa8eb8c4939ac1beeb34c264d1bf337300b2f9b28afc318825bfa",
+      "sha256": "2886efd1df4fa8eb8c4939ac1beeb34c264d1bf337300b2f9b28afc318825bfa",
+      "byte_size": 12544,
+      "license": "MIT",
+      "species": "human",
+      "tissue": "lung",
+      "media_type": "text/csv",
+      "availability": "available",
+      "related_cohort_ids": [
+        "travaglini_lung_10x_2020"
+      ],
+      "local_cache_relpath": "objects/v1/label_map/labelmap-travaglini-lung-10x-2020/public-v1.0.1/sha256/2886efd1df4fa8eb8c4939ac1beeb34c264d1bf337300b2f9b28afc318825bfa",
+      "training_study_provenance": {
+        "summary": "Evaluation label harmonization only; frozen before prediction scoring.",
+        "source_studies": [
+          {
+            "study_id": "travaglini_2020",
+            "role": "evaluation_label_map",
+            "platform": "10x"
+          }
+        ],
+        "overlap_audit_status": "not_applicable",
+        "eligible_for_primary_holdout_track": true
+      }
+    },
+    {
+      "asset_id": "labelmap-travaglini-lung-smartseq2-2020",
+      "kind": "label_map",
+      "version": "public-v1.0.1",
+      "title": "Predeclared broad-class label map for travaglini_lung_smartseq2_2020",
+      "url": "file:../public_v1/label_maps/travaglini_lung_smartseq2_2020.csv",
+      "source_url": "file:../public_v1/label_maps/travaglini_lung_smartseq2_2020.csv",
+      "cdn_url": "https://cdn.celltypepilot.example/assets/v1/label_map/labelmap-travaglini-lung-smartseq2-2020/public-v1.0.1/sha256/9ce2517698cc7b3cab47f4723bc615db14911e82d8cae4f5a7faa119a0976e05",
+      "sha256": "9ce2517698cc7b3cab47f4723bc615db14911e82d8cae4f5a7faa119a0976e05",
+      "byte_size": 11158,
+      "license": "MIT",
+      "species": "human",
+      "tissue": "lung",
+      "media_type": "text/csv",
+      "availability": "available",
+      "related_cohort_ids": [
+        "travaglini_lung_smartseq2_2020"
+      ],
+      "local_cache_relpath": "objects/v1/label_map/labelmap-travaglini-lung-smartseq2-2020/public-v1.0.1/sha256/9ce2517698cc7b3cab47f4723bc615db14911e82d8cae4f5a7faa119a0976e05",
+      "training_study_provenance": {
+        "summary": "Evaluation label harmonization only; frozen before prediction scoring.",
+        "source_studies": [
+          {
+            "study_id": "travaglini_2020",
+            "role": "evaluation_label_map",
+            "platform": "Smart-seq2"
+          }
+        ],
+        "overlap_audit_status": "not_applicable",
+        "eligible_for_primary_holdout_track": true
+      }
+    },
+    {
+      "asset_id": "labelmap-smillie-healthy-colon-portal-subset-2019",
+      "kind": "label_map",
+      "version": "public-v1.0.1",
+      "title": "Predeclared broad-class label map for smillie_healthy_colon_portal_subset_2019",
+      "url": "file:../public_v1/label_maps/smillie_healthy_colon_portal_subset_2019.csv",
+      "source_url": "file:../public_v1/label_maps/smillie_healthy_colon_portal_subset_2019.csv",
+      "cdn_url": "https://cdn.celltypepilot.example/assets/v1/label_map/labelmap-smillie-healthy-colon-portal-subset-2019/public-v1.0.1/sha256/f55d216dc5ad53f29c3785a3d0c6250640ab8cd2a5c495733fe7854ff09c2d2c",
+      "sha256": "f55d216dc5ad53f29c3785a3d0c6250640ab8cd2a5c495733fe7854ff09c2d2c",
+      "byte_size": 5964,
+      "license": "MIT",
+      "species": "human",
+      "tissue": "gut",
+      "media_type": "text/csv",
+      "availability": "available",
+      "related_cohort_ids": [
+        "smillie_healthy_colon_portal_subset_2019"
+      ],
+      "local_cache_relpath": "objects/v1/label_map/labelmap-smillie-healthy-colon-portal-subset-2019/public-v1.0.1/sha256/f55d216dc5ad53f29c3785a3d0c6250640ab8cd2a5c495733fe7854ff09c2d2c",
+      "training_study_provenance": {
+        "summary": "Evaluation label harmonization only; frozen before prediction scoring.",
+        "source_studies": [
+          {
+            "study_id": "smillie_2019_healthy_subset",
+            "role": "evaluation_label_map"
+          }
+        ],
+        "overlap_audit_status": "not_applicable",
+        "eligible_for_primary_holdout_track": true
+      }
+    },
+    {
+      "asset_id": "azimuth-human-lung-ref",
+      "kind": "azimuth_reference",
+      "version": "pending-freeze",
+      "title": "Azimuth human lung reference (ref.Rds + idx.annoy) \u2014 slot reserved",
+      "url": "https://cdn.celltypepilot.example/assets/v1/azimuth_reference/azimuth-human-lung-ref/pending-freeze/sha256/0000000000000000000000000000000000000000000000000000000000000000",
+      "sha256": "0000000000000000000000000000000000000000000000000000000000000000",
+      "byte_size": 0,
+      "license": "pending_license_declaration",
+      "species": "human",
+      "tissue": "lung",
+      "media_type": "application/x-azimuth-reference-bundle",
+      "availability": "blocked_overlap_audit",
+      "related_cohort_ids": [
+        "travaglini_lung_10x_2020",
+        "travaglini_lung_smartseq2_2020"
+      ],
+      "components": [
+        {
+          "name": "ref.Rds",
+          "sha256": "0000000000000000000000000000000000000000000000000000000000000000",
+          "url": "https://cdn.celltypepilot.example/assets/v1/azimuth_reference/azimuth-human-lung-ref/pending-freeze/components/ref.Rds"
+        },
+        {
+          "name": "idx.annoy",
+          "sha256": "0000000000000000000000000000000000000000000000000000000000000000",
+          "url": "https://cdn.celltypepilot.example/assets/v1/azimuth_reference/azimuth-human-lung-ref/pending-freeze/components/idx.annoy"
+        }
+      ],
+      "training_study_provenance": {
+        "summary": "Azimuth lung reference is ineligible for the primary independent track until a frozen ref.Rds/idx.annoy pair has a documented training-study overlap audit against Travaglini and other evaluation cohorts.",
+        "source_studies": [
+          {
+            "study_id": "azimuth_human_lung_reference_unfrozen",
+            "role": "pretrained_reference_pending_audit"
+          }
+        ],
+        "overlap_audit_status": "not_audited",
+        "eligible_for_primary_holdout_track": false
+      },
+      "notes": "Placeholder zeros for sha256/byte_size are intentional; availability is blocked_overlap_audit until real digests and audit pass."
+    },
+    {
+      "asset_id": "azimuth-human-pbmc-ref",
+      "kind": "azimuth_reference",
+      "version": "pending-freeze",
+      "title": "Azimuth human PBMC reference (ref.Rds + idx.annoy) \u2014 slot reserved",
+      "url": "https://cdn.celltypepilot.example/assets/v1/azimuth_reference/azimuth-human-pbmc-ref/pending-freeze/sha256/0000000000000000000000000000000000000000000000000000000000000000",
+      "sha256": "0000000000000000000000000000000000000000000000000000000000000000",
+      "byte_size": 0,
+      "license": "pending_license_declaration",
+      "species": "human",
+      "tissue": "blood",
+      "media_type": "application/x-azimuth-reference-bundle",
+      "availability": "blocked_overlap_audit",
+      "related_cohort_ids": [],
+      "components": [
+        {
+          "name": "ref.Rds",
+          "sha256": "0000000000000000000000000000000000000000000000000000000000000000"
+        },
+        {
+          "name": "idx.annoy",
+          "sha256": "0000000000000000000000000000000000000000000000000000000000000000"
+        }
+      ],
+      "training_study_provenance": {
+        "summary": "Reserved for a future PBMC track. Not usable until frozen bytes + license + training-study overlap audit are recorded.",
+        "source_studies": [
+          {
+            "study_id": "azimuth_human_pbmc_reference_unfrozen",
+            "role": "pretrained_reference_pending_audit"
+          }
+        ],
+        "overlap_audit_status": "not_audited",
+        "eligible_for_primary_holdout_track": false
+      }
+    },
+    {
+      "asset_id": "docker-celltypepilot-popv-0.6.1",
+      "kind": "docker_image",
+      "version": "0.6.1",
+      "title": "Frozen popV retrain runtime image (Dockerfile-pinned)",
+      "url": "oci://ghcr.io/example/celltypepilot-popv:0.6.1",
+      "source_url": "file:../public_v1/environment/popv.Dockerfile",
+      "cdn_url": "https://cdn.celltypepilot.example/assets/v1/docker_image/docker-celltypepilot-popv-0.6.1/0.6.1/sha256/be2022a1884488261ab11204ee108c415f893f8eccfd825f0cac299f6b5aa227",
+      "sha256": "be2022a1884488261ab11204ee108c415f893f8eccfd825f0cac299f6b5aa227",
+      "byte_size": 982,
+      "license": "MIT",
+      "species": "multi",
+      "tissue": "multi",
+      "media_type": "text/x-dockerfile",
+      "availability": "local_build_only",
+      "image_tag": "celltypepilot-popv:0.6.1",
+      "dockerfile_sha256": "be2022a1884488261ab11204ee108c415f893f8eccfd825f0cac299f6b5aa227",
+      "related_cohort_ids": [
+        "garrido_trigo_ibd_2023",
+        "pelka_crc_stromal_2021",
+        "travaglini_lung_10x_2020",
+        "travaglini_lung_smartseq2_2020",
+        "smillie_healthy_colon_portal_subset_2019"
+      ],
+      "training_study_provenance": {
+        "summary": "Image is a fold-retrain runtime only (popV prediction_mode=retrain). It does not embed evaluation-study labels. Published image digest remains pending registry push.",
+        "source_studies": [
+          {
+            "study_id": "fold_train_only",
+            "role": "runtime_environment_not_pretrained_reference"
+          }
+        ],
+        "overlap_audit_status": "not_applicable",
+        "eligible_for_primary_holdout_track": true
+      },
+      "notes": "Catalog sha256 currently hashes the Dockerfile recipe. After registry push, add image_digest (sha256:...) as a new version row; do not overwrite this version's meaning without a new version id."
+    },
+    {
+      "asset_id": "docker-celltypepilot-popv-gpu-0.6.1-cu124",
+      "kind": "docker_image",
+      "version": "0.6.1-cu124",
+      "title": "GPU popV retrain runtime (CUDA 12.4) for gpu_popv_retrain_v1 batch",
+      "url": "oci://ghcr.io/example/celltypepilot-popv-gpu:0.6.1-cu124",
+      "source_url": "file:../public_v1/environment/gpu/popv.gpu.Dockerfile",
+      "cdn_url": "https://cdn.celltypepilot.example/assets/v1/docker_image/docker-celltypepilot-popv-gpu-0.6.1-cu124/0.6.1-cu124/sha256/0000000000000000000000000000000000000000000000000000000000000000",
+      "sha256": "0000000000000000000000000000000000000000000000000000000000000000",
+      "byte_size": 0,
+      "license": "MIT",
+      "species": "multi",
+      "tissue": "multi",
+      "media_type": "text/x-dockerfile",
+      "availability": "local_build_only",
+      "image_tag": "celltypepilot-popv-gpu:0.6.1-cu124",
+      "related_cohort_ids": [
+        "travaglini_lung_smartseq2_2020"
+      ],
+      "training_study_provenance": {
+        "summary": "GPU container is fold-retrain runtime only. Digests filled after Linux build. Separate track from CPU popV three-fold.",
+        "source_studies": [
+          {
+            "study_id": "fold_train_only",
+            "role": "gpu_runtime_environment_not_pretrained_reference"
+          }
+        ],
+        "overlap_audit_status": "not_applicable",
+        "eligible_for_primary_holdout_track": true
+      },
+      "notes": "Do not mix GPU batch outputs with CPU runs/travaglini_lung_smartseq2_2020. Rebuild all three donor folds under batches/gpu_popv_retrain_v1."
+    }
+  ]
+}

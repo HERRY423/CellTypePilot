@@ -6,7 +6,9 @@ import importlib.metadata
 import json
 import os
 import subprocess
+import tempfile
 from dataclasses import dataclass
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
@@ -15,6 +17,46 @@ import numpy as np
 import pandas as pd
 
 from .benchmark import BenchmarkValidationError, validate_out_of_fold_predictions
+
+
+def configure_benchmark_runtime(output_dir: str | Path) -> dict[str, str]:
+    """Use benchmark-owned writable temp and Numba cache directories.
+
+    Scanpy imports Numba-backed kernels. On restricted Windows hosts, the
+    process can otherwise spend minutes probing an unwritable default temp
+    directory before any scientific computation starts.
+    """
+    root = Path(output_dir).resolve() / "_runtime_cache"
+    temp_dir = root / "tmp"
+    numba_dir = root / "numba"
+    temp_dir.mkdir(parents=True, exist_ok=True)
+    numba_dir.mkdir(parents=True, exist_ok=True)
+    os.environ["TMP"] = str(temp_dir)
+    os.environ["TEMP"] = str(temp_dir)
+    os.environ["NUMBA_CACHE_DIR"] = str(numba_dir)
+    tempfile.tempdir = str(temp_dir)
+    return {
+        "temp_dir": str(temp_dir),
+        "numba_cache_dir": str(numba_dir),
+    }
+
+
+def _utc_now() -> str:
+    return datetime.now(timezone.utc).isoformat()
+
+
+def _atomic_write_text(path: Path, text: str) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    temporary = path.with_name(path.name + ".tmp")
+    temporary.write_text(text, encoding="utf-8")
+    os.replace(temporary, path)
+
+
+def _atomic_write_csv(frame: pd.DataFrame, path: Path) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    temporary = path.with_name(path.name + ".tmp")
+    frame.to_csv(temporary, index=False, lineterminator="\n")
+    os.replace(temporary, path)
 
 
 @dataclass(frozen=True)
@@ -27,10 +69,13 @@ class CommandComparator:
     version_command: tuple[str, ...] = ()
     reference_policy: str = "fold_train_only"
     confidence_semantics: str = ""
+    environment: tuple[tuple[str, str], ...] = ()
+    config_dir: Path = Path(".")
 
     @classmethod
     def from_json(cls, path: str | Path) -> CommandComparator:
-        payload = json.loads(Path(path).read_text(encoding="utf-8"))
+        config_path = Path(path).resolve()
+        payload = json.loads(config_path.read_text(encoding="utf-8"))
         required = {"method", "argv", "reference_policy", "confidence_semantics"}
         missing = required - set(payload)
         if missing:
@@ -41,6 +86,13 @@ class CommandComparator:
             )
         if not isinstance(payload["argv"], list) or not payload["argv"]:
             raise BenchmarkValidationError("Comparator argv must be a non-empty JSON list")
+        environment = payload.get("environment", {})
+        if not isinstance(environment, dict) or not all(
+            isinstance(key, str) and isinstance(value, str) for key, value in environment.items()
+        ):
+            raise BenchmarkValidationError(
+                "Comparator environment must be a JSON object of string values"
+            )
         if payload["reference_policy"] != "fold_train_only":
             raise BenchmarkValidationError(
                 "External comparator configs must declare reference_policy='fold_train_only'"
@@ -59,6 +111,8 @@ class CommandComparator:
             version_command=tuple(str(value) for value in payload.get("version_command", [])),
             reference_policy=payload["reference_policy"],
             confidence_semantics=str(payload["confidence_semantics"]),
+            environment=tuple(environment.items()),
+            config_dir=config_path.parent,
         )
 
 
@@ -99,11 +153,44 @@ def materialize_fold(
     if not np.any(train_mask):
         raise BenchmarkValidationError(f"Fold {fold_id!r} has no training cells")
 
+    train_ids = set(all_ids[train_mask].astype(str))
+    train_rows = assignments[assignments["cell_id"].astype(str).isin(train_ids)]
+    fold_dir = Path(output_dir) / _safe_fold_name(fold_id)
+    fold_dir.mkdir(parents=True, exist_ok=True)
+    train_path = fold_dir / "train_reference.h5ad"
+    test_path = fold_dir / "test_query.h5ad"
+
+    if train_path.exists() and test_path.exists():
+        train_backed = ad.read_h5ad(train_path, backed="r")
+        test_backed = ad.read_h5ad(test_path, backed="r")
+        try:
+            observed_train = set(train_backed.obs_names.astype(str))
+            observed_test = set(test_backed.obs_names.astype(str))
+            blocked_tokens = ("truth", "cell_type", "celltype", "annotation", "ground_truth")
+            leaked = [
+                column
+                for column in test_backed.obs.columns
+                if column != cluster_key
+                and (
+                    column == truth_key or any(token in column.lower() for token in blocked_tokens)
+                )
+            ]
+            if (
+                observed_train == train_ids
+                and observed_test == set(test_ids)
+                and "cell_type" in train_backed.obs
+                and not leaked
+            ):
+                return {"fold_dir": fold_dir, "train": train_path, "test": test_path}
+        finally:
+            if train_backed.file is not None:
+                train_backed.file.close()
+            if test_backed.file is not None:
+                test_backed.file.close()
+
     train = adata[train_mask].copy()
     test = _safe_query_obs(adata[test_mask], cluster_key, truth_key)
     train.obs["cell_type"] = train.obs[truth_key].astype(str)
-    train_ids = set(train.obs_names.astype(str))
-    train_rows = assignments[assignments["cell_id"].astype(str).isin(train_ids)]
     train.uns["celltypepilot_reference"] = {
         "species": species,
         "tissues": [tissue],
@@ -113,11 +200,6 @@ def materialize_fold(
         "training_studies": sorted(set(train_rows["held_out_study"].astype(str))),
         "held_out_fold": fold_id,
     }
-
-    fold_dir = Path(output_dir) / _safe_fold_name(fold_id)
-    fold_dir.mkdir(parents=True, exist_ok=True)
-    train_path = fold_dir / "train_reference.h5ad"
-    test_path = fold_dir / "test_query.h5ad"
     train.write_h5ad(train_path)
     test.write_h5ad(test_path)
     return {"fold_dir": fold_dir, "train": train_path, "test": test_path}
@@ -245,19 +327,32 @@ def run_command_fold(
     """Run SingleR/Azimuth/popV adapters without a shell and validate output."""
     output_path = paths["fold_dir"] / f"{spec.method}_predictions.csv"
     replacements = {
-        "{train_h5ad}": str(paths["train"]),
-        "{test_h5ad}": str(paths["test"]),
-        "{output_csv}": str(output_path),
+        "{train_h5ad}": str(paths["train"].resolve()),
+        "{test_h5ad}": str(paths["test"].resolve()),
+        "{output_csv}": str(output_path.resolve()),
         "{truth_key}": truth_key,
         "{cluster_key}": cluster_key,
     }
-    argv = [replacements.get(value, value) for value in spec.argv]
+    argv = [
+        replacements.get(value, value).replace("{config_dir}", str(spec.config_dir))
+        for value in spec.argv
+    ]
+    adapter_environment = {
+        key: value.replace("{config_dir}", str(spec.config_dir)) for key, value in spec.environment
+    }
+    environment = {
+        **os.environ,
+        **adapter_environment,
+        "CELLTYPEPILOT_BENCHMARK_MODE": "1",
+    }
     completed = subprocess.run(
         argv,
         cwd=paths["fold_dir"],
-        env={**os.environ, "CELLTYPEPILOT_BENCHMARK_MODE": "1"},
+        env=environment,
         capture_output=True,
         text=True,
+        encoding="utf-8",
+        errors="replace",
         timeout=spec.timeout_seconds,
         check=False,
     )
@@ -283,6 +378,10 @@ def run_command_fold(
             list(spec.version_command),
             capture_output=True,
             text=True,
+            encoding="utf-8",
+            errors="replace",
+            cwd=paths["fold_dir"],
+            env=environment,
             timeout=60,
             check=False,
         )
@@ -329,12 +428,67 @@ def apply_locked_label_map(
         (str(row.method), str(row.raw_label)): str(row.canonical_label)
         for row in label_map.itertuples(index=False)
     }
+    # Formatting-only case variants must not break a locked benchmark. Build a
+    # folded fallback only when every variant resolves to the same canonical
+    # label; biologically ambiguous folded aliases still fail closed.
+    folded_candidates: dict[tuple[str, str], set[str]] = {}
+    for (method, raw_label), canonical in mapping.items():
+        key = (method.strip().casefold(), raw_label.strip().casefold())
+        folded_candidates.setdefault(key, set()).add(canonical)
+    ambiguous_folded = {key: values for key, values in folded_candidates.items() if len(values) > 1}
+    if ambiguous_folded:
+        examples = sorted(ambiguous_folded)[:5]
+        raise BenchmarkValidationError(
+            f"Label map contains case-insensitive ambiguities (examples: {examples})"
+        )
+    folded_mapping = {key: next(iter(values)) for key, values in folded_candidates.items()}
+
+    def resolve(method: object, raw_label: object) -> str | None:
+        exact = mapping.get((str(method), str(raw_label)))
+        if exact is not None:
+            return exact
+        return folded_mapping.get(
+            (str(method).strip().casefold(), str(raw_label).strip().casefold())
+        )
+
     output = predictions.copy()
+    if "raw_predicted_label" in output:
+        raw_labels = output["raw_predicted_label"].astype(str)
+        expected = [
+            resolve(method, label)
+            for method, label in zip(output["method"], raw_labels, strict=True)
+        ]
+        missing = [
+            (str(method), str(label))
+            for method, label, canonical in zip(output["method"], raw_labels, expected, strict=True)
+            if canonical is None
+        ]
+        if missing:
+            raise BenchmarkValidationError(
+                f"Label map is not exhaustive (examples: {sorted(set(missing))[:5]})"
+            )
+        observed = output["predicted_label"].astype(str).tolist()
+        if observed != expected:
+            raise BenchmarkValidationError(
+                "Previously mapped predictions do not match the locked label map"
+            )
+        return output
+
     output["raw_predicted_label"] = output["predicted_label"].astype(str)
-    output["predicted_label"] = [
-        mapping.get((str(method), str(label)), str(label))
-        for method, label in zip(output["method"], output["raw_predicted_label"], strict=True)
-    ]
+    keys = list(
+        zip(
+            output["method"].astype(str),
+            output["raw_predicted_label"].astype(str),
+            strict=True,
+        )
+    )
+    resolved = [resolve(method, label) for method, label in keys]
+    missing = sorted(
+        {key for key, canonical in zip(keys, resolved, strict=True) if canonical is None}
+    )
+    if missing:
+        raise BenchmarkValidationError(f"Label map is not exhaustive (examples: {missing[:5]})")
+    output["predicted_label"] = resolved
     return output
 
 
@@ -350,12 +504,96 @@ def run_benchmark_comparators(
     command_specs: tuple[CommandComparator, ...] = (),
     label_map: pd.DataFrame | None = None,
     continue_on_unavailable: bool = False,
+    fold_ids: tuple[str, ...] | None = None,
+    write_aggregate_tables: bool = True,
+    worker_id: str | None = None,
+    batch_id: str | None = None,
 ) -> tuple[pd.DataFrame, pd.DataFrame]:
-    """Execute requested comparators on every locked fold and record failures."""
+    """Execute requested comparators with atomic per-method/fold checkpoints.
+
+    Distributed GPU/CPU workers should pass ``fold_ids`` for their assigned folds and
+    set ``write_aggregate_tables=False`` so they only write atomic
+    ``checkpoints/{fold}__{method}.{status.json,csv}`` files. Aggregators merge
+    checkpoints read-only and must not re-execute folds.
+    """
+    output = Path(output_dir).resolve()
+    configure_benchmark_runtime(output)
+    checkpoint_dir = output / "checkpoints"
+    checkpoint_dir.mkdir(parents=True, exist_ok=True)
     spec_by_method = {spec.method: spec for spec in command_specs}
-    prediction_frames = []
-    status_rows = []
-    for fold_id in assignments["fold_id"].drop_duplicates().astype(str):
+    prediction_frames: dict[tuple[str, str], pd.DataFrame] = {}
+    status_rows: dict[tuple[str, str], dict[str, Any]] = {}
+
+    all_fold_ids = list(assignments["fold_id"].drop_duplicates().astype(str))
+    if fold_ids is not None:
+        wanted = {str(value) for value in fold_ids}
+        unknown = sorted(wanted - set(all_fold_ids))
+        if unknown:
+            raise BenchmarkValidationError(
+                f"Unknown fold_id(s) for this assignment plan: {unknown}"
+            )
+        selected_fold_ids = [fold for fold in all_fold_ids if fold in wanted]
+        if not selected_fold_ids:
+            raise BenchmarkValidationError("fold_ids filter selected zero folds")
+    else:
+        selected_fold_ids = all_fold_ids
+
+    def checkpoint_paths(method: str, fold_id: str) -> tuple[Path, Path]:
+        stem = f"{_safe_fold_name(fold_id)}__{method}"
+        return checkpoint_dir / f"{stem}.status.json", checkpoint_dir / f"{stem}.csv"
+
+    def worker_metadata() -> dict[str, Any]:
+        meta: dict[str, Any] = {}
+        if worker_id:
+            meta["worker_id"] = worker_id
+        if batch_id:
+            meta["batch_id"] = batch_id
+        return meta
+
+    def persist_tables() -> None:
+        # Partial workers must not rewrite global OOF/status tables; that would
+        # clobber sibling nodes' completed folds under a shared output tree.
+        if not write_aggregate_tables:
+            return
+        status_frame = pd.DataFrame(status_rows.values())
+        if not status_frame.empty:
+            _atomic_write_csv(status_frame, output / "comparator_status.csv")
+        if prediction_frames:
+            predictions_frame = pd.concat(prediction_frames.values(), ignore_index=True)
+            _atomic_write_csv(predictions_frame, output / "out_of_fold_predictions.csv")
+
+    for fold_id in selected_fold_ids:
+        expected_cells = pd.Index(
+            assignments.loc[assignments["fold_id"] == fold_id, "cell_id"].astype(str)
+        )
+        pending_methods = []
+        for method in methods:
+            key = (method, fold_id)
+            status_path, prediction_path = checkpoint_paths(method, fold_id)
+            if status_path.exists() and prediction_path.exists():
+                try:
+                    checkpoint = json.loads(status_path.read_text(encoding="utf-8"))
+                    if checkpoint.get("status") == "completed":
+                        frame = pd.read_csv(prediction_path, dtype={"cell_id": str})
+                        _validate_fold_output(frame, expected_cells)
+                        prediction_frames[key] = frame
+                        status_rows[key] = {
+                            "method": method,
+                            "fold_id": fold_id,
+                            "status": "completed",
+                            "resumed_from_checkpoint": True,
+                            **checkpoint.get("provenance", {}),
+                            **worker_metadata(),
+                        }
+                        continue
+                except (OSError, ValueError, json.JSONDecodeError, BenchmarkValidationError):
+                    pass
+            pending_methods.append(method)
+
+        if not pending_methods:
+            persist_tables()
+            continue
+
         paths = materialize_fold(
             adata,
             assignments,
@@ -366,10 +604,28 @@ def run_benchmark_comparators(
             species,
             tissue,
         )
-        expected_cells = pd.Index(
-            assignments.loc[assignments["fold_id"] == fold_id, "cell_id"].astype(str)
-        )
-        for method in methods:
+        for method in pending_methods:
+            key = (method, fold_id)
+            status_path, prediction_path = checkpoint_paths(method, fold_id)
+            previous_status = None
+            if status_path.exists():
+                try:
+                    previous_status = json.loads(status_path.read_text(encoding="utf-8")).get(
+                        "status"
+                    )
+                except (OSError, ValueError, json.JSONDecodeError):
+                    previous_status = "unreadable_checkpoint"
+            running = {
+                "method": method,
+                "fold_id": fold_id,
+                "status": "running",
+                "started_at_utc": _utc_now(),
+                "previous_status": previous_status,
+                **worker_metadata(),
+            }
+            status_rows[key] = running
+            _atomic_write_text(status_path, json.dumps(running, indent=2))
+            persist_tables()
             try:
                 if method == "celltypepilot":
                     frame, provenance = run_celltypepilot_fold(paths, cluster_key, species, tissue)
@@ -386,26 +642,54 @@ def run_benchmark_comparators(
                 _validate_fold_output(frame, expected_cells)
                 frame["method"] = method
                 frame["fold_id"] = fold_id
-                prediction_frames.append(frame)
-                status_rows.append(
-                    {"method": method, "fold_id": fold_id, "status": "completed", **provenance}
-                )
+                frame = apply_locked_label_map(frame, label_map)
+                _atomic_write_csv(frame, prediction_path)
+                prediction_frames[key] = frame
+                completed = {
+                    "method": method,
+                    "fold_id": fold_id,
+                    "status": "completed",
+                    "started_at_utc": running["started_at_utc"],
+                    "completed_at_utc": _utc_now(),
+                    "previous_status": previous_status,
+                    "provenance": {**provenance, **worker_metadata()},
+                    **worker_metadata(),
+                }
+                _atomic_write_text(status_path, json.dumps(completed, indent=2))
+                status_rows[key] = {
+                    "method": method,
+                    "fold_id": fold_id,
+                    "status": "completed",
+                    "resumed_after_status": previous_status,
+                    **provenance,
+                    **worker_metadata(),
+                }
+                persist_tables()
             except Exception as exc:
-                status_rows.append(
-                    {
-                        "method": method,
-                        "fold_id": fold_id,
-                        "status": "failed_or_unavailable",
-                        "error": str(exc),
-                    }
-                )
+                failed = {
+                    "method": method,
+                    "fold_id": fold_id,
+                    "status": "failed_or_unavailable",
+                    "started_at_utc": running["started_at_utc"],
+                    "failed_at_utc": _utc_now(),
+                    "previous_status": previous_status,
+                    "error": str(exc),
+                    **worker_metadata(),
+                }
+                _atomic_write_text(status_path, json.dumps(failed, indent=2))
+                status_rows[key] = failed
+                persist_tables()
                 if not continue_on_unavailable:
                     raise
 
     predictions = (
-        pd.concat(prediction_frames, ignore_index=True) if prediction_frames else pd.DataFrame()
+        pd.concat(prediction_frames.values(), ignore_index=True)
+        if prediction_frames
+        else pd.DataFrame()
     )
     if not predictions.empty:
         predictions = apply_locked_label_map(predictions, label_map)
         validate_out_of_fold_predictions(assignments, predictions)
-    return predictions, pd.DataFrame(status_rows)
+    status = pd.DataFrame(status_rows.values())
+    persist_tables()
+    return predictions, status

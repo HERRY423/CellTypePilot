@@ -51,3 +51,7 @@ celltypepilot benchmark \
 Outputs include aggregate and per-fold accuracy, macro-F1, balanced accuracy, coverage,
 abstain rate, and selective accuracy. Report both coverage and selective accuracy so an
 abstaining system cannot appear superior merely by declining difficult cells.
+
+For the immutable public registry, donor-aware inference, batch/QC diagnostics, comparator
+adapters, and release readiness gate, see `public_benchmark_release.md` and run
+`celltypepilot benchmark-release`.

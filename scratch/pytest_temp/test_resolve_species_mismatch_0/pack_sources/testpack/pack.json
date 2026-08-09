@@ -1,0 +1,16 @@
+{
+  "schema_version": "celltypepilot.pack.v1",
+  "name": "testpack",
+  "version": "test-pack-1.0.0",
+  "description": "Test pack",
+  "species": [
+    "mouse"
+  ],
+  "tissues": [
+    "test_tissue"
+  ],
+  "license_tier": "community",
+  "files": [
+    "marker_atlas.json"
+  ]
+}

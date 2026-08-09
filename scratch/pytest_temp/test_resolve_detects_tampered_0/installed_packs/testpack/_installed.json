@@ -1,0 +1,9 @@
+{
+  "trust": "atlas",
+  "installed_at": "2026-08-09T15:00:26.951740+00:00",
+  "source": "C:\\Users\\13264\\Desktop\\celltypepilot\\scratch\\pytest_temp\\test_resolve_detects_tampered_0\\pack_sources\\testpack",
+  "validation_issues_at_install": [],
+  "content_sha256": {
+    "marker_atlas.json": "ebb165c45346eb4780256d31e0ebb45bd5aa3b94e0f869b3f4c8a2c7f67a4b0b"
+  }
+}

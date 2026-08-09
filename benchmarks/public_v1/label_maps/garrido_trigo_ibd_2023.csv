@@ -1,0 +1,41 @@
+method,raw_label,canonical_label
+__truth__,T cell of anorectum,t_cell
+__truth__,colon epithelial cell,epithelial
+__truth__,myeloid cell,myeloid
+__truth__,plasma cell,plasma_cell
+__truth__,stromal cell of lamina propria of colon,fibroblast_stromal
+celltypepilot,Enterocyte,epithelial
+celltypepilot,Enteroendocrine cell,epithelial
+celltypepilot,Goblet cell (intestinal),epithelial
+celltypepilot,Intestinal stem cell,epithelial
+celltypepilot,Paneth cell,epithelial
+celltypepilot,T cell of anorectum,t_cell
+celltypepilot,Unknown,Unknown
+celltypepilot,colon epithelial cell,epithelial
+celltypepilot,myeloid cell,myeloid
+celltypepilot,plasma cell,plasma_cell
+celltypepilot,stromal cell of lamina propria of colon,fibroblast_stromal
+celltypist,T cell of anorectum,t_cell
+celltypist,Unknown,Unknown
+celltypist,colon epithelial cell,epithelial
+celltypist,myeloid cell,myeloid
+celltypist,plasma cell,plasma_cell
+celltypist,stromal cell of lamina propria of colon,fibroblast_stromal
+singler,T cell of anorectum,t_cell
+singler,Unknown,Unknown
+singler,colon epithelial cell,epithelial
+singler,myeloid cell,myeloid
+singler,plasma cell,plasma_cell
+singler,stromal cell of lamina propria of colon,fibroblast_stromal
+azimuth,T cell of anorectum,t_cell
+azimuth,Unknown,Unknown
+azimuth,colon epithelial cell,epithelial
+azimuth,myeloid cell,myeloid
+azimuth,plasma cell,plasma_cell
+azimuth,stromal cell of lamina propria of colon,fibroblast_stromal
+popv,T cell of anorectum,t_cell
+popv,Unknown,Unknown
+popv,colon epithelial cell,epithelial
+popv,myeloid cell,myeloid
+popv,plasma cell,plasma_cell
+popv,stromal cell of lamina propria of colon,fibroblast_stromal

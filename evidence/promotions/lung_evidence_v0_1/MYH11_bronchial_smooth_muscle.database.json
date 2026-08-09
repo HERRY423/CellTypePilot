@@ -1,0 +1,26 @@
+{
+  "schema_version": "celltypepilot.evidence-promotion.v1",
+  "proposal_id": "ep-32b867edbce3b8a5",
+  "created_at": "2026-08-09T12:40:01.247807+00:00",
+  "requested_by": "celltypepilot-agent-evidence-draft",
+  "proposal_origin": "automated_search",
+  "atlas_version": "lung-evidence-0.1.0-beta",
+  "edge": {
+    "tissue": "lung",
+    "cell_path": "Bronchial smooth muscle cell",
+    "gene": "MYH11",
+    "polarity": "positive"
+  },
+  "current_status": "aggregate_source_only_not_edge_verified",
+  "target_status": "database_record_verified",
+  "current_record_sha256": "db1ab4ded7365e919ec24707151c97ab32ed6ad72bda6fca66a59481e04c81ee",
+  "evidence": {
+    "source_record_id": "HPA:ENSG00000133392:lung:c-29",
+    "source_record_url": "https://www.proteinatlas.org/ENSG00000133392-MYH11/single%2Bcell/lung",
+    "curator_notes": "Human Protein Atlas lung single-cell record explicitly includes bronchial smooth muscle cell cluster c-29 for MYH11. Database evidence does not by itself establish subtype specificity or benchmark accuracy.",
+    "automated_candidate_only": true
+  },
+  "reviews": [],
+  "status": "pending_human_review",
+  "claim_boundary": "A proposal is not atlas evidence. Only an applied, versioned proposal with the required independent human approvals changes runtime evidence status."
+}

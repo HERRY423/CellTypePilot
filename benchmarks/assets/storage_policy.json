@@ -1,0 +1,37 @@
+{
+  "schema_version": "celltypepilot.asset-storage-policy.v1",
+  "policy_id": "celltypepilot-public-assets-cdn-v1",
+  "description": "Content-addressed object store and CDN layout for immutable benchmark assets. Does not write fold workspaces.",
+  "bucket_logical_name": "celltypepilot-public-assets",
+  "object_store_uri_template": "s3://celltypepilot-public-assets/{object_key}",
+  "cdn_url_template": "https://cdn.celltypepilot.example/assets/{object_key}",
+  "object_key_template": "v1/{kind}/{asset_id}/{version}/sha256/{sha256}",
+  "immutability": {
+    "content_addressed": true,
+    "overwrite_policy": "deny",
+    "versioning": "asset_id+version+sha256; never mutate an existing object key",
+    "retention": "retain forever for published catalog versions; soft-delete forbidden for claim-ready releases"
+  },
+  "forbidden_write_globs": [
+    "benchmarks/**/runs/**",
+    "benchmarks/**/cache/**",
+    "benchmarks/**/_runtime_cache/**",
+    "benchmarks/**/envs/**"
+  ],
+  "local_cache": {
+    "root_relpath": "objects",
+    "layout": "mirrors object_key under catalog root",
+    "gitignored": true
+  },
+  "upload_rules": {
+    "require_sha256_match_before_publish": true,
+    "require_license_field": true,
+    "require_training_study_provenance": true,
+    "azimuth_requires_overlap_audit_before_available": true
+  },
+  "notes": [
+    "Source publisher URLs (e.g. CELLxGENE) remain authoritative when availability is source_available.",
+    "CDN mirrors must byte-match the catalog sha256; mismatches fail closed.",
+    "Active fold directories under benchmarks/**/runs are never a storage target."
+  ]
+}

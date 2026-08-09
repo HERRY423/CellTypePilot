@@ -1,0 +1,73 @@
+{
+  "schema_version": "celltypepilot.minimum-verification.v1",
+  "created_at_utc": "2026-08-09T11:27:59.308371+00:00",
+  "cohort_id": "travaglini_lung_smartseq2_2020",
+  "dataset_sha256": "e99da4d25e3000ee1bbe04d379ac5dc35594ead69d58bcc846e87cfd3c5e6927",
+  "label_map_sha256": "9ce2517698cc7b3cab47f4723bc615db14911e82d8cae4f5a7faa119a0976e05",
+  "methods": [
+    "celltypepilot",
+    "celltypist",
+    "singler",
+    "popv"
+  ],
+  "n_donor_folds": 3,
+  "statistical_unit": "donor",
+  "random_seed": 42,
+  "bootstrap_replicates": 2000,
+  "validation_scope": {
+    "run_role": "single_cohort_minimum_technical_verification",
+    "public_multi_cohort_release": false,
+    "cell_weighted_inference_prohibited": true,
+    "negative_results_retained": true
+  },
+  "artifacts": {
+    "aggregate_metrics.csv": {
+      "path": "C:\\Users\\13264\\Desktop\\celltypepilot\\benchmarks\\public_v1\\minimum_verification\\travaglini_lung_smartseq2_2020\\aggregate_metrics.csv",
+      "sha256": "73088d7c8e0df5146a305caaec44d96d9c7f5e4990c13ed36af89b9d3c089d47"
+    },
+    "donor_metrics.csv": {
+      "path": "C:\\Users\\13264\\Desktop\\celltypepilot\\benchmarks\\public_v1\\minimum_verification\\travaglini_lung_smartseq2_2020\\donor_metrics.csv",
+      "sha256": "dfefea876fdaf3e4fc7b46dc04e3606b88494b50ed0503f4c642bf4229192d85"
+    },
+    "donor_weighted_summary.csv": {
+      "path": "C:\\Users\\13264\\Desktop\\celltypepilot\\benchmarks\\public_v1\\minimum_verification\\travaglini_lung_smartseq2_2020\\donor_weighted_summary.csv",
+      "sha256": "affe0f58e34f40839f7f764528fc156c5eef6d30228e21a6107c153cc4197981"
+    },
+    "paired_method_comparisons.csv": {
+      "path": "C:\\Users\\13264\\Desktop\\celltypepilot\\benchmarks\\public_v1\\minimum_verification\\travaglini_lung_smartseq2_2020\\paired_method_comparisons.csv",
+      "sha256": "bd474a3da74278500f490f484581c8d0a4f640e7b868ff261448f3884c6fa566"
+    },
+    "batch_sensitivity_levels.csv": {
+      "path": "C:\\Users\\13264\\Desktop\\celltypepilot\\benchmarks\\public_v1\\minimum_verification\\travaglini_lung_smartseq2_2020\\batch_sensitivity_levels.csv",
+      "sha256": "f73c0149d1bcb43f3f0046ecbcc38f51d1dd9fee503edb83bdb22b67faf9e9d7"
+    },
+    "batch_sensitivity_summary.csv": {
+      "path": "C:\\Users\\13264\\Desktop\\celltypepilot\\benchmarks\\public_v1\\minimum_verification\\travaglini_lung_smartseq2_2020\\batch_sensitivity_summary.csv",
+      "sha256": "7a45f5efd10dfdb42245861b25041f06d3786815fc25492a9064b186aaef921f"
+    },
+    "qc_stratified_performance.csv": {
+      "path": "C:\\Users\\13264\\Desktop\\celltypepilot\\benchmarks\\public_v1\\minimum_verification\\travaglini_lung_smartseq2_2020\\qc_stratified_performance.csv",
+      "sha256": "65f3041b66be81325eaef12aa851f1f3439043100454648996889904d405c98b"
+    },
+    "sample_enrichment.csv": {
+      "path": "C:\\Users\\13264\\Desktop\\celltypepilot\\benchmarks\\public_v1\\minimum_verification\\travaglini_lung_smartseq2_2020\\sample_enrichment.csv",
+      "sha256": "88b3f621c9cc2b0b3733ffc4f2068f5de4ab2066069d1aa9963ff4a301ab3a8f"
+    },
+    "runtime_by_fold.csv": {
+      "path": "C:\\Users\\13264\\Desktop\\celltypepilot\\benchmarks\\public_v1\\minimum_verification\\travaglini_lung_smartseq2_2020\\runtime_by_fold.csv",
+      "sha256": "d467d75295ec2d797744ebc00b522edbe883fa13997365130198c8a5f23fc0b1"
+    },
+    "negative_results.csv": {
+      "path": "C:\\Users\\13264\\Desktop\\celltypepilot\\benchmarks\\public_v1\\minimum_verification\\travaglini_lung_smartseq2_2020\\negative_results.csv",
+      "sha256": "9b108f69ec120904dae39c989159d704e44c48c06e3c713ff9b3a4260a7ad89f"
+    },
+    "verification_report.md": {
+      "path": "C:\\Users\\13264\\Desktop\\celltypepilot\\benchmarks\\public_v1\\minimum_verification\\travaglini_lung_smartseq2_2020\\verification_report.md",
+      "sha256": "e8b3319549d41b08872bca0fd24da0fd9f7cc421cc1ad4123e2b53c5edff1b05"
+    },
+    "azimuth_reference_audit.json": {
+      "path": "C:\\Users\\13264\\Desktop\\celltypepilot\\benchmarks\\public_v1\\minimum_verification\\travaglini_lung_smartseq2_2020\\azimuth_reference_audit.json",
+      "sha256": "cf2535928389181145cbcfec7562f59cadcee1f470f1325109cc4248a3864287"
+    }
+  }
+}

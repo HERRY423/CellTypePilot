@@ -4,7 +4,7 @@
 <tr>
   <th>Cluster</th><th>Final Cell Type</th><th>Candidate</th><th>Identity Decision</th><th>CL ID</th>
   <th>State Candidate</th><th>State Decision</th>
-  <th>Evidence Score</th><th>Review Level</th><th>Critic</th><th>Evidence Summary</th>
+  <th>Novelty/OOD</th><th>Evidence Score</th><th>Review Level</th><th>Critic</th><th>Evidence Summary</th>
 </tr>
 </thead>
 <tbody>
@@ -17,6 +17,7 @@
   <td>{{ row.cl_id }}</td>
   <td>{{ row.cell_state_candidate }}</td>
   <td>{{ row.state_decision }} ({{ "%.3f"|format(row.state_score) }})</td>
+  <td>{{ row.novelty_decision }} ({{ "%.3f"|format(row.novelty_score) }}){% if row.top_unmapped_markers %}<br><small>{{ row.top_unmapped_markers[:80] }}</small>{% endif %}</td>
   <td>{{ "%.3f"|format(row.score) }}</td>
   <td><span class="badge {{ row.badge_class }}">{{ row.confidence }}</span></td>
   <td><span class="badge {{ row.flag_badge }}">{{ row.flags[:40] }}</span></td>

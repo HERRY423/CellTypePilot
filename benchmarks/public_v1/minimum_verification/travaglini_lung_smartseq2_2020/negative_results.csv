@@ -1,0 +1,24 @@
+category,finding,severity,detail
+scope,single_study_single_platform_technical_verification,claim_boundary,No multi-study or cross-platform robustness claim is supported.
+azimuth,ineligible_donor_or_sample_overlap,retained_negative_result,"Official HLCA sample-level metadata includes Stanford/Krasnow samples from Travaglini et al. with donor 1, donor 2, and donor 3, the same three donors used by the evaluation cohort. Platform separation does not restore donor independence."
+celltypepilot,complete_abstention_on_all_out_of_fold_cells,retained_negative_result,Coverage was 0/9409; this result is retained and was not replaced by candidate labels.
+batch_sensitivity:platform,not_estimable_lt2_supported_levels,diagnostic_unassessed,celltypepilot
+batch_sensitivity:platform,not_estimable_lt2_supported_levels,diagnostic_unassessed,celltypist
+batch_sensitivity:platform,not_estimable_lt2_supported_levels,diagnostic_unassessed,popv
+batch_sensitivity:platform,not_estimable_lt2_supported_levels,diagnostic_unassessed,singler
+batch_sensitivity:plate_batch,not_estimable_lt2_supported_levels,diagnostic_unassessed,celltypepilot
+batch_sensitivity:plate_batch,not_estimable_lt2_supported_levels,diagnostic_unassessed,celltypist
+batch_sensitivity:plate_batch,not_estimable_lt2_supported_levels,diagnostic_unassessed,popv
+batch_sensitivity:plate_batch,not_estimable_lt2_supported_levels,diagnostic_unassessed,singler
+batch_sensitivity:condition,not_estimable_lt2_supported_levels,diagnostic_unassessed,celltypepilot
+batch_sensitivity:condition,not_estimable_lt2_supported_levels,diagnostic_unassessed,celltypist
+batch_sensitivity:condition,not_estimable_lt2_supported_levels,diagnostic_unassessed,popv
+batch_sensitivity:condition,not_estimable_lt2_supported_levels,diagnostic_unassessed,singler
+doublet,not_assessed_missing_predeclared_column,diagnostic_unassessed,Missing diagnostics are not evidence of absence.
+ambient_rna,not_assessed_missing_predeclared_column,diagnostic_unassessed,Missing diagnostics are not evidence of absence.
+low_rna,not_assessed_missing_predeclared_column,diagnostic_unassessed,Missing diagnostics are not evidence of absence.
+high_mito,not_assessed_missing_predeclared_column,diagnostic_unassessed,Missing diagnostics are not evidence of absence.
+sample_enrichment,predicted_label_concentrated_in_one_sample,diagnostic_flag,celltypist:b_cell -> blood 1 (0.874)
+sample_enrichment,predicted_label_concentrated_in_one_sample,diagnostic_flag,popv:b_cell -> blood 1 (0.842)
+sample_enrichment,predicted_label_concentrated_in_one_sample,diagnostic_flag,singler:b_cell -> blood 1 (0.889)
+method_comparison,minimal_inference_only_three_paired_donors,underpowered,"Exact sign-flip tests and donor bootstrap intervals are reported, but n=3 donors cannot support a superiority claim."

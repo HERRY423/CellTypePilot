@@ -1,0 +1,103 @@
+{
+  "schema_version": "celltypepilot.azimuth-reference-audit.v1",
+  "frozen_at_utc": "2026-08-09T11:24:00Z",
+  "audit_scope": "independence_and_reproducibility_gate_for_minimum_single_cohort_verification",
+  "primary_track_status": "ineligible_donor_or_sample_overlap",
+  "primary_track_reason": "Official HLCA sample-level metadata includes Stanford/Krasnow samples from Travaglini et al. with donor 1, donor 2, and donor 3, the same three donors used by the evaluation cohort. Platform separation does not restore donor independence.",
+  "execution_disposition": "not_run_to_avoid_reference_leakage",
+  "reference": {
+    "name": "lungref.SeuratData",
+    "version": "2.0.0",
+    "intended_tissue": "human lung",
+    "official_package_url": "https://seurat.nygenome.org/src/contrib/lungref.SeuratData_2.0.0.tar.gz",
+    "http_headers_frozen": {
+      "status": 200,
+      "content_length_bytes": 873928498,
+      "last_modified": "Thu, 22 Feb 2024 22:46:13 GMT",
+      "etag": "\"65d7ceb5-34171732\"",
+      "etag_is_not_a_content_hash": true
+    },
+    "materialized": false,
+    "materialization_reason": "The independent-reference gate already failed on disclosed donor overlap. Downloading an approximately 833 MiB package and running predictions would add no admissible benchmark evidence.",
+    "required_reference_assets_from_official_azimuth_documentation": [
+      "ref.Rds",
+      "idx.annoy"
+    ],
+    "redistribution_license_status": "not_assessed_because_reference_was_not_materialized"
+  },
+  "azimuth_software_evidence": {
+    "repository": "https://github.com/satijalab/azimuth",
+    "audited_commit": "ad5929686e005ae91d8452187a3a1d8c0563fdd5",
+    "official_tutorial_url": "https://satijalab.github.io/azimuth/articles/run_azimuth_tutorial.html",
+    "official_reference_format_url": "https://satijalab.github.io/azimuth/reference/SaveAzimuthReference.html",
+    "tutorial_snapshot_path": "C:/tmp/celltypepilot-azimuth-audit-20260809/docs/articles/run_azimuth_tutorial.html",
+    "tutorial_snapshot_sha256": "6c33ebb75bcf611772472306c7d4dc97ffad260fe895388c514d81869a5a5ec3",
+    "software_license": "GPL-3.0"
+  },
+  "training_reference_provenance": {
+    "name": "Human Lung Cell Atlas core reference",
+    "official_project_url": "https://github.com/LungCellAtlas/HLCA",
+    "reproducibility_repository": "https://github.com/LungCellAtlas/HLCA_reproducibility",
+    "audited_reproducibility_commit": "318d17d4277baddb202f903cf7b6680caf0230d8",
+    "primary_publication": "https://www.nature.com/articles/s41591-023-02327-2",
+    "sample_metadata_snapshot_path": "C:/tmp/celltypepilot-hlca-repro-audit-20260809/supporting_files/sample_level_metadata/LCA_metadata_Krasnow.csv",
+    "sample_metadata_snapshot_sha256": "b26a59f32b04c0ad060dc636feb5fd5cd39af8d4910c00f431dfe968732cf9fe",
+    "ingestion_script_snapshot_path": "C:/tmp/celltypepilot-hlca-repro-audit-20260809/scripts/LCA_file_reading.py",
+    "ingestion_script_snapshot_sha256": "5d9fa082664f03387bbd6a6818856c0dbdb6ee8fa08ec98c66716b6e80c20987",
+    "linkage_basis": "Inference from primary project sources: the official HLCA project directs users to Azimuth for automated mapping to the HLCA, while the official Azimuth tutorial lists lungref.SeuratData 2.0.0 as the lung reference. The package contents were not materialized after donor overlap made the primary track ineligible.",
+    "linkage_certainty": "primary_source_supported_inference_not_package_content_verified"
+  },
+  "evaluation_cohort": {
+    "cohort_id": "travaglini_lung_smartseq2_2020",
+    "study": "Travaglini et al. human lung cell atlas",
+    "publication": "https://www.nature.com/articles/s41586-020-2922-4",
+    "platform": "Smart-seq2",
+    "donor_ids": [
+      "donor 1",
+      "donor 2",
+      "donor 3"
+    ]
+  },
+  "overlap_evidence": {
+    "overlap_level": "study_and_donor",
+    "overlapping_donor_ids": [
+      "donor 1",
+      "donor 2",
+      "donor 3"
+    ],
+    "training_metadata_rows": [
+      {
+        "sample_id": "distal 1a",
+        "subject_id": "donor 1",
+        "institute": "Stanford",
+        "study_pi": "Krasnow, Mark",
+        "protocol_study": "Travaglini et al 2019",
+        "platform": "10x_3' v2"
+      },
+      {
+        "sample_id": "distal 2",
+        "subject_id": "donor 2",
+        "institute": "Stanford",
+        "study_pi": "Krasnow, Mark",
+        "protocol_study": "Travaglini et al 2019",
+        "platform": "10x_3' v2"
+      },
+      {
+        "sample_id": "distal 3",
+        "subject_id": "donor 3",
+        "institute": "Stanford",
+        "study_pi": "Krasnow, Mark",
+        "protocol_study": "Travaglini et al 2019",
+        "platform": "10x_3' v2"
+      }
+    ],
+    "independence_decision": "failed",
+    "decision_rationale": "The reference-side samples and evaluation-side cells come from the same named donors and study. Assay differences may test cross-platform transfer but cannot make a held-out donor independent of its own reference contribution."
+  },
+  "bounded_claims": {
+    "azimuth_result_available": false,
+    "azimuth_primary_comparison_allowed": false,
+    "absence_interpretation": "governed_negative_result_not_tool_failure",
+    "public_multicohort_release_established": false
+  }
+}

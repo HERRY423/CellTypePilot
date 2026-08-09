@@ -38,6 +38,23 @@ manifest.json
 demo_output_recal/
 gbm_dc_output/
 mouse_brain_output/
+benchmarks/**/data/
+benchmarks/**/runs/
+benchmarks/**/release/
+benchmarks/**/cache/
+benchmarks/**/_runtime_cache/
+benchmarks/**/envs/
+# Immutable asset object cache (content-addressed blobs; catalog JSON is tracked)
+benchmarks/assets/objects/
+# GPU batch runtime outputs (manifest/README stay tracked)
+benchmarks/**/batches/**/run/
+benchmarks/**/batches/**/aggregate/
+# Host acceptance fixture outputs
+scratch/host_acceptance/
+
+# Runtime cache and local environments
+.runtime_cache/
+.codex/environments/
 
 # License private key (NEVER commit — kept offline for signing)
 .license_private_key.pem

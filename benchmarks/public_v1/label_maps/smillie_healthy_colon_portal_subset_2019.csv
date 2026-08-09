@@ -1,0 +1,149 @@
+method,raw_label,canonical_label
+__truth__,B cell,b_cell
+__truth__,"CD4-positive, alpha-beta T cell",t_cell
+__truth__,"CD4-positive, alpha-beta memory T cell",t_cell
+__truth__,"CD8-alpha-beta-positive, alpha-beta intraepithelial T cell",t_cell
+__truth__,"CD8-positive, alpha-beta thymocyte",t_cell
+__truth__,M cell of gut,epithelial
+__truth__,T cell,t_cell
+__truth__,"activated CD4-positive, alpha-beta T cell",t_cell
+__truth__,dendritic cell,myeloid
+__truth__,enterocyte,epithelial
+__truth__,enteroendocrine cell,epithelial
+__truth__,fibroblast,fibroblast_stromal
+__truth__,follicular B cell,b_cell
+__truth__,goblet cell,epithelial
+__truth__,innate lymphoid cell,other
+__truth__,intestinal crypt stem cell,epithelial
+__truth__,intestinal tuft cell,epithelial
+__truth__,macrophage,myeloid
+__truth__,mast cell,mast_cell
+__truth__,natural killer cell,nk_cell
+__truth__,plasma cell,plasma_cell
+__truth__,regulatory T cell,t_cell
+__truth__,transit amplifying cell of colon,epithelial
+celltypepilot,B cell,b_cell
+celltypepilot,"CD4-positive, alpha-beta T cell",t_cell
+celltypepilot,"CD4-positive, alpha-beta memory T cell",t_cell
+celltypepilot,"CD8-alpha-beta-positive, alpha-beta intraepithelial T cell",t_cell
+celltypepilot,"CD8-positive, alpha-beta thymocyte",t_cell
+celltypepilot,Enterocyte,epithelial
+celltypepilot,Enteroendocrine cell,epithelial
+celltypepilot,Goblet cell (intestinal),epithelial
+celltypepilot,Intestinal stem cell,epithelial
+celltypepilot,M cell of gut,epithelial
+celltypepilot,Paneth cell,epithelial
+celltypepilot,T cell,t_cell
+celltypepilot,Unknown,Unknown
+celltypepilot,"activated CD4-positive, alpha-beta T cell",t_cell
+celltypepilot,dendritic cell,myeloid
+celltypepilot,enterocyte,epithelial
+celltypepilot,enteroendocrine cell,epithelial
+celltypepilot,fibroblast,fibroblast_stromal
+celltypepilot,follicular B cell,b_cell
+celltypepilot,goblet cell,epithelial
+celltypepilot,innate lymphoid cell,other
+celltypepilot,intestinal crypt stem cell,epithelial
+celltypepilot,intestinal tuft cell,epithelial
+celltypepilot,macrophage,myeloid
+celltypepilot,mast cell,mast_cell
+celltypepilot,natural killer cell,nk_cell
+celltypepilot,plasma cell,plasma_cell
+celltypepilot,regulatory T cell,t_cell
+celltypepilot,transit amplifying cell of colon,epithelial
+celltypist,B cell,b_cell
+celltypist,"CD4-positive, alpha-beta T cell",t_cell
+celltypist,"CD4-positive, alpha-beta memory T cell",t_cell
+celltypist,"CD8-alpha-beta-positive, alpha-beta intraepithelial T cell",t_cell
+celltypist,"CD8-positive, alpha-beta thymocyte",t_cell
+celltypist,M cell of gut,epithelial
+celltypist,T cell,t_cell
+celltypist,Unknown,Unknown
+celltypist,"activated CD4-positive, alpha-beta T cell",t_cell
+celltypist,dendritic cell,myeloid
+celltypist,enterocyte,epithelial
+celltypist,enteroendocrine cell,epithelial
+celltypist,fibroblast,fibroblast_stromal
+celltypist,follicular B cell,b_cell
+celltypist,goblet cell,epithelial
+celltypist,innate lymphoid cell,other
+celltypist,intestinal crypt stem cell,epithelial
+celltypist,intestinal tuft cell,epithelial
+celltypist,macrophage,myeloid
+celltypist,mast cell,mast_cell
+celltypist,natural killer cell,nk_cell
+celltypist,plasma cell,plasma_cell
+celltypist,regulatory T cell,t_cell
+celltypist,transit amplifying cell of colon,epithelial
+singler,B cell,b_cell
+singler,"CD4-positive, alpha-beta T cell",t_cell
+singler,"CD4-positive, alpha-beta memory T cell",t_cell
+singler,"CD8-alpha-beta-positive, alpha-beta intraepithelial T cell",t_cell
+singler,"CD8-positive, alpha-beta thymocyte",t_cell
+singler,M cell of gut,epithelial
+singler,T cell,t_cell
+singler,Unknown,Unknown
+singler,"activated CD4-positive, alpha-beta T cell",t_cell
+singler,dendritic cell,myeloid
+singler,enterocyte,epithelial
+singler,enteroendocrine cell,epithelial
+singler,fibroblast,fibroblast_stromal
+singler,follicular B cell,b_cell
+singler,goblet cell,epithelial
+singler,innate lymphoid cell,other
+singler,intestinal crypt stem cell,epithelial
+singler,intestinal tuft cell,epithelial
+singler,macrophage,myeloid
+singler,mast cell,mast_cell
+singler,natural killer cell,nk_cell
+singler,plasma cell,plasma_cell
+singler,regulatory T cell,t_cell
+singler,transit amplifying cell of colon,epithelial
+azimuth,B cell,b_cell
+azimuth,"CD4-positive, alpha-beta T cell",t_cell
+azimuth,"CD4-positive, alpha-beta memory T cell",t_cell
+azimuth,"CD8-alpha-beta-positive, alpha-beta intraepithelial T cell",t_cell
+azimuth,"CD8-positive, alpha-beta thymocyte",t_cell
+azimuth,M cell of gut,epithelial
+azimuth,T cell,t_cell
+azimuth,Unknown,Unknown
+azimuth,"activated CD4-positive, alpha-beta T cell",t_cell
+azimuth,dendritic cell,myeloid
+azimuth,enterocyte,epithelial
+azimuth,enteroendocrine cell,epithelial
+azimuth,fibroblast,fibroblast_stromal
+azimuth,follicular B cell,b_cell
+azimuth,goblet cell,epithelial
+azimuth,innate lymphoid cell,other
+azimuth,intestinal crypt stem cell,epithelial
+azimuth,intestinal tuft cell,epithelial
+azimuth,macrophage,myeloid
+azimuth,mast cell,mast_cell
+azimuth,natural killer cell,nk_cell
+azimuth,plasma cell,plasma_cell
+azimuth,regulatory T cell,t_cell
+azimuth,transit amplifying cell of colon,epithelial
+popv,B cell,b_cell
+popv,"CD4-positive, alpha-beta T cell",t_cell
+popv,"CD4-positive, alpha-beta memory T cell",t_cell
+popv,"CD8-alpha-beta-positive, alpha-beta intraepithelial T cell",t_cell
+popv,"CD8-positive, alpha-beta thymocyte",t_cell
+popv,M cell of gut,epithelial
+popv,T cell,t_cell
+popv,Unknown,Unknown
+popv,"activated CD4-positive, alpha-beta T cell",t_cell
+popv,dendritic cell,myeloid
+popv,enterocyte,epithelial
+popv,enteroendocrine cell,epithelial
+popv,fibroblast,fibroblast_stromal
+popv,follicular B cell,b_cell
+popv,goblet cell,epithelial
+popv,innate lymphoid cell,other
+popv,intestinal crypt stem cell,epithelial
+popv,intestinal tuft cell,epithelial
+popv,macrophage,myeloid
+popv,mast cell,mast_cell
+popv,natural killer cell,nk_cell
+popv,plasma cell,plasma_cell
+popv,regulatory T cell,t_cell
+popv,transit amplifying cell of colon,epithelial

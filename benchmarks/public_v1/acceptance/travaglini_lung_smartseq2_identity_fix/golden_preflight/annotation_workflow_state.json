@@ -1,0 +1,7 @@
+{
+  "schema_version": "celltypepilot.agent-annotation-state.v1",
+  "phase": "prepared",
+  "updated_at": "2026-08-09T12:49:27.601430+00:00",
+  "plan_sha256": "e1029c04e6d6d25891b7fceedfd41448ecd941c91fd9621b52abf1ee2dd18210",
+  "next_action": "annotate_from_plan"
+}

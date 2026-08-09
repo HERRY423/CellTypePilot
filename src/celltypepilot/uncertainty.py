@@ -13,8 +13,8 @@ facade, and downstream review tools can use the same language.
 from __future__ import annotations
 
 from typing import Any
-
 import pandas as pd
+import numpy as np
 
 UNCERTAINTY_LANGUAGE_SCHEMA = "celltypepilot.uncertainty-language.v1"
 
@@ -22,7 +22,7 @@ EVIDENCE_SCORE_SEMANTICS = "heuristic_evidence_score_not_probability"
 CRITIC_CONFIDENCE_SEMANTICS = "rule_based_review_category_not_probability"
 CALIBRATED_PROBABILITY_SEMANTICS = "not_available_from_annotation_run"
 UNKNOWN_LABEL_SEMANTICS = "safety_abstention_not_biological_class"
-OOD_NOVELTY_SEMANTICS = "not_assessed_in_annotation_run"
+OOD_NOVELTY_SEMANTICS = "separate_novelty_review_axis_required"
 RISK_POLICY_NOT_ASSESSED = "not_assessed_in_annotation_run"
 RISK_POLICY_APPLIED = "downgrade_only_threshold_policy_applied"
 
@@ -33,6 +33,12 @@ PRODUCT_CLAIM_BOUNDARY = (
     "selective-risk guarantees require separate benchmark/calibration artifacts."
 )
 
+CALIBRATED_RUN_CLAIM_BOUNDARY = (
+    "Probabilities have been mapped using a separate calibration artifact. "
+    "These probabilities represent expected correctness frequency on a distribution "
+    "matching the calibration dataset. If the query dataset contains novel cell types "
+    "or batch effects not present during calibration, these probabilities may be miscalibrated."
+)
 
 def _policy_applied(calibration_policy: dict[str, Any] | None) -> bool:
     return bool(
@@ -40,18 +46,12 @@ def _policy_applied(calibration_policy: dict[str, Any] | None) -> bool:
         and calibration_policy.get("schema_version") == "celltypepilot.abstention-policy.v1"
     )
 
-
 def attach_uncertainty_language(
     annotations: pd.DataFrame,
     calibration_policy: dict[str, Any] | None = None,
+    calibration_transform: Any = None,
 ) -> pd.DataFrame:
-    """Attach stable uncertainty-language columns to annotation evidence rows.
-
-    The function is deliberately additive and backward-compatible. It keeps
-    ``combined_score`` and ``critic_confidence`` unchanged, then adds explicit
-    semantics so external agents and web reviewers do not treat those fields as
-    probability estimates.
-    """
+    """Attach stable uncertainty-language columns to annotation evidence rows."""
     output = annotations.copy()
     policy_applied = _policy_applied(calibration_policy)
     threshold = (
@@ -68,8 +68,18 @@ def attach_uncertainty_language(
     output["evidence_score_source"] = "combined_score"
     output["evidence_score_semantics"] = EVIDENCE_SCORE_SEMANTICS
     output["critic_confidence_semantics"] = CRITIC_CONFIDENCE_SEMANTICS
-    output["calibrated_probability"] = pd.NA
-    output["calibrated_probability_semantics"] = CALIBRATED_PROBABILITY_SEMANTICS
+    
+    if calibration_transform is not None:
+        scores = output["evidence_score"].fillna(0.0).values
+        output["calibrated_probability"] = calibration_transform.transform(scores)
+        method_name = calibration_transform.__class__.__name__
+        output["calibrated_probability_semantics"] = f"{method_name}_calibrated_probability"
+        output["calibration_method"] = method_name
+        output["calibration_ece"] = np.nan # Can be filled if ECE is known for transform
+    else:
+        output["calibrated_probability"] = pd.NA
+        output["calibrated_probability_semantics"] = CALIBRATED_PROBABILITY_SEMANTICS
+        
     output["selective_risk_policy_applied"] = policy_applied
     output["selective_risk_policy_threshold"] = threshold
     output["selective_risk_policy_semantics"] = (
@@ -88,6 +98,7 @@ def attach_uncertainty_language(
 def build_uncertainty_language_manifest(
     calibration_policy: dict[str, Any] | None = None,
     uses_reference: bool = False,
+    is_calibrated: bool = False,
 ) -> dict[str, Any]:
     """Return the canonical uncertainty-language block for manifest.json/MCP."""
     policy_applied = _policy_applied(calibration_policy)
@@ -109,6 +120,8 @@ def build_uncertainty_language_manifest(
                 ),
             }
         )
+        
+    boundary = CALIBRATED_RUN_CLAIM_BOUNDARY if is_calibrated else PRODUCT_CLAIM_BOUNDARY
 
     return {
         "schema_version": UNCERTAINTY_LANGUAGE_SCHEMA,
@@ -143,5 +156,5 @@ def build_uncertainty_language_manifest(
             if uses_reference
             else "No reference backend was used in this run."
         ),
-        "product_claim_boundary": PRODUCT_CLAIM_BOUNDARY,
+        "product_claim_boundary": boundary,
     }

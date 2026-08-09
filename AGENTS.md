@@ -41,6 +41,17 @@ Optional extras:
 
 ## Workflow — Four Stages
 
+For Agent hosts with the local MCP facade, the default golden path is exactly:
+`prepare_annotation` -> `annotate_from_plan` -> `review_uncertain_clusters` ->
+`finalize_reviewed_annotations`. Do not assemble a product workflow from
+lower-level scorer/governance tools. The final step requires explicit human
+confirmation and a human signer; the Agent cannot approve its own label.
+Each step returns `celltypepilot.agent-decision.v1`. Agents must follow its
+blockers, allowed next actions, forbidden claims, artifact paths, and explicit
+human-action requirement rather than inferring a workflow from score fields.
+
+The CLI stages below are the manual/compatibility path.
+
 ### Stage 1: Inspect the data
 
 Run inspection to understand the input:
@@ -97,7 +108,10 @@ celltypepilot annotate \
 This produces:
 - `data.annotated.h5ad` — AnnData with separate identity and state fields, candidate, decision, abstain reason, CL ID, and confidence in obs
 - `evidence_table.csv` — per-cluster evidence: scores, score semantics, markers, critic flags, confidence, uncertainty-language fields
+- `contrastive_evidence.csv` — top-two candidate contrast using the existing ranking; shared/unique support, gaps, conflicts, and provenance without reranking
+- `evidence_gaps.json` — each Unknown as observed evidence gaps with bounded next actions, forbidden actions, and required human review
 - `state_results.csv` — independent state candidates, decisions, missing/silent markers, and evidence
+- `novelty_results.csv` — independent Novelty/OOD candidate review axis with top unmapped DE markers, alternative explanations, and next actions
 - `context_pack.normalized.json` — normalized and hashed governed context, when supplied
 - `figures/` — UMAP (clusters, cell types, confidence), dotplot, confidence distribution
 - `report_draft.html` — comprehensive HTML report with all figures embedded
@@ -145,12 +159,13 @@ Useful when the critic flags a cluster and you want additional validation.
 | `celltypepilot doctor` | Check environment, dependencies, MCP status, license |
 | `celltypepilot inspect -i <path>` | Inspect h5ad: species, tissue, clusters, embeddings |
 | `celltypepilot annotate -i <path> -k <key>` | Full annotation pipeline |
-| `celltypepilot benchmark -i <path> --truth-key <key> --study-key <key> --donor-key <key>` | Lock/evaluate independent holdouts |
-| `celltypepilot benchmark-run ...` | Execute fold-isolated CellTypePilot/CellTypist and configured SingleR/Azimuth/popV adapters |
+| `celltypepilot benchmark ... --evaluation-unit cell\|cluster\|both` | Lock/evaluate independent holdouts with separate cell and cluster endpoints |
+| `celltypepilot benchmark-run ... --evaluation-unit cell\|cluster\|both` | Execute fold-isolated comparators without blending evaluation units |
 | `celltypepilot calibrate ...` | Fit a downgrade-only abstention policy on a separate calibration dataset |
 | `celltypepilot critic -i <path> -k <key> -f <cluster>` | Deep-review a specific cluster |
 | `celltypepilot markers -t <tissue>` | List available cell types and markers |
 | `celltypepilot atlas-governance` | Build offline atlas governance report |
+| `celltypepilot evidence propose-promotion/review-promotion/apply-promotion` | Human-gated, versioned marker-edge evidence promotion |
 | `celltypepilot literature -c <type> -m <markers>` | Literature validation via PubMed |
 | `celltypepilot pack install/list/validate/remove` | Manage data-only domain extension packs |
 | `celltypepilot inspect-web -o <dir>` | Launch Web Inspector (interactive review panel) |
@@ -211,9 +226,10 @@ Premium atlas (requires academic/commercial license):
 8. **Governed context** — free text never becomes evidence; structured markers use the ordinary evidence and critic gates
 9. **Identity × State** — state is an independent exploratory axis and cannot overwrite or rescue identity
 10. **Statistical language is bounded** — `combined_score`/`evidence_score` are evidence-ranking signals, not calibrated probabilities; `critic_confidence` is a rule-based review category; `Unknown` is a safety abstention, not a biological cell class; robustness, OOD/novelty, and selective-risk claims require separate benchmark/calibration artifacts
-10. **Detection ≠ support** — detecting a species, tissue, or batch axis helps the Agent host route the workflow; it does not authorize unsupported atlas scoring or robustness claims
-11. **Agent-native but deterministic** — MCP tools expose bounded CellTypePilot operations; do not add autonomous planning or self-directed biological claims
-12. **Review auditability** — manual Web Review edits must leave an append-only audit trail and mark derived artifacts stale after write-back
+11. **Novelty/OOD is a review axis** — automated novelty output can prioritize `atlas_gap_candidate` and `ood_novel_candidate` clusters, but cannot rename identity, assign new ontology terms, or claim validated discovery without artifact/QC review, external evidence, and human sign-off
+12. **Detection ≠ support** — detecting a species, tissue, or batch axis helps the Agent host route the workflow; it does not authorize unsupported atlas scoring or robustness claims
+13. **Agent-native but deterministic** — MCP tools expose bounded CellTypePilot operations; do not add autonomous planning or self-directed biological claims
+14. **Review auditability** — manual Web Review edits must leave an append-only audit trail and mark derived artifacts stale after write-back
 
 ## Project layout
 

@@ -1,0 +1,25 @@
+{
+  "schema_version": "celltypepilot.ontology-map.v1",
+  "include_tissues": ["general", "blood"],
+  "aliases": {
+    "pulmonary alveolar type 1 cell": "Alveolar type 1 cell",
+    "pulmonary alveolar type 2 cell": "Alveolar type 2 cell",
+    "lung multiciliated epithelial cell": "Ciliated cell",
+    "lung goblet cell": "Goblet cell",
+    "respiratory basal cell": "Basal cell",
+    "natural killer cell": "NK cell",
+    "CD1c-positive myeloid dendritic cell": "cDC2",
+    "dendritic cell, human": "Dendritic cell",
+    "plasmacytoid dendritic cell, human": "pDC"
+  },
+  "safe_parent_fallbacks": {
+    "endothelial cell of artery": "Endothelial cell",
+    "vein endothelial cell": "Endothelial cell",
+    "endothelial cell of lymphatic vessel": "Endothelial cell",
+    "effector memory CD4-positive, alpha-beta T cell": "Memory CD4+ T cell",
+    "effector memory CD8-positive, alpha-beta T cell": "CD8+ T cell",
+    "mature NK T cell": "T cell",
+    "intermediate monocyte": "Monocyte"
+  },
+  "claim_boundary": "Aliases preserve identity; safe_parent_fallbacks intentionally reduce resolution and never validate a fine subtype."
+}

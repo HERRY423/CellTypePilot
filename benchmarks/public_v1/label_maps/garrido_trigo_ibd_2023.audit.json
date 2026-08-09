@@ -1,0 +1,19 @@
+{
+  "schema_version": "celltypepilot.label-map-audit.v1",
+  "cohort_id": "garrido_trigo_ibd_2023",
+  "evaluation_level": "predeclared_broad_cell_class",
+  "truth_labels": 5,
+  "celltypepilot_atlas_labels": 6,
+  "canonical_classes": [
+    "Unknown",
+    "epithelial",
+    "fibroblast_stromal",
+    "myeloid",
+    "plasma_cell",
+    "t_cell"
+  ],
+  "other_truth_labels": [],
+  "mapping_policy": "ordered_token_aware_rules_in_scripts/build_public_label_maps.py",
+  "label_map_sha256": "25631896039d74593d2bdef623d2c3a88d1803d7397a27961ecccc1c542fe972",
+  "frozen_before_prediction_scoring": true
+}

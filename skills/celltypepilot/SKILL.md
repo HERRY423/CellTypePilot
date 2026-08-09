@@ -41,7 +41,34 @@ artifacts; a qualified human remains responsible for final biological adjudicati
 - **Review-ready draft output.** UMAP, dotplot, confidence figures, evidence table, and a
   draft methodology paragraph are generated for qualified human review and revision.
 
-## The workflow: three stages
+## Agent-host golden workflow: exactly four steps
+
+When the local MCP facade is available, ordinary Agent hosts must use only this
+stateful sequence:
+
+1. `prepare_annotation` — inspect, resolve blockers, preflight evidence
+   addressability, and write a hashed `annotation_plan.json`.
+2. `annotate_from_plan` — execute that plan without changing species, tissue,
+   clusters, packs, evidence policy, or input hash.
+3. `review_uncertain_clusters` — create a bounded, read-only review queue. The
+   Agent may explain evidence but must not select or apply a biological label.
+4. `finalize_reviewed_annotations` — apply only explicitly supplied human
+   decisions, require a named human signer, reconcile evidence rows, regenerate
+   derived artifacts, and write a fresh review signature.
+
+Step 2 also writes `contrastive_evidence.csv` and `evidence_gaps.json`. Step 3
+must use those artifacts to explain the existing top-two ranking and turn each
+`Unknown` into bounded follow-up actions; it must never infer or apply a
+replacement identity.
+
+Do not assemble an ordinary annotation workflow from advanced primitives. The
+CLI path below remains the compatibility/manual path when MCP is unavailable.
+All four MCP results use `celltypepilot.agent-decision.v1`. Follow only
+`allowed_next_actions`, honor `blockers`, `forbidden_claims`, and
+`human_action_required`, and treat `artifact_paths` as the durable evidence
+handoff. A score margin is never a probability or an override instruction.
+
+## CLI compatibility workflow
 
 ### Stage 1 — Environment gate & data inspection
 
@@ -148,12 +175,36 @@ This searches PubMed for literature supporting each marker-cell_type association
 
 | Command | Purpose |
 |---|---|
-| `celltypepilot doctor` | Check environment, dependencies, capability tier, MCP status |
+| `celltypepilot doctor` | Check environment, dependencies, capability tier, MCP status (`--json` for hosts) |
 | `celltypepilot inspect -i <path>` | Inspect h5ad: species, tissue, clusters, embeddings, layers |
 | `celltypepilot annotate -i <path> -k <key>` | Full annotation pipeline |
+| `celltypepilot benchmark ... --evaluation-unit cell\|cluster\|both` | Keep cell and cluster benchmark endpoints separate |
 | `celltypepilot critic -i <path> -k <key> -f <cluster>` | Deep-review a specific cluster |
 | `celltypepilot markers -t <tissue>` | List available cell types and markers |
 | `celltypepilot literature -c <type> -m <markers>` | Literature validation via PubMed |
+| `celltypepilot observe -o <dir>` | Read-only run lifecycle + host metrics (`--json`) |
+| `celltypepilot host-acceptance` | Codex/Claude/MCP discovery + lifecycle discrimination harness |
+| `celltypepilot evidence propose-promotion/review-promotion/apply-promotion` | Two-reviewer, versioned marker-edge evidence promotion |
+| `celltypepilot pack install/list/validate/remove` | Manage data-only evidence packs without executable code |
+
+### Agent lifecycle discrimination (host acceptance)
+
+When orchestrating `doctor` / `inspect` / `benchmark-run`, **do not** treat a zero exit
+code as scientific success. Discriminate durable states from checkpoints and release
+readiness:
+
+| State | Meaning |
+|-------|---------|
+| `running` | Fold/method still executing — no final metrics |
+| `completed` | Unit finished — not automatically a public claim |
+| `failed` | Started then errored/timeout — keep as negative result |
+| `unavailable` | Dependency/adapter missing — never impute predictions |
+| `claim_ready` | Only when release gate is green |
+| `incomplete_not_claim_ready` | Protocol blocked — no public robustness claim |
+
+Run `celltypepilot host-acceptance --skip-worktree` (or
+`python scripts/run_host_acceptance_worktree.py`) before trusting a new host
+integration. See `docs/host_acceptance.md`.
 
 All commands support `--json` for structured output that the host integration can parse and present.
 
@@ -163,7 +214,10 @@ All commands support `--json` for structured output that the host integration ca
 |---|---|
 | `data.annotated.h5ad` | AnnData with separate identity/state candidates, decisions, evidence, CL ID, and confidence in obs |
 | `evidence_table.csv` | Per-cluster evidence: scores, markers, critic flags, confidence |
+| `contrastive_evidence.csv` | Existing top-two ranking with shared and candidate-specific support, missing/silent markers, conflicts, and provenance; no reranking |
+| `evidence_gaps.json` | Per-Unknown observed evidence gaps with bounded next actions, prohibited actions, and human-review requirement |
 | `state_results.csv` | Independent state candidate, decision, missing/silent markers, score, and evidence |
+| `identity_contract.json` | Gene-symbol, active-scope, alias/CL, and pack identity audit |
 | `context_pack.normalized.json` | Normalized governed context and hashes, when context is supplied |
 | `figures/umap_cluster.png` | UMAP colored by cluster |
 | `figures/umap_celltype.png` | UMAP colored by annotated cell type |

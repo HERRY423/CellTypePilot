@@ -54,6 +54,7 @@ painful — not because the algorithms don't exist, but because:
 | **Workflow fragmentation** (scripts here, tool there) | Runs inside your Claude Code / Codex session — no context switch to a separate app |
 | **Can't explain *why* a cluster got its label** | Every annotation ships with: supporting markers, expression stats, critic flags, and a draft methods paragraph |
 | **Rare / transitional states forced into a label** | Low or conflicting evidence produces an explicit `Unknown`/`abstain`; the best candidate is retained separately for review |
+| **Non-typical / OOD clusters are buried in manual marker review** | Novelty/OOD review scores each cluster on an independent axis, surfaces atlas-gap and OOD/novel candidates, records top unmapped DE markers, and lists alternative explanations such as doublet, batch/sample enrichment, or reference mismatch |
 | **Disease context is either ignored or blindly trusted** | Free text is recorded but never counted as evidence; structured custom markers are hashed, scoped, and subjected to the same DE and critic gates |
 | **Identity and state are conflated** | Canonical identity and exploratory state are written on independent axes; an `Unknown` identity can retain a supported state without becoming a cell type |
 | **Token cost spirals** | Annotation, critic checks, calibration, and reporting are deterministic local code; no LLM call is required |
@@ -66,7 +67,10 @@ painful — not because the algorithms don't exist, but because:
 output/
 ├── data.annotated.h5ad          # final label, candidate, decision, reason, confidence in obs
 ├── evidence_table.csv           # Per-cluster: scores, markers, critic flags, confidence
+├── contrastive_evidence.csv      # Top-two contrast: shared/unique support, conflicts, gaps
+├── evidence_gaps.json            # Unknown -> observed gaps, bounded and forbidden actions
 ├── state_results.csv            # Independent state candidate, decision, score, evidence
+├── novelty_results.csv          # Independent Novelty/OOD candidate review axis
 ├── context_pack.normalized.json # Optional: normalized, scoped, hashed user context
 ├── ensemble_scores.csv          # Per-cell-type: marker + ref + ensemble scores
 ├── transitional_states.csv      # Clusters flagged as differentiation intermediates
@@ -132,6 +136,12 @@ celltypepilot benchmark -i benchmark.h5ad --truth-key truth \
 celltypepilot benchmark-run -i benchmark.h5ad --truth-key truth \
     --study-key study --donor-key donor --cluster-key leiden \
     --species human --tissue blood --methods celltypepilot,celltypist
+
+# 12b. Assemble a public multi-cohort release. Inference is donor-level;
+# missing data, comparators, label maps, and diagnostics block claim-ready status.
+celltypepilot benchmark-release \
+    --registry benchmarks/public_v1/registry.json \
+    --output benchmarks/public_v1/release --n-boot 2000 --seed 42
 
 # 13. Fit a downgrade-only abstention policy on a separate calibration dataset
 celltypepilot calibrate -i calibration.h5ad --truth-key truth \
@@ -275,10 +285,22 @@ CellTypePilot MCP server), `"[seurat]"` (.rds support), `"[reference]"` (CellTyp
 ### Agent-native MCP
 
 CellTypePilot ships a local stdio MCP facade via `celltypepilot-mcp` and `.mcp.json`.
-The facade exposes deterministic tools for inspection, marker scope, atlas governance,
-manifest/audit reading, critic review, and bounded annotation. It does not make autonomous
-biological decisions; the same fail-closed species, pack, reference, and provenance gates
-apply as the CLI.
+The default Agent product surface is deliberately limited to four stateful tools:
+`prepare_annotation`, `annotate_from_plan`, `review_uncertain_clusters`, and
+`finalize_reviewed_annotations`. Preparation locks and hashes the executable plan;
+annotation cannot change it; review is read-only; finalization requires an explicit
+human signer and regenerates/re-signs derived artifacts. Maintainers may opt into the
+lower-level diagnostic surface with `CELLTYPEPILOT_MCP_SURFACE=advanced`.
+
+Every golden-workflow response implements `celltypepilot.agent-decision.v1`: operation,
+status, decision scope, blockers, warnings, evidence summary, allowed next actions, forbidden
+claims, artifact paths, and whether human action is required. `Unknown` results point to
+`evidence_gaps.json`; candidate review points to `contrastive_evidence.csv`. These artifacts
+explain what evidence is missing and how the existing top-two ranking differs, but never choose
+a replacement label or reinterpret the score margin as probability.
+
+The facade does not make autonomous biological decisions; the same fail-closed species, pack,
+reference, evidence, and provenance gates apply as the CLI.
 
 ### Plugin structure
 
@@ -443,10 +465,27 @@ biological cell class.
 Calibration is expressed as a downgrade-only abstention policy fitted on a separately
 designated calibration artifact. Applying that policy can move low-score calls to `Unknown`;
 it does not create per-cluster calibrated probabilities for the current annotation run.
-Batch robustness, complex-sample robustness, OOD/novelty detection, and selective-risk
-guarantees must come from separate benchmark/calibration artifacts, not ordinary annotation
-outputs. The machine-readable contract is exported as `uncertainty_language` in
+Batch robustness, complex-sample robustness, validated OOD/novelty discovery claims, and
+selective-risk guarantees require separate benchmark/calibration/validation artifacts, not
+ordinary annotation outputs alone. The machine-readable contract is exported as `uncertainty_language` in
 `manifest.json` and as semantic columns in `evidence_table.csv`.
+
+### Novelty/OOD candidate review
+
+CellTypePilot runs an independent Novelty/OOD review axis after identity, Critic, and State
+Lens. It never renames a cluster or assigns a new ontology term. Instead, it asks:
+
+- Does the best known identity have weak atlas/reference support or an abstain decision?
+- Does the cluster still have a distinctive DE marker program not already used by the active atlas?
+- Are there alternative explanations, such as doublet/mixed lineage signal, negative-marker
+  conflict, diffuse reference matching, or batch/sample/donor enrichment?
+
+The output `novelty_results.csv` classifies clusters as `known_supported`,
+`atlas_gap_candidate`, `ood_novel_candidate`, `review_artifact_or_mixed`, or
+`insufficient_signal`. `novelty_score` is a review-priority score, not a probability of a
+new cell type. Any `ood_novel_candidate` must still undergo subclustering, artifact/QC
+review, external atlas comparison when available, literature review, and human sign-off before
+being named.
 
 The atlas v2 schema records gene, polarity, species, tissue, state, atlas version,
 PMID/DOI/URL, and verification status for every bundled marker relationship. Existing
@@ -464,7 +503,11 @@ and marks the critic result `AGGREGATE_PROVENANCE_ONLY`.
 - [x] **Phase 4** — Reference Embedding + Ensemble fusion (CellTypist / scANVI / KNN / Correlation backends), adaptive weighting, transitional state detection, ensemble-aware critic, RSA-2048 license security, sparse-preserving Seurat conversion, Web Inspector override API
 - [x] **Architecture hardening** — Orchestrator layer (pipeline logic extracted from CLI), Jinja2 templates, multi-species detection, synonym-based tissue detection, and Python 3.10–3.12 CI
 - [x] **Phase 5** — Governed Context Pack, custom marker trust boundary, legal identity ontology IDs, and independent Identity × State outputs
-- [ ] **Validation release** — Published multi-study/donor benchmark, calibrated abstention card, verified reference registry, and marker-edge curation coverage report
+- [ ] **Validation release** — The immutable public registry, donor-aware release builder,
+  truth-blind donor-local clustering, SingleR/popV adapters, batch/QC diagnostics, and
+  negative-result contract are implemented. This remains unchecked until every public asset,
+  label map, required comparator, and fold result is materialized and the release manifest is
+  `claim_ready`.
 
 ## License
 

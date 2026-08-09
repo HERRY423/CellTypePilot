@@ -1,0 +1,56 @@
+{
+  "schema_version": "celltypepilot.identity-contract.v1",
+  "gene_identity": {
+    "schema_version": "celltypepilot.gene-identity-contract.v1",
+    "source": "feature_name",
+    "applied": true,
+    "n_features": 53514,
+    "marker_universe_size": 34,
+    "marker_overlap_before": 0,
+    "marker_overlap_after": 27,
+    "ambiguous_duplicate_symbol_count": 22,
+    "ambiguous_duplicate_symbols": [
+      "ANAPC1P2",
+      "BCRP3",
+      "C4orf36",
+      "CYP4F30P",
+      "ECEL1P2",
+      "GABARAPL3",
+      "GUSBP11",
+      "GUSBP5",
+      "LINC03021",
+      "LINC03023",
+      "LINC03025",
+      "MALL",
+      "NPEPPSP1",
+      "PDE4C",
+      "PDE8B",
+      "SFTA3",
+      "SIGLEC5",
+      "SNORD22",
+      "SNORD27",
+      "SNORD30",
+      "SNORD33",
+      "ZNF833P"
+    ],
+    "original_var_names_sha256": "63b5d8e4cfcac83de7e75bc251f9a6414d9402579ac96b9532cb517ff42a98ac",
+    "active_var_names_sha256": "fd67e5851fbe2a90c449d7d72ce8816ec81563a9d3c595e3dd602094916457ac",
+    "claim_boundary": "Identifier normalization makes existing expression evidence addressable; it does not validate marker specificity or biological accuracy."
+  },
+  "identity_scope": {
+    "schema_version": "celltypepilot.identity-scope.v1",
+    "requested_tissue": "lung",
+    "active_tissues": [
+      "lung"
+    ],
+    "n_cell_types": 7,
+    "pack_contract_sources": [],
+    "claim_boundary": "Active marker scope defines addressable candidates; it does not establish biological accuracy."
+  },
+  "pack_identity_contract": {
+    "include_tissues": [],
+    "aliases": {},
+    "safe_parent_fallbacks": {},
+    "sources": []
+  }
+}

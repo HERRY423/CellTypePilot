@@ -74,3 +74,13 @@
   Unknown = {{ uncertainty_language.get('abstention', {}).get('unknown_label', 'safety_abstention_not_biological_class') }}.
 </div>
 {% endif %}
+
+{% set novelty_ood = params.get('novelty_ood') %}
+{% if novelty_ood %}
+<div class="warning-box">
+  <strong>Novelty/OOD review axis:</strong>
+  {{ novelty_ood.get('score_semantics', 'review_priority_score_not_discovery_probability') }}.
+  Decisions: {{ novelty_ood.get('decision_counts', {}) }}.
+  {{ novelty_ood.get('claim_boundary', '') }}
+</div>
+{% endif %}

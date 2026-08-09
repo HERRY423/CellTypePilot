@@ -512,6 +512,7 @@ def get_all_markers_for_tissue(
     atlas: dict,
     tissue: str,
     evidence_policy: str = "database",
+    include_deprecated: bool = False,
 ) -> dict[str, dict]:
     """Get all cell type markers for a given tissue.
 
@@ -535,7 +536,14 @@ def get_all_markers_for_tissue(
 
     def add_nodes(cell_types: dict) -> None:
         for ct_name, ct_info in cell_types.items():
+            if not include_deprecated and ct_info.get("deprecated"):
+                continue
+
             evidence_records = list(ct_info.get("marker_evidence", []))
+            
+            if not include_deprecated:
+                evidence_records = [r for r in evidence_records if not r.get("deprecated")]
+                
             status_by_edge = {
                 (record.get("gene"), record.get("polarity")): record.get(
                     "verification_status", "aggregate_source_only_not_edge_verified"
@@ -573,6 +581,7 @@ def get_all_markers_for_tissue(
                         record.get("verification_status", "missing") for record in evidence_records
                     )
                 ),
+                "deprecated": ct_info.get("deprecated", False),
             }
             add_nodes(ct_info.get("subtypes", {}))
 
@@ -638,6 +647,12 @@ def validate_atlas_provenance(atlas: dict) -> list[str]:
                 issues.append(f"{node_path}: missing cl_id")
             elif re.fullmatch(r"CL:\d{7}", cl_id) is None:
                 issues.append(f"{node_path}: invalid cl_id {cl_id!r}")
+            
+            # v2 Schema deprecation validation
+            if info.get("deprecated"):
+                if not info.get("deprecation_reason"):
+                    issues.append(f"{node_path}: deprecated cell type must have a deprecation_reason")
+
             ontology = info.get("ontology_evidence", {})
             if ontology and ontology.get("cl_id") != cl_id:
                 issues.append(f"{node_path}: ontology_evidence cl_id mismatch")
@@ -668,6 +683,12 @@ def validate_atlas_provenance(atlas: dict) -> list[str]:
                     issues.append(
                         f"{node_path}/marker_evidence/{index}: invalid verification_status"
                     )
+                
+                # v2 Schema deprecation validation
+                if record.get("deprecated"):
+                    if not record.get("deprecation_reason"):
+                        issues.append(f"{node_path}/marker_evidence/{index}: deprecated marker must have a deprecation_reason")
+
                 if verification_status == "literature_cooccurrence_supported":
                     for field in ("evidence_locator", "curator", "verified_at"):
                         if not record.get(field):

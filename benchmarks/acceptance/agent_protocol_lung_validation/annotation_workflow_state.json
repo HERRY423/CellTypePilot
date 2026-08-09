@@ -1,0 +1,7 @@
+{
+  "schema_version": "celltypepilot.agent-annotation-state.v1",
+  "phase": "review_ready",
+  "updated_at": "2026-08-09T16:05:18.164316+00:00",
+  "review_queue": "C:\\Users\\13264\\Desktop\\celltypepilot\\benchmarks\\acceptance\\agent_protocol_lung_validation\\review_queue.json",
+  "next_action": "finalize_reviewed_annotations"
+}

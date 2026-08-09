@@ -14,6 +14,9 @@ from pathlib import Path
 
 from .constants import ANNOTATION_SUPPORTED_SPECIES, ATLAS_PATH, FIRST_PARTY_PACKS_DIR
 from .data_adapter import summarize_atlas_evidence, validate_atlas_provenance
+from .atlas_conflict import detect_marker_conflicts
+from .atlas_lifecycle import sunset_check
+from .atlas_curation import build_curation_queue
 
 GOVERNANCE_SCHEMA_VERSION = "celltypepilot.atlas-governance.v1"
 
@@ -36,14 +39,20 @@ def _atlas_counts(atlas: dict) -> dict:
     species_counts = Counter()
     max_depth = 0
     missing_cl_id = 0
+    deprecated_nodes = 0
+    deprecated_edges = 0
 
     for tissue, path, info in _iter_nodes(atlas):
         node_counts[tissue] += 1
         max_depth = max(max_depth, len(path))
         if not info.get("cl_id"):
             missing_cl_id += 1
+        if info.get("deprecated"):
+            deprecated_nodes += 1
         for record in info.get("marker_evidence", []):
             relationship_counts[tissue] += 1
+            if record.get("deprecated"):
+                deprecated_edges += 1
             status_counts[record.get("verification_status", "missing")] += 1
             for species in record.get("species", []):
                 species_counts[str(species)] += 1
@@ -55,6 +64,8 @@ def _atlas_counts(atlas: dict) -> dict:
         "n_marker_relationships": sum(relationship_counts.values()),
         "max_cell_type_depth": max_depth,
         "missing_cl_id_nodes": missing_cl_id,
+        "deprecated_nodes": deprecated_nodes,
+        "deprecated_edges": deprecated_edges,
         "nodes_by_tissue": dict(sorted(node_counts.items())),
         "relationships_by_tissue": dict(sorted(relationship_counts.items())),
         "verification_status_counts": dict(sorted(status_counts.items())),
@@ -71,17 +82,48 @@ def _describe_atlas(path: Path, label: str, origin: str) -> dict:
     provenance_issues = validate_atlas_provenance(atlas)
     evidence = summarize_atlas_evidence(atlas)
     counts = _atlas_counts(atlas)
+    
+    current_version = atlas.get("version", "1.0")
+    sunsets = sunset_check(atlas, current_version)
+    
+    conflicts = detect_marker_conflicts(atlas)
+    high_conflicts = [c for c in conflicts if c.severity == "high"]
+    
+    curation_q = build_curation_queue(atlas)
+    high_priority_curation = len(curation_q[curation_q["priority"] >= 90]) if not curation_q.empty else 0
+    
+    health_score = 100
+    health_score -= min(30, len(provenance_issues) * 2)
+    health_score -= min(40, len(high_conflicts) * 5)
+    health_score -= min(20, len(sunsets) * 2)
+    health_score -= min(10, high_priority_curation // 10)
+    health_score = max(0, health_score)
+
     return {
         "label": label,
         "origin": origin,
         "path": str(path),
         "version": atlas.get("version", ""),
         "schema_version": atlas.get("schema_version", ""),
+        "health_score": health_score,
         "provenance_validation": "passed" if not provenance_issues else "failed",
         "provenance_issue_count": len(provenance_issues),
         "provenance_issue_examples": provenance_issues[:10],
         "evidence_summary": evidence,
         "counts": counts,
+        "conflicts": {
+            "total": len(conflicts),
+            "high_severity": len(high_conflicts),
+            "examples": [vars(c) for c in high_conflicts[:5]]
+        },
+        "lifecycle": {
+            "sunset_issues": len(sunsets),
+            "sunset_examples": sunsets[:5]
+        },
+        "curation_queue": {
+            "total_pending": len(curation_q),
+            "high_priority": high_priority_curation
+        }
     }
 
 
@@ -166,6 +208,7 @@ def build_atlas_governance_report(include_packs: bool = True) -> dict:
             "This report summarizes atlas governance state. It is not biological "
             "validation, batch robustness evidence, or primary-source review."
         ),
+        "governance_health_score": float(sum(asset["health_score"] for asset in atlas_assets) / len(atlas_assets)) if atlas_assets else 100.0,
         "atlas_assets": atlas_assets,
         "aggregate": {
             "n_assets": len(atlas_assets),

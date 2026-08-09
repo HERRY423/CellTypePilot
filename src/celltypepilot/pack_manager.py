@@ -33,6 +33,7 @@ from copy import deepcopy
 from datetime import datetime, timezone
 from pathlib import Path
 
+from .atlas_conflict import detect_marker_conflicts
 from .constants import FIRST_PARTY_PACKS_DIR
 
 PACK_SCHEMA_VERSION = "celltypepilot.pack.v1"
@@ -40,7 +41,14 @@ PACKS_ENV_VAR = "CELLTYPEPILOT_PACKS_DIR"
 INSTALLED_METADATA_FILE = "_installed.json"
 ATLAS_FILE = "marker_atlas.json"
 STATE_FILE = "state_atlas.json"
-ALLOWED_PACK_FILES = {ATLAS_FILE, STATE_FILE}
+ONTOLOGY_MAP_FILE = "ontology_map.json"
+REFERENCE_MANIFEST_FILE = "reference_manifest.json"
+ALLOWED_PACK_FILES = {
+    ATLAS_FILE,
+    STATE_FILE,
+    ONTOLOGY_MAP_FILE,
+    REFERENCE_MANIFEST_FILE,
+}
 TRUST_ATLAS = "atlas"
 TRUST_HYPOTHESIS = "hypothesis"
 TRUST_LEVELS = (TRUST_ATLAS, TRUST_HYPOTHESIS)
@@ -126,28 +134,47 @@ def validate_pack_manifest(manifest: dict) -> list[str]:
     tissues = manifest.get("tissues", [])
     if not isinstance(tissues, list):
         issues.append("tissues must be a list of tissue keys")
+    diseases = manifest.get("diseases", [])
+    if diseases is not None and not isinstance(diseases, list):
+        issues.append("diseases must be a list when present")
+    pack_kind = manifest.get("pack_kind", "evidence")
+    if pack_kind not in ("evidence", "reference", "mixed"):
+        issues.append("pack_kind must be evidence, reference, or mixed")
     if manifest.get("license_tier", "community") not in PACK_LICENSE_TIERS:
         issues.append("license_tier must be one of community/academic/commercial")
+    if manifest.get("trust", TRUST_ATLAS) not in TRUST_LEVELS:
+        issues.append("trust must be atlas or hypothesis")
     files = manifest.get("files", [])
     if not isinstance(files, list) or not files:
         issues.append("files must be a non-empty list of pack data files")
     elif any(item not in ALLOWED_PACK_FILES for item in files):
         issues.append(f"files must be a subset of {sorted(ALLOWED_PACK_FILES)}")
+    # Runtime gate declaration is documentation only; all packs still hit gates.
+    gates = manifest.get("runtime_gates")
+    if gates is not None and (not isinstance(gates, list) or not gates):
+        issues.append("runtime_gates must be a non-empty list when present")
     return issues
 
 
 def validate_pack(pack_dir: str | Path) -> list[str]:
-    """Validate a pack directory: manifest schema + atlas provenance gates.
+    """Validate a pack directory: data-only + manifest + atlas provenance gates.
 
     Marker atlases must pass the same provenance validator as the built-in
-    MKG; state atlases must pass the state provenance validator.
+    MKG; state atlases must pass the state provenance validator. Executable
+    code is always rejected.
     """
     pack_dir = Path(pack_dir)
     try:
+        from .pack_signing import scan_pack_for_code
+
+        code_issues = scan_pack_for_code(pack_dir)
+    except Exception:
+        code_issues = []
+    try:
         manifest = read_pack_manifest(pack_dir)
     except PackError as exc:
-        return [str(exc)]
-    issues = validate_pack_manifest(manifest)
+        return code_issues + [str(exc)]
+    issues = code_issues + validate_pack_manifest(manifest)
 
     for filename in ALLOWED_PACK_FILES:
         path = pack_dir / filename
@@ -164,12 +191,27 @@ def validate_pack(pack_dir: str | Path) -> list[str]:
             if not str(content.get("version", "")).strip():
                 issues.append(f"{filename} missing top-level version")
             issues.extend(validate_atlas_provenance(content))
-        else:
+        elif filename == STATE_FILE:
             from .state_scorer import validate_state_atlas
 
             if not str(content.get("version", "")).strip():
                 issues.append(f"{filename} missing top-level version")
             issues.extend(validate_state_atlas(content))
+        elif filename == ONTOLOGY_MAP_FILE:
+            if content.get("schema_version") != "celltypepilot.ontology-map.v1":
+                issues.append(
+                    f"{filename} schema_version must be celltypepilot.ontology-map.v1"
+                )
+            for field in ("aliases", "safe_parent_fallbacks"):
+                if field in content and not isinstance(content[field], dict):
+                    issues.append(f"{filename} {field} must be an object")
+            if "include_tissues" in content and not isinstance(
+                content["include_tissues"], list
+            ):
+                issues.append(f"{filename} include_tissues must be a list")
+        elif filename == REFERENCE_MANIFEST_FILE:
+            if not isinstance(content, dict) or not content.get("schema_version"):
+                issues.append(f"{filename} requires a schema_version")
 
     declared = set(manifest.get("files", []))
     present = {name for name in ALLOWED_PACK_FILES if (pack_dir / name).exists()}
@@ -325,16 +367,36 @@ def list_installed_packs(include_first_party: bool = True) -> list[dict]:
 
 def _describe_pack(pack_dir: Path, manifest: dict, origin: str) -> dict:
     metadata = _installed_metadata(pack_dir)
+    sig_status = "unsigned"
+    sig_path = pack_dir / "pack.sig.json"
+    if sig_path.is_file():
+        try:
+            from .pack_signing import verify_pack_signature
+
+            sig_status = verify_pack_signature(pack_dir).get("status", "unknown")
+        except Exception:
+            sig_status = "unreadable"
     return {
         "name": str(manifest.get("name", pack_dir.name)),
         "version": str(manifest.get("version", "")),
         "description": str(manifest.get("description", "")),
         "species": list(manifest.get("species", ["human"])),
         "tissues": list(manifest.get("tissues", [])),
+        "diseases": list(manifest.get("diseases", []) or []),
+        "pack_kind": str(manifest.get("pack_kind", "evidence")),
+        "license": str(manifest.get("license") or manifest.get("license_spdx") or ""),
         "license_tier": str(manifest.get("license_tier", "community")),
-        "trust": metadata.get("trust", TRUST_ATLAS),
+        "ontology": manifest.get("ontology") or {},
+        "provenance": manifest.get("provenance") or {},
+        "runtime_gates": list(
+            manifest.get("runtime_gates")
+            or ["marker_evidence", "critic", "abstention", "conflict_detection"]
+        ),
+        "signature_status": sig_status,
+        "trust": metadata.get("trust", manifest.get("trust", TRUST_ATLAS)),
         "origin": origin,
         "path": str(pack_dir),
+        "code_policy": "data_only_no_executables",
     }
 
 
@@ -371,6 +433,8 @@ def _load_pack_content(pack_dir: Path, manifest: dict, trust: str) -> dict:
         "files": {},
         "marker_atlas": None,
         "state_atlas": None,
+        "ontology_map": None,
+        "reference_manifest": None,
     }
     issues = validate_pack(pack_dir)
     if issues and trust == TRUST_ATLAS:
@@ -385,8 +449,12 @@ def _load_pack_content(pack_dir: Path, manifest: dict, trust: str) -> dict:
         content = json.loads(path.read_text(encoding="utf-8"))
         if filename == ATLAS_FILE:
             record["marker_atlas"] = content
-        else:
+        elif filename == STATE_FILE:
             record["state_atlas"] = content
+        elif filename == ONTOLOGY_MAP_FILE:
+            record["ontology_map"] = content
+        elif filename == REFERENCE_MANIFEST_FILE:
+            record["reference_manifest"] = content
     if record["marker_atlas"] is None and record["state_atlas"] is None:
         raise PackError(f"Pack {record['name']!r} provides no atlas data")
     return record
@@ -493,7 +561,28 @@ def merge_marker_atlas(
                 if record["trust"] == TRUST_HYPOTHESIS:
                     _tag_hypothesis_cell_types({ct_name: entry})
                 existing[ct_name] = entry
+
+    conflicts = detect_marker_conflicts(merged)
+    for c in conflicts:
+        if c.severity == "high":
+            warnings.append(f"High severity conflict introduced by pack: {c.conflict_type} on {c.gene} between {c.cell_type_a} and {c.cell_type_b}")
+
     return merged, warnings
+
+
+def pack_conflict_report(pack_dir: str | Path, base_atlas: dict) -> dict:
+    """Generate a conflict report for a pack against a base atlas."""
+    pack_dir = Path(pack_dir)
+    manifest = read_pack_manifest(pack_dir)
+    record = _load_pack_content(pack_dir, manifest, TRUST_ATLAS)
+
+    merged, _ = merge_marker_atlas(base_atlas, [record])
+    conflicts = detect_marker_conflicts(merged)
+
+    return {
+        "pack_name": record["name"],
+        "conflicts": [vars(c) for c in conflicts]
+    }
 
 
 def collect_pack_state_definitions_input(records: list[dict]) -> list[dict]:

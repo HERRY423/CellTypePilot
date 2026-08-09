@@ -32,6 +32,10 @@ mcp = ["fastmcp>=2.0.0"]
 seurat = ["rpy2>=3.5.0"]
 reference = ["celltypist>=1.6.0"]
 embedding = ["scvi-tools>=1.0.0"]
+benchmark = [
+    "celltypist>=1.6.0",
+    "scikit-learn>=1.4.0",
+]
 all = [
     "python-docx>=1.0.0",
     "flask>=3.0.0",
@@ -39,6 +43,7 @@ all = [
     "rpy2>=3.5.0",
     "celltypist>=1.6.0",
     "scvi-tools>=1.0.0",
+    "scikit-learn>=1.4.0",
 ]
 dev = [
     "pytest>=7.0.0",

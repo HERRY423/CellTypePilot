@@ -43,10 +43,21 @@ def main(
 # doctor command
 # ──────────────────────────────────────────────
 @app.command()
-def doctor():
+def doctor(
+    json_output: bool = typer.Option(False, "--json", help="Structured doctor report for Agent hosts"),
+):
     """Check environment: Python version, dependencies, capability level."""
-    from .doctor import print_doctor
+    from .agent_lifecycle import doctor_report_to_dict
+    from .doctor import print_doctor, run_doctor
 
+    if json_output:
+        report = run_doctor()
+        print(json.dumps(doctor_report_to_dict(report), indent=2))
+        if not report.python_ok or any(
+            not dep.installed and dep.required for dep in report.dependencies
+        ):
+            raise typer.Exit(1)
+        return
     print_doctor()
 
 
@@ -149,6 +160,28 @@ def annotate(
         "--pack",
         help="Installed extension pack name to merge (repeatable), e.g. --pack premium",
     ),
+    doublet_table: Path | None = typer.Option(
+        None,
+        "--doublet-table",
+        help="External doublet tool CSV (diagnostic only; cannot rescue identity)",
+    ),
+    ambient_table: Path | None = typer.Option(
+        None,
+        "--ambient-table",
+        help="External ambient-RNA tool CSV (diagnostic only; cannot rescue identity)",
+    ),
+    doublet_score_column: str = typer.Option(
+        "doublet_score", "--doublet-score-column", help="Score column in --doublet-table"
+    ),
+    ambient_score_column: str = typer.Option(
+        "ambient_score", "--ambient-score-column", help="Score column in --ambient-table"
+    ),
+    doublet_flag_column: str | None = typer.Option(
+        None, "--doublet-flag-column", help="Optional boolean/class column in --doublet-table"
+    ),
+    ambient_flag_column: str | None = typer.Option(
+        None, "--ambient-flag-column", help="Optional boolean/class column in --ambient-table"
+    ),
 ):
     """Run the full annotation pipeline: marker scoring → critic → report."""
     from .orchestrator import PipelineError, run_annotation_pipeline
@@ -180,6 +213,12 @@ def annotate(
             custom_markers_path=custom_markers,
             enable_states=not no_states,
             packs=pack or None,
+            doublet_table_path=doublet_table,
+            ambient_table_path=ambient_table,
+            doublet_score_column=doublet_score_column,
+            ambient_score_column=ambient_score_column,
+            doublet_flag_column=doublet_flag_column,
+            ambient_flag_column=ambient_flag_column,
             progress=_progress,
         )
     except PipelineError as e:
@@ -198,6 +237,12 @@ def annotate(
         f"  Passed: [green]{critic_summary['pass']}[/green] | "
         f"Flagged: [red]{critic_summary['flagged']}[/red]"
     )
+    qc = result.get("qc_diagnostics") or {}
+    if qc:
+        console.print(
+            f"  QC diagnostics: [cyan]{qc.get('rollup_status')}[/cyan] "
+            f"(identity rescue forbidden; missing axes = not_assessed)"
+        )
     if critic_summary.get("narrative"):
         console.print(f"  [dim]{critic_summary['narrative']}[/dim]")
     if "state_decision" in result["critic_results"]:
@@ -371,12 +416,49 @@ def atlas_governance(
         "--no-packs",
         help="Skip first-party/user extension pack inventory",
     ),
+    diff_previous: str | None = typer.Option(
+        None,
+        "--diff-previous",
+        help="Path to previous atlas JSON to compute structural diff",
+    ),
+    check_conflicts: bool = typer.Option(
+        False,
+        "--check-conflicts",
+        help="Check for intra-atlas marker conflicts",
+    ),
     json_output: bool = typer.Option(False, "--json", help="Print full report as JSON"),
 ):
     """Build an offline atlas governance report for release and Agent hosts."""
     from .atlas_governance import build_atlas_governance_report, write_atlas_governance_report
 
     report = build_atlas_governance_report(include_packs=not no_packs)
+
+    if check_conflicts:
+        from .atlas_conflict import detect_marker_conflicts
+        from .constants import ATLAS_PATH
+        from .data_adapter import load_marker_atlas
+        atlas = load_marker_atlas(ATLAS_PATH)
+        conflicts = detect_marker_conflicts(atlas)
+        report["conflicts"] = [
+            {
+                "type": c.conflict_type,
+                "gene": c.gene,
+                "type_a": c.cell_type_a,
+                "type_b": c.cell_type_b,
+                "severity": c.severity,
+            }
+            for c in conflicts
+        ]
+
+    if diff_previous:
+        from .atlas_diff import diff_atlases, format_diff_json
+        from .data_adapter import load_marker_atlas
+        prev_atlas = load_marker_atlas(diff_previous)
+        from .constants import ATLAS_PATH
+        curr_atlas = load_marker_atlas(ATLAS_PATH)
+        diff = diff_atlases(prev_atlas, curr_atlas)
+        report["diff_from_previous"] = format_diff_json(diff)
+
     if output:
         path = write_atlas_governance_report(output, include_packs=not no_packs)
         console.print(f"[green]Atlas governance report written:[/green] {path}")
@@ -388,6 +470,8 @@ def atlas_governance(
     console.print(f"  Assets: {aggregate['n_assets']}")
     console.print(f"  Marker relationships: {aggregate['n_marker_relationships']}")
     console.print(f"  Needs edge curation: {aggregate['needs_edge_curation']}")
+    if "governance_health_score" in report:
+        console.print(f"  Governance health score: {report['governance_health_score']:.2f}")
     console.print(
         "  Supported annotation species: "
         + ", ".join(report["supported_annotation_species"])
@@ -395,6 +479,74 @@ def atlas_governance(
     ontology = report.get("ontology", {})
     cache = ontology.get("cache", {})
     console.print(f"  Ontology cache: {'present' if cache.get('cached') else 'missing'}")
+    if "conflicts" in report:
+        console.print(f"  Detected conflicts: {len(report['conflicts'])}")
+
+
+@app.command("verify-novelty")
+def verify_novelty(
+    input_path: str = typer.Option(..., "--input", "-i", help="Path to input .h5ad file"),
+    cluster_key: str = typer.Option(..., "--cluster-key", "-k", help="Cluster column in obs"),
+    focus_cluster: str = typer.Option(..., "--focus", "-f", help="Cluster ID to evaluate"),
+    tissue: str = typer.Option("general", "--tissue", "-t", help="Tissue context"),
+    output_dir: str | None = typer.Option(None, "--output", "-o", help="Optional output directory"),
+    json_output: bool = typer.Option(False, "--json", help="Print verification packet as JSON"),
+):
+    """Run 5-gate audit protocol on a focused OOD/novel cell-type candidate."""
+    from .constants import ATLAS_PATH
+    from .critic import run_critic
+    from .data_adapter import get_all_markers_for_tissue, load_h5ad, load_marker_atlas
+    from .marker_scorer import compute_marker_scores, generate_annotation_summary
+    from .novelty_verification import verify_novelty_candidate
+
+    adata = load_h5ad(input_path)
+    atlas = load_marker_atlas(ATLAS_PATH)
+    markers = get_all_markers_for_tissue(atlas, tissue)
+    scores = compute_marker_scores(adata, cluster_key, markers)
+    summary = generate_annotation_summary(scores, cluster_key)
+    critic_df = run_critic(adata, cluster_key, summary, atlas, tissue)
+
+    focus_row = critic_df[critic_df["cluster"].astype(str) == str(focus_cluster)]
+    row_dict = focus_row.iloc[0].to_dict() if not focus_row.empty else {}
+
+    packet = verify_novelty_candidate(adata, cluster_key, focus_cluster, row_dict, atlas, tissue)
+
+    if output_dir:
+        out_p = Path(output_dir)
+        out_p.mkdir(parents=True, exist_ok=True)
+        (out_p / f"novelty_verification_cluster_{focus_cluster}.json").write_text(
+            json.dumps(packet, indent=2, ensure_ascii=False) + "\n", encoding="utf-8"
+        )
+        console.print(f"[green]Verification packet saved to {out_p}[/green]")
+
+    if json_output:
+        print(json.dumps(packet, indent=2, ensure_ascii=False))
+        return
+
+    console.print(f"[bold]Novelty Verification Packet for Cluster {focus_cluster}[/bold]")
+    console.print(f"  Verification Passed: {packet['verification_passed']}")
+    console.print(f"  Suggested Classification: {packet['suggested_classification']}")
+    console.print(f"  Adjudication Status: {packet['adjudication_status']}")
+
+
+@app.command("adjudicate-novelty")
+def adjudicate_novelty(
+    output_dir: str = typer.Option(..., "--output", "-o", help="Output directory containing run artifacts"),
+    cluster: str = typer.Option(..., "--cluster", "-c", help="Cluster ID being adjudicated"),
+    verdict: str = typer.Option(..., "--verdict", "-v", help="Verdict: validated_novel_cell_type, novel_cell_state, atlas_gap_resolved, rejected_technical_artifact, rejected_mixed_cluster"),
+    reviewer: str = typer.Option(..., "--reviewer", "-r", help="Name/ID of expert reviewer"),
+    notes: str | None = typer.Option(None, "--notes", help="Optional adjudication notes"),
+    pmid: str | None = typer.Option(None, "--pmid", help="Optional PMID or evidence link"),
+):
+    """Log a signed human expert adjudication verdict for a novelty candidate."""
+    from .novelty_verification import log_novelty_adjudication
+
+    try:
+        log_novelty_adjudication(output_dir, cluster, verdict, reviewer, notes=notes, pmid=pmid)
+        console.print(f"[green]Adjudication logged for cluster {cluster}: {verdict}[/green]")
+    except ValueError as exc:
+        console.print(f"[red]Adjudication error: {exc}[/red]")
+        raise typer.Exit(1) from exc
 
 
 @app.command()
@@ -470,7 +622,12 @@ def inspect_web(
         "./ctp_output",
         "--output",
         "-o",
-        help="Path to CellTypePilot output directory",
+        help="Path to CellTypePilot output directory (annotation review)",
+    ),
+    run_dir: Path | None = typer.Option(
+        None,
+        "--run-dir",
+        help="Optional benchmark-run directory with checkpoints/ (read-only observability)",
     ),
     host: str = typer.Option("127.0.0.1", "--host", help="Host to bind to"),
     port: int = typer.Option(8765, "--port", "-p", help="Port to listen on"),
@@ -478,24 +635,237 @@ def inspect_web(
     """Launch the Web Inspector — interactive annotation review panel."""
     from .web_inspector import run_inspector
 
-    if not output_dir.exists():
+    if not output_dir.exists() and (run_dir is None or not run_dir.exists()):
         console.print(f"[red]Output directory not found: {output_dir}[/red]")
-        console.print("Run 'celltypepilot annotate' first to generate output.")
+        console.print("Run 'celltypepilot annotate' first, or pass --run-dir for observability-only.")
         raise typer.Exit(1)
 
+    if run_dir is not None and not run_dir.exists():
+        console.print(f"[red]Run directory not found: {run_dir}[/red]")
+        raise typer.Exit(1)
+
+    # Observability-only: allow pointing -o at a benchmark run that has checkpoints.
+    effective_output = output_dir if output_dir.exists() else run_dir
+    effective_run = run_dir if run_dir is not None else effective_output
+
     console.print("[bold]Launching Web Inspector...[/bold]")
-    console.print(f"  Output dir: {output_dir}")
+    console.print(f"  Output dir: {effective_output}")
+    console.print(f"  Observability run dir (read-only): {effective_run}")
     console.print(f"  URL: http://{host}:{port}")
+    console.print("  Observability never mutates predictions; overrides use audit log.")
     console.print()
 
     try:
-        run_inspector(output_dir, host=host, port=port)
+        run_inspector(effective_output, host=host, port=port, run_dir=effective_run)
     except KeyboardInterrupt:
         console.print("\n[yellow]Web Inspector stopped.[/yellow]")
     except Exception as e:
         console.print(f"[red]Error: {e}[/red]")
         raise typer.Exit(1) from e
 
+
+@app.command("observe")
+def observe_run(
+    output_dir: Path = typer.Option(
+        ...,
+        "--output",
+        "-o",
+        help="Benchmark-run or annotation output directory (read-only)",
+    ),
+    json_output: bool = typer.Option(False, "--json", help="Machine-readable snapshot"),
+    no_host: bool = typer.Option(False, "--no-host", help="Skip CPU/GPU probe"),
+    no_hashes: bool = typer.Option(False, "--no-hashes", help="Skip product hashing"),
+):
+    """Read-only run observability: checkpoints, ETA, host, failures, hashes, stale.
+
+    Never writes fold workspaces or prediction tables. Manual overrides remain on
+    the append-only audit log + apply-overrides path.
+    """
+    from .agent_lifecycle import build_agent_status_report
+    from .run_observability import ObservabilityError, build_observability_snapshot
+
+    try:
+        snapshot = build_observability_snapshot(
+            output_dir,
+            include_host=not no_host,
+            include_product_hashes=not no_hashes,
+        )
+    except ObservabilityError as exc:
+        console.print(f"[red]{exc}[/red]")
+        raise typer.Exit(1) from exc
+
+    checkpoint_dir = Path(snapshot["run_root"]) / "checkpoints"
+    snapshot["agent_lifecycle"] = build_agent_status_report(
+        checkpoint_dir=checkpoint_dir if checkpoint_dir.is_dir() else None,
+        release_manifest=None,
+    )
+
+    if json_output:
+        print(json.dumps(snapshot, indent=2))
+        return
+
+    cp = snapshot.get("checkpoints") or {}
+    eta = snapshot.get("fold_eta") or {}
+    stale = snapshot.get("stale") or {}
+    host = snapshot.get("host") or {}
+    console.print(f"[bold]Run observability[/bold] (read-only) — {snapshot.get('run_root')}")
+    console.print(
+        f"  checkpoints: {cp.get('n_status_files', 0)}  "
+        f"completed={eta.get('n_completed', 0)} running={eta.get('n_running', 0)} "
+        f"failed={eta.get('n_failed', 0)}"
+    )
+    rem = eta.get("estimated_remaining_seconds")
+    console.print(f"  ETA remaining (s): {rem if rem is not None else '—'}")
+    console.print(
+        f"  stale: {stale.get('derived_artifacts_stale')}  "
+        f"({stale.get('review_state')}) — {stale.get('stale_reason')}"
+    )
+    cpu = (host.get("cpu") or {})
+    gpu = (host.get("gpu") or {})
+    console.print(
+        f"  CPU%: {cpu.get('cpu_percent')}  cores={cpu.get('cpu_count_logical')}  "
+        f"GPU: {'yes' if gpu.get('available') else 'no'}"
+    )
+    failures = snapshot.get("failures") or []
+    if failures:
+        console.print(f"  [red]failures: {len(failures)}[/red]")
+        for row in failures[:10]:
+            console.print(
+                f"    - {row.get('method')} / {row.get('fold_id')}: {row.get('failure_reason')}"
+            )
+    console.print(
+        "  prediction mutation: [green]denied[/green] "
+        "(overrides → audit log + apply-overrides only)"
+    )
+    life = snapshot.get("agent_lifecycle") or {}
+    ck = life.get("checkpoints") or {}
+    if ck:
+        console.print(
+            f"  agent rollup: [bold]{ck.get('rollup_agent_state')}[/bold]  "
+            f"counts={ck.get('counts_by_agent_state')}"
+        )
+
+
+@app.command("qc-diagnostics")
+def qc_diagnostics_cmd(
+    input: Path = typer.Option(..., "--input", "-i", help="Path to .h5ad file"),
+    cluster_key: str | None = typer.Option(
+        None, "--cluster-key", "-k", help="Cluster key for sample-enrichment axis"
+    ),
+    output_dir: Path = typer.Option(
+        "qc_output", "--output", "-o", help="Directory for qc_diagnostics.json/csv"
+    ),
+    doublet_table: Path | None = typer.Option(
+        None, "--doublet-table", help="External doublet tool CSV"
+    ),
+    ambient_table: Path | None = typer.Option(
+        None, "--ambient-table", help="External ambient-RNA tool CSV"
+    ),
+    doublet_score_column: str = typer.Option("doublet_score", "--doublet-score-column"),
+    ambient_score_column: str = typer.Option("ambient_score", "--ambient-score-column"),
+    doublet_flag_column: str | None = typer.Option(None, "--doublet-flag-column"),
+    ambient_flag_column: str | None = typer.Option(None, "--ambient-flag-column"),
+    json_output: bool = typer.Option(False, "--json", help="Print full QC report JSON"),
+):
+    """Assemble composable QC diagnostic axes (never rewrites identity labels).
+
+    Missing metadata yields not_assessed_*, never clean. External doublet/ambient
+    tools are optional plugins on a diagnostic axis only.
+    """
+    from .data_adapter import load_h5ad
+    from .qc_diagnostics import (
+        QCDiagnosticError,
+        assemble_qc_diagnostics,
+        load_external_tool_table,
+        write_qc_diagnostics,
+    )
+
+    try:
+        adata = load_h5ad(str(input))
+        doublet = (
+            load_external_tool_table(
+                doublet_table,
+                axis="doublet",
+                score_column=doublet_score_column,
+                flag_column=doublet_flag_column,
+            )
+            if doublet_table is not None
+            else None
+        )
+        ambient = (
+            load_external_tool_table(
+                ambient_table,
+                axis="ambient_rna",
+                score_column=ambient_score_column,
+                flag_column=ambient_flag_column,
+            )
+            if ambient_table is not None
+            else None
+        )
+        report = assemble_qc_diagnostics(
+            adata,
+            cluster_key=cluster_key,
+            doublet_table=doublet,
+            ambient_table=ambient,
+        )
+        paths = write_qc_diagnostics(report, output_dir)
+    except (QCDiagnosticError, FileNotFoundError, OSError) as exc:
+        console.print(f"[red]QC diagnostics failed: {exc}[/red]")
+        raise typer.Exit(1) from exc
+
+    if json_output:
+        print(json.dumps(report, indent=2))
+    else:
+        console.print(f"[green]QC diagnostics written[/green] (can_rescue_identity=false)")
+        console.print(f"  rollup: {report['rollup_status']} / {report['rollup_flag']}")
+        for axis, payload in report["axes"].items():
+            console.print(
+                f"  {axis}: {payload['status']}  flag={payload['flag']}  "
+                f"flagged={payload['n_cells_flagged']}"
+            )
+        for key, path in paths.items():
+            console.print(f"  {key}: {path}")
+
+
+@app.command("host-acceptance")
+def host_acceptance(
+    worktree: Path | None = typer.Option(
+        None,
+        "--worktree",
+        help="Optional independent git worktree path (created if missing via script)",
+    ),
+    json_output: bool = typer.Option(False, "--json", help="Machine-readable report"),
+    skip_worktree: bool = typer.Option(
+        False,
+        "--skip-worktree",
+        help="Run harness in-repo under scratch/ (still isolated fixtures)",
+    ),
+):
+    """Host acceptance: discovery + lifecycle discrimination for Agent hosts.
+
+    Verifies Codex / Claude Code / MCP discovery surfaces and that an Agent can
+    distinguish running / completed / failed / unavailable / claim_ready — not
+    merely that CLI entry points exist.
+    """
+    from .host_acceptance import run_host_acceptance
+
+    report = run_host_acceptance(
+        worktree=worktree,
+        skip_worktree=skip_worktree,
+    )
+    if json_output:
+        print(json.dumps(report, indent=2))
+    else:
+        console.print(f"[bold]Host acceptance[/bold] status={report['overall_status']}")
+        for check in report["checks"]:
+            mark = "green" if check["passed"] else "red"
+            console.print(f"  [{mark}]{check['id']}[/{mark}]: {check['detail']}")
+        if report.get("agent_discrimination"):
+            console.print(
+                f"  discrimination: {report['agent_discrimination'].get('states_observed')}"
+            )
+    if report["overall_status"] != "passed":
+        raise typer.Exit(1)
 
 # ──────────────────────────────────────────────
 # convert-rds command (Seurat support)
@@ -909,12 +1279,19 @@ def benchmark(
         "--predictions",
         help="Out-of-fold long CSV: cell_id,fold_id,method,predicted_label",
     ),
+    cluster_key: str | None = typer.Option(
+        None, "--cluster-key", help="Required for cluster or both evaluation units"
+    ),
+    evaluation_unit: str = typer.Option(
+        "cell", "--evaluation-unit", help="cell, cluster, or both"
+    ),
 ):
     """Lock study/donor holdouts and optionally evaluate comparator predictions."""
     import pandas as pd
 
     from .benchmark import (
         build_calibration_artifacts,
+        build_cluster_level_track,
         build_holdout_assignments,
         evaluate_holdout_predictions,
         save_benchmark_plan,
@@ -929,23 +1306,53 @@ def benchmark(
     console.print(f"Locked {assignments['fold_id'].nunique()} independent test folds")
 
     if predictions is not None:
+        if evaluation_unit not in {"cell", "cluster", "both"}:
+            raise typer.BadParameter("--evaluation-unit must be cell, cluster, or both")
+        if evaluation_unit in {"cluster", "both"} and (
+            cluster_key is None or cluster_key not in adata.obs
+        ):
+            raise typer.BadParameter("cluster/both evaluation requires a valid --cluster-key")
         prediction_table = pd.read_csv(predictions, dtype={"cell_id": str, "fold_id": str})
-        aggregate, per_fold = evaluate_holdout_predictions(
-            adata.obs[truth_key], assignments, prediction_table
-        )
-        aggregate_path = Path(output_dir) / "benchmark_results.csv"
-        per_fold_path = Path(output_dir) / "benchmark_results_by_fold.csv"
-        aggregate.to_csv(aggregate_path, index=False)
-        per_fold.to_csv(per_fold_path, index=False)
-        paths.update({"results": aggregate_path, "per_fold": per_fold_path})
-        if "confidence" in prediction_table.columns:
-            bins, risk = build_calibration_artifacts(adata.obs[truth_key], prediction_table)
-            bins_path = Path(output_dir) / "calibration_bins.csv"
-            risk_path = Path(output_dir) / "risk_coverage.csv"
-            bins.to_csv(bins_path, index=False)
-            risk.to_csv(risk_path, index=False)
-            paths.update({"calibration_bins": bins_path, "risk_coverage": risk_path})
-        console.print(aggregate.to_string(index=False))
+        if evaluation_unit in {"cell", "both"}:
+            aggregate, per_fold = evaluate_holdout_predictions(
+                adata.obs[truth_key], assignments, prediction_table
+            )
+            aggregate_path = Path(output_dir) / "benchmark_results.csv"
+            per_fold_path = Path(output_dir) / "benchmark_results_by_fold.csv"
+            aggregate.to_csv(aggregate_path, index=False)
+            per_fold.to_csv(per_fold_path, index=False)
+            paths.update({"results": aggregate_path, "per_fold": per_fold_path})
+            if "confidence" in prediction_table.columns:
+                bins, risk = build_calibration_artifacts(adata.obs[truth_key], prediction_table)
+                bins_path = Path(output_dir) / "calibration_bins.csv"
+                risk_path = Path(output_dir) / "risk_coverage.csv"
+                bins.to_csv(bins_path, index=False)
+                risk.to_csv(risk_path, index=False)
+                paths.update({"calibration_bins": bins_path, "risk_coverage": risk_path})
+            console.print(aggregate.to_string(index=False))
+        if evaluation_unit in {"cluster", "both"}:
+            cluster_truth, cluster_assignments, cluster_predictions, diagnostics = (
+                build_cluster_level_track(
+                    adata.obs[truth_key],
+                    assignments,
+                    prediction_table,
+                    adata.obs[cluster_key],
+                )
+            )
+            cluster_results, cluster_folds = evaluate_holdout_predictions(
+                cluster_truth,
+                cluster_assignments,
+                cluster_predictions,
+            )
+            for name, frame in (
+                ("cluster_track_results", cluster_results),
+                ("cluster_track_results_by_fold", cluster_folds),
+                ("cluster_track_predictions", cluster_predictions),
+                ("cluster_track_diagnostics", diagnostics),
+            ):
+                path = Path(output_dir) / f"{name}.csv"
+                frame.to_csv(path, index=False)
+                paths[name] = path
     else:
         console.print(
             "No predictions supplied; comparator status remains not_provided until "
@@ -1010,8 +1417,18 @@ def benchmark_run(
     input: str = typer.Option(..., "--input", "-i", help="Benchmark .h5ad"),
     truth_key: str = typer.Option(..., "--truth-key", help="Locked canonical truth column"),
     study_key: str = typer.Option(..., "--study-key", help="Study identifier column"),
+    constant_study_id: str | None = typer.Option(
+        None,
+        "--constant-study-id",
+        help="Truth-blind constant used when an immutable single-study h5ad lacks study_key",
+    ),
     donor_key: str = typer.Option(..., "--donor-key", help="Globally unique donor column"),
     cluster_key: str = typer.Option(..., "--cluster-key", "-k", help="Predeclared cluster column"),
+    cluster_map: str | None = typer.Option(
+        None,
+        "--cluster-map",
+        help="Optional locked CSV with cell_id,cluster when the source h5ad is immutable",
+    ),
     species: str = typer.Option(..., "--species", "-s", help="Explicit species"),
     tissue: str = typer.Option(..., "--tissue", "-t", help="Explicit tissue"),
     output_dir: str = typer.Option("benchmark", "--output", "-o", help="Output directory"),
@@ -1036,41 +1453,112 @@ def benchmark_run(
         "--continue-on-unavailable",
         help="Record unavailable comparators instead of failing the benchmark run",
     ),
+    fold_id: list[str] = typer.Option(
+        [],
+        "--fold-id",
+        help="Optional: only run these fold_id values (repeatable; for donor-fold workers)",
+    ),
+    no_aggregate_tables: bool = typer.Option(
+        False,
+        "--no-aggregate-tables",
+        help=(
+            "Write only atomic per-fold checkpoints; do not rewrite global "
+            "out_of_fold_predictions.csv (required for multi-node workers)"
+        ),
+    ),
+    worker_id: str | None = typer.Option(
+        None, "--worker-id", help="Optional worker identity recorded in checkpoint status"
+    ),
+    batch_id: str | None = typer.Option(
+        None, "--batch-id", help="Optional frozen batch id recorded in checkpoint status"
+    ),
+    evaluation_unit: str = typer.Option(
+        "both", "--evaluation-unit", help="cell, cluster, or both; both keeps endpoints separate"
+    ),
 ):
     """Execute locked-fold comparator runs; never expose test truth to adapters."""
     import pandas as pd
 
     from .benchmark import (
         BenchmarkValidationError,
+        apply_truth_label_map,
         build_calibration_artifacts,
+        build_cluster_level_track,
         build_holdout_assignments,
         evaluate_holdout_predictions,
         save_benchmark_plan,
     )
-    from .benchmark_runner import CommandComparator, run_benchmark_comparators
+    from .benchmark_runner import (
+        CommandComparator,
+        configure_benchmark_runtime,
+        run_benchmark_comparators,
+    )
     from .data_adapter import compute_data_hash, load_h5ad
 
+    runtime_config = configure_benchmark_runtime(output_dir)
     adata = load_h5ad(input)
+    if study_key not in adata.obs:
+        if not constant_study_id:
+            raise typer.BadParameter(
+                f"study key '{study_key}' not found; provide --constant-study-id"
+            )
+        adata.obs[study_key] = str(constant_study_id)
+    if cluster_key not in adata.obs:
+        if not cluster_map:
+            raise typer.BadParameter(
+                f"cluster key '{cluster_key}' not found; provide --cluster-map for immutable data"
+            )
+        cluster_frame = pd.read_csv(cluster_map, dtype=str)
+        required_cluster_columns = {"cell_id", "cluster"}
+        missing_cluster_columns = required_cluster_columns - set(cluster_frame)
+        if missing_cluster_columns:
+            raise typer.BadParameter(
+                f"cluster map missing columns: {sorted(missing_cluster_columns)}"
+            )
+        if cluster_frame["cell_id"].duplicated().any():
+            raise typer.BadParameter("cluster map contains duplicate cell_id values")
+        cluster_values = cluster_frame.set_index("cell_id")["cluster"]
+        cluster_values.index = cluster_values.index.astype(str)
+        expected_cells = pd.Index(adata.obs_names.astype(str))
+        missing_cells = expected_cells.difference(cluster_values.index)
+        extra_cells = cluster_values.index.difference(expected_cells)
+        if len(missing_cells) or len(extra_cells):
+            raise typer.BadParameter(
+                f"cluster map cell mismatch: missing={len(missing_cells)}, extra={len(extra_cells)}"
+            )
+        adata.obs[cluster_key] = cluster_values.reindex(expected_cells).to_numpy()
     requested = tuple(value.strip().lower() for value in methods.split(",") if value.strip())
     if not requested:
         raise typer.BadParameter("At least one method is required")
+    if evaluation_unit not in {"cell", "cluster", "both"}:
+        raise typer.BadParameter("--evaluation-unit must be cell, cluster, or both")
     assignments = build_holdout_assignments(adata.obs, study_key, donor_key, strategy)
     paths = save_benchmark_plan(assignments, output_dir, study_key, donor_key, strategy)
     specs = tuple(CommandComparator.from_json(path) for path in comparator_config)
     map_frame = pd.read_csv(label_map, dtype=str) if label_map else None
+    evaluation_truth = apply_truth_label_map(adata.obs[truth_key], map_frame)
     benchmark_manifest = json.loads(paths["manifest"].read_text(encoding="utf-8"))
     benchmark_manifest["execution"] = {
         "input_sha256": compute_data_hash(input),
         "truth_exposure_policy": "test_h5ad_strips_truth_and_label_like_obs_columns",
         "cluster_key": cluster_key,
+        "cluster_map_sha256": compute_data_hash(cluster_map) if cluster_map else None,
         "species": species,
         "tissue": tissue,
+        "constant_study_id": constant_study_id,
         "methods": list(requested),
         "comparator_config_sha256": {
             str(path): compute_data_hash(path) for path in comparator_config
         },
         "label_map_sha256": compute_data_hash(label_map) if label_map else None,
         "continue_on_unavailable": continue_on_unavailable,
+        "runtime_config": runtime_config,
+        "checkpoint_contract": "atomic_per_method_fold_v1",
+        "fold_ids": list(fold_id) if fold_id else None,
+        "write_aggregate_tables": not no_aggregate_tables,
+        "worker_id": worker_id,
+        "batch_id": batch_id,
+        "evaluation_unit": evaluation_unit,
     }
     paths["manifest"].write_text(json.dumps(benchmark_manifest, indent=2), encoding="utf-8")
     try:
@@ -1086,6 +1574,10 @@ def benchmark_run(
             command_specs=specs,
             label_map=map_frame,
             continue_on_unavailable=continue_on_unavailable,
+            fold_ids=tuple(fold_id) if fold_id else None,
+            write_aggregate_tables=not no_aggregate_tables,
+            worker_id=worker_id,
+            batch_id=batch_id,
         )
     except BenchmarkValidationError as exc:
         console.print(f"[red]Benchmark execution failed: {exc}[/red]")
@@ -1097,28 +1589,108 @@ def benchmark_run(
     if not predictions.empty:
         prediction_path = Path(output_dir) / "out_of_fold_predictions.csv"
         predictions.to_csv(prediction_path, index=False)
-        aggregate, per_fold = evaluate_holdout_predictions(
-            adata.obs[truth_key], assignments, predictions, expected_methods=requested
+        paths["predictions"] = prediction_path
+        if evaluation_unit in {"cell", "both"}:
+            aggregate, per_fold = evaluate_holdout_predictions(
+                evaluation_truth, assignments, predictions, expected_methods=requested
+            )
+            result_path = Path(output_dir) / "benchmark_results.csv"
+            fold_path = Path(output_dir) / "benchmark_results_by_fold.csv"
+            aggregate.to_csv(result_path, index=False)
+            per_fold.to_csv(fold_path, index=False)
+            bins, risk = build_calibration_artifacts(evaluation_truth, predictions)
+            bins_path = Path(output_dir) / "calibration_bins.csv"
+            risk_path = Path(output_dir) / "risk_coverage.csv"
+            bins.to_csv(bins_path, index=False)
+            risk.to_csv(risk_path, index=False)
+            paths.update(
+                {
+                    "results": result_path,
+                    "per_fold": fold_path,
+                    "calibration_bins": bins_path,
+                    "risk_coverage": risk_path,
+                }
+            )
+            console.print(aggregate.to_string(index=False))
+        if evaluation_unit in {"cluster", "both"}:
+            cluster_truth, cluster_assignments, cluster_predictions, diagnostics = (
+                build_cluster_level_track(
+                    evaluation_truth,
+                    assignments,
+                    predictions,
+                    adata.obs[cluster_key],
+                )
+            )
+            cluster_results, cluster_folds = evaluate_holdout_predictions(
+                cluster_truth,
+                cluster_assignments,
+                cluster_predictions,
+                expected_methods=requested,
+            )
+            for name, frame in (
+                ("cluster_track_results", cluster_results),
+                ("cluster_track_results_by_fold", cluster_folds),
+                ("cluster_track_predictions", cluster_predictions),
+                ("cluster_track_diagnostics", diagnostics),
+            ):
+                path = Path(output_dir) / f"{name}.csv"
+                frame.to_csv(path, index=False)
+                paths[name] = path
+    for label, path in paths.items():
+        console.print(f"  {label}: {path}")
+
+
+@app.command("benchmark-release")
+def benchmark_release(
+    registry: str = typer.Option(
+        ...,
+        "--registry",
+        "-r",
+        help="Locked public multi-cohort registry JSON",
+    ),
+    output_dir: str = typer.Option(
+        "benchmark_release",
+        "--output",
+        "-o",
+        help="Release artifact directory",
+    ),
+    allow_incomplete: bool = typer.Option(
+        False,
+        "--allow-incomplete",
+        help="Write an explicitly non-claim-ready release when data or predictions are missing",
+    ),
+    n_boot: int = typer.Option(
+        2000,
+        "--n-boot",
+        min=100,
+        help="Donor/study hierarchical bootstrap replicates",
+    ),
+    seed: int = typer.Option(42, "--seed", help="Locked resampling seed"),
+):
+    """Build a donor-aware public benchmark release and retain negative results."""
+    from .benchmark import BenchmarkValidationError
+    from .benchmark_release import build_public_benchmark_release
+
+    try:
+        paths = build_public_benchmark_release(
+            registry,
+            output_dir,
+            allow_incomplete=allow_incomplete,
+            n_boot=n_boot,
+            seed=seed,
         )
-        result_path = Path(output_dir) / "benchmark_results.csv"
-        fold_path = Path(output_dir) / "benchmark_results_by_fold.csv"
-        aggregate.to_csv(result_path, index=False)
-        per_fold.to_csv(fold_path, index=False)
-        bins, risk = build_calibration_artifacts(adata.obs[truth_key], predictions)
-        bins_path = Path(output_dir) / "calibration_bins.csv"
-        risk_path = Path(output_dir) / "risk_coverage.csv"
-        bins.to_csv(bins_path, index=False)
-        risk.to_csv(risk_path, index=False)
-        paths.update(
-            {
-                "predictions": prediction_path,
-                "results": result_path,
-                "per_fold": fold_path,
-                "calibration_bins": bins_path,
-                "risk_coverage": risk_path,
-            }
-        )
-        console.print(aggregate.to_string(index=False))
+    except BenchmarkValidationError as exc:
+        console.print(f"[red]Benchmark release failed: {exc}[/red]")
+        raise typer.Exit(1) from exc
+    manifest = json.loads(paths["release_manifest"].read_text(encoding="utf-8"))
+    readiness = manifest["readiness"]
+    colour = "green" if readiness["status"] == "claim_ready" else "yellow"
+    console.print(f"[{colour}]Release status: {readiness['status']}[/{colour}]")
+    console.print(
+        f"  cohorts={readiness['n_evaluated_cohorts']}/{readiness['n_registered_cohorts']} "
+        f"donors={readiness['n_independent_donors']} "
+        f"blocking={readiness['blocking_findings']}"
+    )
     for label, path in paths.items():
         console.print(f"  {label}: {path}")
 
@@ -1193,6 +1765,91 @@ def license(
 # ──────────────────────────────────────────────
 # curate command (literature co-occurrence sweep)
 # ──────────────────────────────────────────────
+evidence_app = typer.Typer(
+    name="evidence",
+    help="Gene/cell identity contracts and human-gated marker-edge evidence",
+    add_completion=False,
+)
+app.add_typer(evidence_app, name="evidence")
+
+
+@evidence_app.command("propose-promotion")
+def evidence_propose_promotion(
+    atlas_path: str = typer.Option(..., "--atlas"),
+    tissue: str = typer.Option(..., "--tissue"),
+    cell_path: str = typer.Option(..., "--cell-path"),
+    gene: str = typer.Option(..., "--gene"),
+    polarity: str = typer.Option(..., "--polarity"),
+    target_status: str = typer.Option(..., "--target-status"),
+    evidence_json: str = typer.Option(..., "--evidence-json"),
+    requested_by: str = typer.Option(..., "--requested-by"),
+    output: str = typer.Option(..., "--output", "-o"),
+    proposal_origin: str = typer.Option("human_curator", "--origin"),
+):
+    """Draft an immutable promotion proposal; this never changes the atlas."""
+    from .evidence_promotion import build_promotion_proposal, write_promotion_proposal
+
+    atlas = json.loads(Path(atlas_path).read_text(encoding="utf-8"))
+    evidence = json.loads(Path(evidence_json).read_text(encoding="utf-8"))
+    proposal = build_promotion_proposal(
+        atlas,
+        tissue=tissue,
+        cell_path=cell_path,
+        gene=gene,
+        polarity=polarity,
+        target_status=target_status,
+        evidence=evidence,
+        requested_by=requested_by,
+        proposal_origin=proposal_origin,
+    )
+    path = write_promotion_proposal(proposal, output)
+    console.print(f"Promotion proposal written: {path} (status={proposal['status']})")
+
+
+@evidence_app.command("review-promotion")
+def evidence_review_promotion(
+    proposal_path: str = typer.Option(..., "--proposal"),
+    reviewer: str = typer.Option(..., "--reviewer"),
+    decision: str = typer.Option(..., "--decision"),
+    notes: str = typer.Option(..., "--notes"),
+    output: str | None = typer.Option(None, "--output", "-o"),
+):
+    """Append one independent human review to a promotion proposal."""
+    from .evidence_promotion import add_promotion_review, write_promotion_proposal
+
+    source = Path(proposal_path)
+    proposal = json.loads(source.read_text(encoding="utf-8"))
+    reviewed = add_promotion_review(
+        proposal, reviewer=reviewer, decision=decision, notes=notes
+    )
+    path = write_promotion_proposal(reviewed, output or source)
+    console.print(f"Promotion review written: {path} (status={reviewed['status']})")
+
+
+@evidence_app.command("apply-promotion")
+def evidence_apply_promotion(
+    atlas_path: str = typer.Option(..., "--atlas"),
+    proposal_path: str = typer.Option(..., "--proposal"),
+    new_version: str = typer.Option(..., "--new-version"),
+    output: str = typer.Option(..., "--output", "-o"),
+):
+    """Create a new atlas from a two-reviewer-approved proposal."""
+    from .evidence_promotion import apply_approved_promotion
+
+    atlas_source = Path(atlas_path).resolve()
+    target = Path(output).resolve()
+    if atlas_source == target:
+        raise typer.BadParameter("--output must not overwrite the source atlas")
+    atlas = json.loads(atlas_source.read_text(encoding="utf-8"))
+    proposal = json.loads(Path(proposal_path).read_text(encoding="utf-8"))
+    promoted = apply_approved_promotion(atlas, proposal, new_version=new_version)
+    target.parent.mkdir(parents=True, exist_ok=True)
+    target.write_text(
+        json.dumps(promoted, indent=2, ensure_ascii=False) + "\n", encoding="utf-8"
+    )
+    console.print(f"Promoted atlas written: {target}")
+
+
 @app.command()
 def curate(
     atlas_path: str | None = typer.Option(
@@ -1478,6 +2135,318 @@ def pack_remove(
         console.print(f"[red]{exc}[/red]")
         raise typer.Exit(1) from exc
     console.print(f"[green]Removed pack {name!r}[/green]")
+
+
+@pack_app.command("scaffold")
+def pack_scaffold(
+    name: str = typer.Argument(..., help="Pack name [a-z0-9_-]"),
+    output: Path = typer.Option(..., "--output", "-o", help="Directory to create"),
+    tissue: list[str] = typer.Option(["general"], "--tissue", help="Tissue keys (repeatable)"),
+    disease: list[str] = typer.Option([], "--disease", help="Disease/context labels (repeatable)"),
+    pack_kind: str = typer.Option("evidence", "--kind", help="evidence | reference | mixed"),
+    version: str = typer.Option("0.1.0", "--version"),
+    license_spdx: str = typer.Option("CC-BY-4.0", "--license"),
+):
+    """Scaffold a signed-ready, data-only evidence/reference pack (no code)."""
+    from .pack_manager import PackError
+    from .pack_signing import scaffold_pack
+
+    try:
+        root = scaffold_pack(
+            output,
+            name=name,
+            version=version,
+            tissues=list(tissue),
+            diseases=list(disease),
+            pack_kind=pack_kind,
+            license_spdx=license_spdx,
+        )
+    except PackError as exc:
+        console.print(f"[red]{exc}[/red]")
+        raise typer.Exit(1) from exc
+    console.print(f"[green]Scaffolded data-only pack at {root}[/green]")
+    console.print("  Fill marker_atlas.json edges with provenance, then: celltypepilot pack sign <dir>")
+
+
+@pack_app.command("sign")
+def pack_sign(
+    pack_dir: Path = typer.Argument(..., help="Pack directory containing pack.json"),
+    signer: str = typer.Option("local-curator", "--signer"),
+    hmac_secret: str | None = typer.Option(
+        None, "--hmac-secret", help="Optional HMAC secret (dev/community); else default dev secret"
+    ),
+    private_key: Path | None = typer.Option(
+        None, "--private-key", help="Optional RSA PEM private key for pack.sig.json"
+    ),
+):
+    """Sign a data-only pack (binds content hashes + license/provenance/ontology)."""
+    from .pack_manager import PackError
+    from .pack_signing import sign_pack
+
+    pem = private_key.read_text(encoding="utf-8") if private_key else None
+    try:
+        payload = sign_pack(
+            pack_dir,
+            private_key_pem=pem,
+            hmac_secret=hmac_secret,
+            signer=signer,
+        )
+    except PackError as exc:
+        console.print(f"[red]Sign failed: {exc}[/red]")
+        raise typer.Exit(1) from exc
+    console.print(f"[green]Signed pack[/green] algorithm={payload['algorithm']}")
+    console.print(f"  fingerprint: {payload['fingerprint_sha256'][:16]}…")
+    console.print(f"  wrote: {pack_dir / 'pack.sig.json'}")
+
+
+@pack_app.command("verify")
+def pack_verify(
+    pack_dir: Path = typer.Argument(..., help="Pack directory"),
+    require_signature: bool = typer.Option(
+        False, "--require-signature", help="Fail if pack.sig.json missing/invalid"
+    ),
+    json_output: bool = typer.Option(False, "--json"),
+):
+    """Validate data-only policy, provenance, and signature for a pack."""
+    from .pack_signing import validate_pack_ecosystem, verify_pack_signature
+
+    issues = validate_pack_ecosystem(pack_dir, require_signature=require_signature)
+    sig = verify_pack_signature(pack_dir)
+    report = {"issues": issues, "signature": sig, "ok": not issues and (sig.get("valid") or not require_signature)}
+    if json_output:
+        print(json.dumps(report, indent=2))
+    else:
+        if issues:
+            console.print("[red]Pack validation FAILED[/red]")
+            for issue in issues:
+                console.print(f"  - {issue}")
+        else:
+            console.print("[green]Pack data-only + provenance OK[/green]")
+        console.print(f"  signature: {sig.get('status')} ({sig.get('reason')})")
+    if issues or (require_signature and not sig.get("valid")):
+        raise typer.Exit(1)
+
+
+@app.command("review-resign")
+def review_resign_cmd(
+    output_dir: Path = typer.Option(..., "--output", "-o", help="Annotation output directory"),
+    signer: str = typer.Option("cli-reviewer", "--signer"),
+    no_regenerate: bool = typer.Option(
+        False, "--no-regenerate", help="Only re-hash existing artifacts without HTML refresh"
+    ),
+    json_output: bool = typer.Option(False, "--json"),
+):
+    """Regenerate derived artifacts after human edits and re-sign content hashes.
+
+    Append-only audit is preserved. Clears stale flags only after successful resign.
+    """
+    from .review_resign import ReviewResignError, resign_review_outputs
+
+    try:
+        result = resign_review_outputs(
+            output_dir, signer=signer, regenerate=not no_regenerate
+        )
+    except ReviewResignError as exc:
+        console.print(f"[red]{exc}[/red]")
+        raise typer.Exit(1) from exc
+    if json_output:
+        print(json.dumps(result, indent=2, default=str))
+    else:
+        sig = result["signature"]
+        console.print("[green]Review outputs re-signed[/green]")
+        console.print(f"  signature: {sig['signature_sha256'][:16]}…")
+        console.print(f"  regenerated: {sig.get('regenerated')}")
+        console.print(f"  artifact_status: {result['artifact_status']['review_state']}")
+
+
+# ──────────────────────────────────────────────
+# assets commands (immutable object-store catalog)
+# ──────────────────────────────────────────────
+assets_app = typer.Typer(
+    name="assets",
+    help="Immutable asset catalog (CELLxGENE, Azimuth refs, label maps, Docker images)",
+    add_completion=False,
+)
+app.add_typer(assets_app, name="assets")
+
+_DEFAULT_ASSET_CATALOG = (
+    Path(__file__).resolve().parents[2] / "benchmarks" / "assets" / "catalog.json"
+)
+_DEFAULT_ASSET_POLICY = (
+    Path(__file__).resolve().parents[2] / "benchmarks" / "assets" / "storage_policy.json"
+)
+
+
+def _resolve_asset_paths(catalog: Path | None, policy: Path | None) -> tuple[Path, Path]:
+    catalog_path = Path(catalog) if catalog is not None else _DEFAULT_ASSET_CATALOG
+    policy_path = Path(policy) if policy is not None else _DEFAULT_ASSET_POLICY
+    # Prefer package-adjacent repo layout; fall back to CWD-relative benchmarks/assets.
+    if not catalog_path.is_file():
+        cwd_catalog = Path("benchmarks/assets/catalog.json")
+        if cwd_catalog.is_file():
+            catalog_path = cwd_catalog
+    if not policy_path.is_file():
+        cwd_policy = Path("benchmarks/assets/storage_policy.json")
+        if cwd_policy.is_file():
+            policy_path = cwd_policy
+    return catalog_path, policy_path
+
+
+@assets_app.command("list")
+def assets_list(
+    kind: str | None = typer.Option(None, "--kind", help="Filter by asset kind"),
+    availability: str | None = typer.Option(
+        None, "--availability", help="Filter by availability status"
+    ),
+    catalog: Path | None = typer.Option(None, "--catalog", help="Catalog JSON path"),
+    policy: Path | None = typer.Option(None, "--policy", help="Storage policy JSON path"),
+    json_output: bool = typer.Option(False, "--json", help="Output as JSON"),
+):
+    """List immutable assets with URL, version, SHA-256, license, and status."""
+    from .asset_catalog import (
+        AssetCatalogError,
+        filter_assets,
+        load_asset_catalog,
+        load_storage_policy,
+        summarize_catalog,
+    )
+
+    catalog_path, policy_path = _resolve_asset_paths(catalog, policy)
+    try:
+        payload, _ = load_asset_catalog(catalog_path)
+        storage, _ = load_storage_policy(policy_path)
+    except (OSError, json.JSONDecodeError, AssetCatalogError) as exc:
+        console.print(f"[red]{exc}[/red]")
+        raise typer.Exit(1) from exc
+
+    kinds = [kind] if kind else None
+    avails = [availability] if availability else None
+    rows = filter_assets(payload, kinds=kinds, availability=avails)
+    view = {**payload, "assets": rows}
+    summary = summarize_catalog(view, policy=storage)
+    if json_output:
+        print(json.dumps(summary, indent=2))
+        return
+    console.print(
+        f"[bold]{payload.get('catalog_id')}[/bold]  "
+        f"({len(rows)} assets; never writes fold runs/)"
+    )
+    for asset in summary["assets"]:
+        console.print(
+            f"  [{asset['kind']}] {asset['asset_id']}@{asset['version']}  "
+            f"{asset['availability']}  sha256={asset['sha256'][:12]}…  "
+            f"{asset['species']}/{asset['tissue']}  license={asset['license']}"
+        )
+        console.print(f"      url={asset['url']}")
+
+
+@assets_app.command("verify")
+def assets_verify(
+    catalog: Path | None = typer.Option(None, "--catalog", help="Catalog JSON path"),
+    policy: Path | None = typer.Option(None, "--policy", help="Storage policy JSON path"),
+    json_output: bool = typer.Option(False, "--json", help="Output as JSON"),
+):
+    """Validate catalog schema and verify local file:/object-cache digests."""
+    from .asset_catalog import (
+        AssetCatalogError,
+        load_asset_catalog,
+        load_storage_policy,
+        summarize_catalog,
+    )
+
+    catalog_path, policy_path = _resolve_asset_paths(catalog, policy)
+    try:
+        payload, resolved_catalog = load_asset_catalog(catalog_path)
+        storage, _ = load_storage_policy(policy_path)
+        summary = summarize_catalog(
+            payload,
+            policy=storage,
+            catalog_root=resolved_catalog.parent,
+            verify_local=True,
+        )
+    except (OSError, json.JSONDecodeError, AssetCatalogError) as exc:
+        console.print(f"[red]{exc}[/red]")
+        raise typer.Exit(1) from exc
+
+    if json_output:
+        print(json.dumps(summary, indent=2))
+    else:
+        console.print(f"[green]Catalog OK[/green]: {summary['catalog_id']}")
+        console.print(f"  assets: {summary['n_assets']}")
+        console.print(f"  availability: {summary['by_availability']}")
+        console.print(
+            f"  local verified: {summary.get('local_verified_count', 0)}; "
+            f"hard failures: {summary.get('local_failure_count', 0)}"
+        )
+        for row in summary.get("local_verification", []):
+            colour = "green" if row["status"] == "verified" or row["status"].startswith(
+                "ok_"
+            ) else "yellow"
+            if row["status"] in {"sha256_mismatch", "byte_size_mismatch"}:
+                colour = "red"
+            console.print(
+                f"  [{colour}]{row['asset_id']}[/{colour}]: {row['status']}"
+            )
+
+    hard = summary.get("local_failure_count", 0)
+    available_missing = sum(
+        1
+        for row in summary.get("local_verification", [])
+        if row["status"] == "missing_local" and row["availability"] == "available"
+    )
+    if hard or available_missing:
+        raise typer.Exit(1)
+
+
+@assets_app.command("materialize")
+def assets_materialize(
+    catalog: Path | None = typer.Option(None, "--catalog", help="Catalog JSON path"),
+    policy: Path | None = typer.Option(None, "--policy", help="Storage policy JSON path"),
+    dry_run: bool = typer.Option(False, "--dry-run", help="Report without writing"),
+    kind: str | None = typer.Option(None, "--kind", help="Limit to one asset kind"),
+    json_output: bool = typer.Option(False, "--json", help="Output as JSON"),
+):
+    """Copy file: sources into content-addressed objects/ (never under runs/)."""
+    from .asset_catalog import (
+        AssetCatalogError,
+        filter_assets,
+        load_asset_catalog,
+        load_storage_policy,
+        materialize_source_to_object_cache,
+    )
+
+    catalog_path, policy_path = _resolve_asset_paths(catalog, policy)
+    try:
+        payload, resolved_catalog = load_asset_catalog(catalog_path)
+        storage, _ = load_storage_policy(policy_path)
+        assets = filter_assets(payload, kinds=[kind] if kind else None)
+        rows = [
+            materialize_source_to_object_cache(
+                asset,
+                resolved_catalog.parent,
+                storage,
+                dry_run=dry_run,
+            )
+            for asset in assets
+        ]
+    except (OSError, json.JSONDecodeError, AssetCatalogError) as exc:
+        console.print(f"[red]{exc}[/red]")
+        raise typer.Exit(1) from exc
+
+    if json_output:
+        print(json.dumps({"materialize": rows}, indent=2))
+        return
+    for row in rows:
+        console.print(f"  {row['asset_id']}: {row['status']}")
+    failures = {
+        "source_missing",
+        "source_sha256_mismatch",
+        "source_byte_size_mismatch",
+        "target_exists_with_mismatch",
+        "write_verify_failed",
+    }
+    if any(row["status"] in failures for row in rows):
+        raise typer.Exit(1)
 
 
 if __name__ == "__main__":

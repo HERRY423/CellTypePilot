@@ -1,0 +1,13 @@
+axis,method,metric,status,n_supported_levels
+platform,celltypepilot,macro_f1,not_estimable_lt2_supported_levels,1
+platform,celltypist,macro_f1,not_estimable_lt2_supported_levels,1
+platform,popv,macro_f1,not_estimable_lt2_supported_levels,1
+platform,singler,macro_f1,not_estimable_lt2_supported_levels,1
+plate_batch,celltypepilot,macro_f1,not_estimable_lt2_supported_levels,0
+plate_batch,celltypist,macro_f1,not_estimable_lt2_supported_levels,0
+plate_batch,popv,macro_f1,not_estimable_lt2_supported_levels,0
+plate_batch,singler,macro_f1,not_estimable_lt2_supported_levels,0
+condition,celltypepilot,macro_f1,not_estimable_lt2_supported_levels,1
+condition,celltypist,macro_f1,not_estimable_lt2_supported_levels,1
+condition,popv,macro_f1,not_estimable_lt2_supported_levels,1
+condition,singler,macro_f1,not_estimable_lt2_supported_levels,1

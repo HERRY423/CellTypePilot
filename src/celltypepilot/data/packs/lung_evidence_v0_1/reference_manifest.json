@@ -1,0 +1,11 @@
+{
+  "schema_version": "celltypepilot.reference-manifest.v1",
+  "reference_included": false,
+  "status": "taxonomy_and_marker_candidates_only",
+  "disallowed_claims": [
+    "independent_lung_reference_validation",
+    "cross_platform_robustness",
+    "fine_subtype_accuracy"
+  ],
+  "overlap_policy": "A benchmark must record study and donor overlap with every external lung reference. Overlapping references are ineligible for independent validation."
+}

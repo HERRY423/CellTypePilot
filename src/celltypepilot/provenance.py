@@ -58,12 +58,25 @@ def create_manifest(
     return _json_compatible(manifest)
 
 
-def update_manifest_outputs(manifest: dict, output_dir: str | Path) -> dict:
-    """Update manifest with output file hashes."""
+def update_manifest_outputs(
+    manifest: dict,
+    output_dir: str | Path,
+    *,
+    exclude: set[str] | None = None,
+) -> dict:
+    """Update manifest with output file hashes.
+
+    ``exclude`` is used by review re-signing for mutable envelope files such as
+    the append-only audit log and the signature itself. Ordinary annotation
+    runs retain the historical all-output behavior.
+    """
     output_dir = Path(output_dir)
+    excluded = {str(item).replace("\\", "/") for item in (exclude or set())}
     for fpath in output_dir.rglob("*"):
         if fpath.is_file() and fpath.name != OUTPUT_MANIFEST:
-            rel_path = str(fpath.relative_to(output_dir))
+            rel_path = str(fpath.relative_to(output_dir)).replace("\\", "/")
+            if rel_path in excluded:
+                continue
             file_hash = _file_hash(fpath)
             manifest["outputs"][rel_path] = {
                 "sha256": file_hash,

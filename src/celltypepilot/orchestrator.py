@@ -7,6 +7,7 @@ lives here so it can be reused by the Web Inspector and tested directly.
 
 from __future__ import annotations
 
+import json
 import shutil
 from collections.abc import Callable
 from datetime import datetime, timezone
@@ -223,6 +224,50 @@ def write_annotations_to_adata(
     return output_path
 
 
+def _activate_gene_identity_contract(
+    adata,
+    markers: dict[str, dict],
+    *,
+    requested_tissue: str,
+    active_tissue: str,
+    extension_pack_records: list[dict] | None = None,
+) -> dict:
+    """Make governed marker genes addressable without changing biology."""
+    from .identity_contract import apply_gene_identity_contract, collect_pack_identity_contract
+
+    marker_universe = {
+        str(gene)
+        for info in markers.values()
+        for field in ("positive_markers", "negative_markers")
+        for gene in info.get(field, [])
+        if str(gene)
+    }
+    pack_contract = collect_pack_identity_contract(extension_pack_records)
+    audit = apply_gene_identity_contract(adata, marker_universe)
+    return {
+        "schema_version": "celltypepilot.identity-contract.v1",
+        "gene_identity": audit,
+        "identity_scope": {
+            "schema_version": "celltypepilot.identity-scope.v1",
+            "requested_tissue": requested_tissue,
+            "active_tissues": [active_tissue],
+            "n_cell_types": len(markers),
+            "pack_contract_sources": pack_contract.get("sources", []),
+            "claim_boundary": (
+                "Active marker scope defines addressable candidates; it does not establish "
+                "biological accuracy."
+            ),
+        },
+        "pack_identity_contract": pack_contract,
+    }
+
+
+def _write_identity_contract(output_dir: Path, payload: dict) -> Path:
+    path = output_dir / "identity_contract.json"
+    path.write_text(json.dumps(payload, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
+    return path
+
+
 def run_annotation_pipeline(
     input_path: str | Path,
     cluster_key: str,
@@ -246,8 +291,17 @@ def run_annotation_pipeline(
     custom_markers_path: str | Path | None = None,
     enable_states: bool = True,
     packs: list[str] | None = None,
+    doublet_table_path: str | Path | None = None,
+    ambient_table_path: str | Path | None = None,
+    doublet_score_column: str | None = "doublet_score",
+    ambient_score_column: str | None = "ambient_score",
+    doublet_flag_column: str | None = None,
+    ambient_flag_column: str | None = None,
+    doublet_threshold: float | None = 0.25,
+    ambient_threshold: float | None = 0.2,
     progress: ProgressFn = None,
 ) -> dict:
+
     """Run marker, optional reference, ensemble, critic, and artifact generation.
 
     Returns a result dict with: adata, critic_results, critic_summary,
@@ -272,6 +326,8 @@ def run_annotation_pipeline(
             progress(step, 8, msg)
 
     output_path = Path(output_dir)
+    output_path.mkdir(parents=True, exist_ok=True)
+
 
     # Step 1: Load data
     _emit(1, "Loading data...")
@@ -337,7 +393,11 @@ def run_annotation_pipeline(
         ensemble_scores,
         generate_ensemble_summary,
     )
-    from .marker_scorer import compute_marker_scores, generate_annotation_summary
+    from .marker_scorer import (
+        compute_marker_scores,
+        compute_profile_correlation_scores,
+        generate_annotation_summary,
+    )
     from .pack_manager import (
         PackError,
         collect_pack_state_definitions_input,
@@ -370,6 +430,13 @@ def run_annotation_pipeline(
         evidence_policy=marker_evidence_policy,
     )
     markers = merge_identity_hypotheses(markers, context_pack)
+    identity_contract = _activate_gene_identity_contract(
+        adata,
+        markers,
+        requested_tissue=tissue,
+        active_tissue=atlas_tissue,
+        extension_pack_records=extension_pack_records,
+    )
     atlas_evidence_summary = summarize_atlas_evidence(atlas, atlas_tissue)
     n_marker_relationships = sum(
         len(info.get("positive_markers", [])) + len(info.get("negative_markers", []))
@@ -427,6 +494,20 @@ def run_annotation_pipeline(
         summary = _merge_ensemble_annotation_evidence(ensemble_summary, scores, markers)
         transitions = detect_transitional_states(ref_scores, scores)
         disagreements = analyze_disagreements(ensemble_df)
+    elif not no_ensemble and not scores.empty:
+        # Internal multi-method consensus voting (zero external reference required)
+        internal_ref_scores = compute_profile_correlation_scores(
+            adata, cluster_key, markers, layer=layer
+        )
+        ensemble_df = ensemble_scores(
+            scores,
+            internal_ref_scores,
+            marker_weight=marker_weight,
+            adaptive=True,
+        )
+        ensemble_summary = generate_ensemble_summary(ensemble_df)
+        summary = _merge_ensemble_annotation_evidence(ensemble_summary, scores, markers)
+        disagreements = analyze_disagreements(ensemble_df)
 
     # Step 5: Critic
     _emit(5, "Running Annotation Critic...")
@@ -444,8 +525,6 @@ def run_annotation_pipeline(
     calibration_policy = None
     calibration_policy_hash = None
     if calibration_policy_path is not None:
-        import json
-
         from .calibration import CalibrationError, apply_policy_to_annotations
 
         policy_path = Path(calibration_policy_path)
@@ -460,7 +539,43 @@ def run_annotation_pipeline(
     from .uncertainty import attach_uncertainty_language, build_uncertainty_language_manifest
 
     critic_results = attach_uncertainty_language(critic_results, calibration_policy)
+    from .agent_evidence import (
+        attach_contrastive_evidence,
+        build_actionable_evidence_gaps,
+        build_contrastive_evidence,
+    )
+
+    contrastive_evidence = build_contrastive_evidence(
+        scores,
+        ensemble_df if not ensemble_df.empty else None,
+    )
+    critic_results = attach_contrastive_evidence(critic_results, contrastive_evidence)
+    actionable_evidence_gaps = build_actionable_evidence_gaps(critic_results)
     critic_summary = generate_critic_summary(critic_results)
+
+    # Export structured escalation signals for Agent Hosts. Literature lookup
+    # is explicit opt-in: ordinary annotation must remain local/deterministic,
+    # and search results never enter scoring or rescue an abstention.
+    from .critic import generate_escalation_signals
+
+    raw_escalations = generate_escalation_signals(critic_results)
+    enriched_escalations = [
+        {
+            **signal,
+            "literature_validation": {
+                "assessment": "not_run_explicit_opt_in_required",
+                "total_refs": 0,
+                "claim_boundary": (
+                    "Literature search is optional context for human review and cannot enter "
+                    "annotation scoring or promote marker evidence automatically."
+                ),
+            },
+        }
+        for signal in raw_escalations
+    ]
+    escalation_file = output_path / "escalation_signals.json"
+    escalation_file.write_text(json.dumps(enriched_escalations, indent=2), encoding="utf-8")
+
 
     # Step 6: State Lens. This is an independent output axis; the attach
     # function asserts that canonical identity columns are unchanged.
@@ -509,8 +624,18 @@ def run_annotation_pipeline(
     _emit(8, "Saving outputs...")
 
     evidence_path = save_evidence_table(critic_results, output_path)
+    from .agent_evidence import write_agent_evidence_artifacts
 
-    auxiliary_paths = {}
+    agent_evidence_paths = write_agent_evidence_artifacts(
+        output_path,
+        contrastive_evidence,
+        actionable_evidence_gaps,
+    )
+
+    auxiliary_paths = dict(agent_evidence_paths)
+    auxiliary_paths["identity_contract"] = _write_identity_contract(
+        output_path, identity_contract
+    )
     for name, frame in (
         ("reference_scores", ref_scores),
         ("ensemble_scores", ensemble_df),
@@ -564,6 +689,7 @@ def run_annotation_pipeline(
             "marker_provenance_validation": "passed",
             "marker_evidence_policy": marker_evidence_policy,
             "marker_evidence_summary": atlas_evidence_summary,
+            "gene_identity_contract": identity_contract["gene_identity"],
             "atlas_tissue": atlas_tissue,
             **context_manifest_parameters(context_pack, context_enabled),
             "extension_packs": pack_manifest_parameters(extension_pack_records) or None,
@@ -584,8 +710,6 @@ def run_annotation_pipeline(
     )
 
     if context_enabled:
-        import json
-
         context_output = output_path / "context_pack.normalized.json"
         context_output.write_text(
             json.dumps(context_pack, indent=2, ensure_ascii=False) + "\n",
@@ -601,6 +725,9 @@ def run_annotation_pipeline(
     with open(method_path, "w", encoding="utf-8") as f:
         f.write(method_text)
 
+    from .identity_contract import restore_original_gene_identifiers
+
+    restore_original_gene_identifiers(adata)
     annotated_path = write_annotations_to_adata(adata, critic_results, cluster_key, output_path)
     manifest = update_manifest_outputs(manifest, output_path)
     manifest_path = save_manifest(manifest, output_path)
@@ -949,6 +1076,13 @@ def annotate(
         atlas, atlas_tissue, evidence_policy=marker_evidence_policy
     )
     markers = merge_identity_hypotheses(markers, context_pack)
+    identity_contract = _activate_gene_identity_contract(
+        adata,
+        markers,
+        requested_tissue=tissue,
+        active_tissue=atlas_tissue,
+        extension_pack_records=extension_pack_records,
+    )
 
     scores = compute_marker_scores(adata, cluster_key, markers, layer=layer)
     summary = generate_annotation_summary(scores, cluster_key)
@@ -1013,6 +1147,18 @@ def annotate(
     from .uncertainty import attach_uncertainty_language, build_uncertainty_language_manifest
 
     critic_results = attach_uncertainty_language(critic_results, calibration_policy)
+    from .agent_evidence import (
+        attach_contrastive_evidence,
+        build_actionable_evidence_gaps,
+        build_contrastive_evidence,
+    )
+
+    contrastive_evidence = build_contrastive_evidence(
+        scores,
+        ensemble_df if not ensemble_df.empty else None,
+    )
+    critic_results = attach_contrastive_evidence(critic_results, contrastive_evidence)
+    actionable_evidence_gaps = build_actionable_evidence_gaps(critic_results)
 
     # State Lens
     _emit(6, "Scoring independent cell states...")
@@ -1065,6 +1211,14 @@ def annotate(
 
         critic_summary = generate_critic_summary(critic_results)
         save_evidence_table(critic_results, output_path)
+        from .agent_evidence import write_agent_evidence_artifacts
+
+        write_agent_evidence_artifacts(
+            output_path,
+            contrastive_evidence,
+            actionable_evidence_gaps,
+        )
+        _write_identity_contract(output_path, identity_contract)
 
         manifest = create_manifest(
             input_path="in_memory_anndata",
@@ -1076,6 +1230,7 @@ def annotate(
                 "embedding_key": embedding_key,
                 "layer": layer,
                 "marker_evidence_policy": marker_evidence_policy,
+                "gene_identity_contract": identity_contract["gene_identity"],
                 "extension_packs": pack_manifest_parameters(extension_pack_records) or None,
                 "pipeline_stages": [
                     "marker",
@@ -1099,11 +1254,18 @@ def annotate(
         with open(method_path, "w", encoding="utf-8") as f:
             f.write(method_text)
 
+        from .identity_contract import restore_original_gene_identifiers
+
+        restore_original_gene_identifiers(adata)
         annotated_path = output_path / OUTPUT_ANNOTATED
         adata.write(annotated_path)
         manifest = update_manifest_outputs(manifest, output_path)
         save_manifest(manifest, output_path)
 
+    if output_dir is None:
+        from .identity_contract import restore_original_gene_identifiers
+
+        restore_original_gene_identifiers(adata)
     return adata
 
 
@@ -1161,6 +1323,12 @@ def critic_review(
 
     atlas = load_marker_atlas(species)
     markers = get_all_markers_for_tissue(atlas, tissue)
+    _activate_gene_identity_contract(
+        adata,
+        markers,
+        requested_tissue=tissue,
+        active_tissue=tissue,
+    )
 
     scores = compute_marker_scores(adata, cluster_key, markers, layer=layer)
     summary = generate_annotation_summary(scores, cluster_key)
@@ -1168,12 +1336,27 @@ def critic_review(
     # Filter to focus cluster
     focus_rows = summary[summary["cluster"] == str(focus_cluster)]
     if focus_rows.empty:
+        from .identity_contract import restore_original_gene_identifiers
+
+        restore_original_gene_identifiers(adata)
         raise PipelineError(
             f"Cluster '{focus_cluster}' not found in annotations. "
             f"Available clusters: {sorted(summary['cluster'].unique())}"
         )
 
     critic_results = run_critic(adata, cluster_key, focus_rows, atlas, tissue)
+    from .agent_evidence import (
+        attach_contrastive_evidence,
+        build_actionable_evidence_gaps,
+        build_contrastive_evidence,
+    )
+
+    contrastive_evidence = build_contrastive_evidence(scores)
+    critic_results = attach_contrastive_evidence(critic_results, contrastive_evidence)
+    actionable_evidence_gaps = build_actionable_evidence_gaps(critic_results)
+    from .identity_contract import restore_original_gene_identifiers
+
+    restore_original_gene_identifiers(adata)
 
     # Top-5 candidates for this cluster
     cluster_scores = scores[scores["cluster"] == str(focus_cluster)].head(5)
@@ -1189,6 +1372,10 @@ def critic_review(
     return {
         "cluster": str(focus_cluster),
         "candidates": candidates,
+        "contrastive_evidence": contrastive_evidence[
+            contrastive_evidence["cluster"] == str(focus_cluster)
+        ].to_dict(orient="records"),
+        "actionable_evidence_gaps": actionable_evidence_gaps,
         "critic_results": critic_results.to_dict(orient="records"),
         "critic_summary": {
             "flags": critic_results["critic_flags"].tolist(),

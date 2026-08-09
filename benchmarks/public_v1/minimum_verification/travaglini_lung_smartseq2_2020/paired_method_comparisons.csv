@@ -1,0 +1,10 @@
+method_a,method_b,metric,n_paired_donors,mean_difference,median_difference,difference_ci_lower,difference_ci_upper,win_fraction,p_value,status,p_value_bh,reject_fdr_005
+celltypepilot,celltypist,macro_f1,3,-0.776129753671052,-0.7826842888654724,-0.817626907784181,-0.7280780643635026,0.0,0.25,estimated,0.25,False
+celltypepilot,popv,macro_f1,3,-0.8537159853002564,-0.8569836386203594,-0.8849319231710173,-0.819232394109393,0.0,0.25,estimated,0.25,False
+celltypepilot,singler,macro_f1,3,-0.8658173155303417,-0.8870381314131904,-0.906100582911905,-0.8043132322659298,0.0,0.25,estimated,0.25,False
+celltypepilot,celltypist,balanced_accuracy,3,-0.8014606105329546,-0.8158023457075351,-0.8622632529365927,-0.7263162329547362,0.0,0.25,estimated,0.25,False
+celltypepilot,popv,balanced_accuracy,3,-0.8741682384466909,-0.8834993116903984,-0.9070133958937013,-0.8319920077559733,0.0,0.25,estimated,0.25,False
+celltypepilot,singler,balanced_accuracy,3,-0.8751599674778564,-0.9140589008231407,-0.9164228318891481,-0.7949981697212801,0.0,0.25,estimated,0.25,False
+celltypepilot,celltypist,coverage,3,-1.0,-1.0,-1.0,-1.0,0.0,0.25,estimated,0.25,False
+celltypepilot,popv,coverage,3,-1.0,-1.0,-1.0,-1.0,0.0,0.25,estimated,0.25,False
+celltypepilot,singler,coverage,3,-0.9765830446898658,-0.9771758214196138,-0.9874732661167126,-0.9651000465332714,0.0,0.25,estimated,0.25,False

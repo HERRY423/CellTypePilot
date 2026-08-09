@@ -1,0 +1,55 @@
+{
+  "schema_version": "celltypepilot.marker-atlas.v2",
+  "version": "lung-evidence-0.1.0-beta",
+  "description": "Draft human lung evidence candidates; aggregate sources only, not edge verified",
+  "sources": ["CellMarker 2.0", "PanglaoDB"],
+  "tissues": {
+    "lung": {
+      "name": "Human lung draft evidence extensions",
+      "organ_system": "respiratory",
+      "cell_types": {
+        "Capillary endothelial cell": {
+          "cl_id": "CL:0002144",
+          "synonyms": ["capillary EC"],
+          "positive_markers": ["PECAM1", "EMCN", "CA4", "RGCC"],
+          "negative_markers": ["EPCAM", "PTPRC"],
+          "marker_evidence": [
+            {"gene": "PECAM1", "polarity": "positive", "species": ["human"], "tissue": "lung", "state": "baseline_or_unspecified", "atlas_version": "lung-evidence-0.1.0-beta", "sources": [{"source_id": "cellmarker_2_0", "name": "CellMarker 2.0", "pmid": "36300619", "doi": "10.1093/nar/gkac947", "url": "https://pubmed.ncbi.nlm.nih.gov/36300619/"}], "evidence_scope": "database_level_source", "verification_status": "aggregate_source_only_not_edge_verified"},
+            {"gene": "EMCN", "polarity": "positive", "species": ["human"], "tissue": "lung", "state": "baseline_or_unspecified", "atlas_version": "lung-evidence-0.1.0-beta", "sources": [{"source_id": "panglaodb", "name": "PanglaoDB", "pmid": "30951143", "doi": "10.1093/database/baz046", "url": "https://pubmed.ncbi.nlm.nih.gov/30951143/"}], "evidence_scope": "database_level_source", "verification_status": "aggregate_source_only_not_edge_verified"},
+            {"gene": "CA4", "polarity": "positive", "species": ["human"], "tissue": "lung", "state": "baseline_or_unspecified", "atlas_version": "lung-evidence-0.1.0-beta", "sources": [{"source_id": "cellmarker_2_0", "name": "CellMarker 2.0", "pmid": "36300619", "doi": "10.1093/nar/gkac947", "url": "https://pubmed.ncbi.nlm.nih.gov/36300619/"}], "evidence_scope": "database_level_source", "verification_status": "aggregate_source_only_not_edge_verified"},
+            {"gene": "RGCC", "polarity": "positive", "species": ["human"], "tissue": "lung", "state": "baseline_or_unspecified", "atlas_version": "lung-evidence-0.1.0-beta", "sources": [{"source_id": "panglaodb", "name": "PanglaoDB", "pmid": "30951143", "doi": "10.1093/database/baz046", "url": "https://pubmed.ncbi.nlm.nih.gov/30951143/"}], "evidence_scope": "database_level_source", "verification_status": "aggregate_source_only_not_edge_verified"},
+            {"gene": "EPCAM", "polarity": "negative", "species": ["human"], "tissue": "lung", "state": "baseline_or_unspecified", "atlas_version": "lung-evidence-0.1.0-beta", "sources": [{"source_id": "cellmarker_2_0", "name": "CellMarker 2.0", "pmid": "36300619", "doi": "10.1093/nar/gkac947", "url": "https://pubmed.ncbi.nlm.nih.gov/36300619/"}], "evidence_scope": "database_level_source", "verification_status": "aggregate_source_only_not_edge_verified"},
+            {"gene": "PTPRC", "polarity": "negative", "species": ["human"], "tissue": "lung", "state": "baseline_or_unspecified", "atlas_version": "lung-evidence-0.1.0-beta", "sources": [{"source_id": "panglaodb", "name": "PanglaoDB", "pmid": "30951143", "doi": "10.1093/database/baz046", "url": "https://pubmed.ncbi.nlm.nih.gov/30951143/"}], "evidence_scope": "database_level_source", "verification_status": "aggregate_source_only_not_edge_verified"}
+          ]
+        },
+        "Bronchial smooth muscle cell": {
+          "cl_id": "CL:0002598",
+          "positive_markers": ["ACTA2", "TAGLN", "MYH11", "DES"],
+          "negative_markers": ["PECAM1", "EPCAM"],
+          "marker_evidence": [
+            {"gene": "ACTA2", "polarity": "positive", "species": ["human"], "tissue": "lung", "state": "baseline_or_unspecified", "atlas_version": "lung-evidence-0.1.0-beta", "sources": [{"source_id": "cellmarker_2_0", "name": "CellMarker 2.0", "pmid": "36300619", "doi": "10.1093/nar/gkac947", "url": "https://pubmed.ncbi.nlm.nih.gov/36300619/"}], "evidence_scope": "database_level_source", "verification_status": "aggregate_source_only_not_edge_verified"},
+            {"gene": "TAGLN", "polarity": "positive", "species": ["human"], "tissue": "lung", "state": "baseline_or_unspecified", "atlas_version": "lung-evidence-0.1.0-beta", "sources": [{"source_id": "panglaodb", "name": "PanglaoDB", "pmid": "30951143", "doi": "10.1093/database/baz046", "url": "https://pubmed.ncbi.nlm.nih.gov/30951143/"}], "evidence_scope": "database_level_source", "verification_status": "aggregate_source_only_not_edge_verified"},
+            {"gene": "MYH11", "polarity": "positive", "species": ["human"], "tissue": "lung", "state": "baseline_or_unspecified", "atlas_version": "lung-evidence-0.1.0-beta", "sources": [{"source_id": "cellmarker_2_0", "name": "CellMarker 2.0", "pmid": "36300619", "doi": "10.1093/nar/gkac947", "url": "https://pubmed.ncbi.nlm.nih.gov/36300619/"}], "evidence_scope": "database_level_source", "verification_status": "aggregate_source_only_not_edge_verified"},
+            {"gene": "DES", "polarity": "positive", "species": ["human"], "tissue": "lung", "state": "baseline_or_unspecified", "atlas_version": "lung-evidence-0.1.0-beta", "sources": [{"source_id": "panglaodb", "name": "PanglaoDB", "pmid": "30951143", "doi": "10.1093/database/baz046", "url": "https://pubmed.ncbi.nlm.nih.gov/30951143/"}], "evidence_scope": "database_level_source", "verification_status": "aggregate_source_only_not_edge_verified"},
+            {"gene": "PECAM1", "polarity": "negative", "species": ["human"], "tissue": "lung", "state": "baseline_or_unspecified", "atlas_version": "lung-evidence-0.1.0-beta", "sources": [{"source_id": "cellmarker_2_0", "name": "CellMarker 2.0", "pmid": "36300619", "doi": "10.1093/nar/gkac947", "url": "https://pubmed.ncbi.nlm.nih.gov/36300619/"}], "evidence_scope": "database_level_source", "verification_status": "aggregate_source_only_not_edge_verified"},
+            {"gene": "EPCAM", "polarity": "negative", "species": ["human"], "tissue": "lung", "state": "baseline_or_unspecified", "atlas_version": "lung-evidence-0.1.0-beta", "sources": [{"source_id": "panglaodb", "name": "PanglaoDB", "pmid": "30951143", "doi": "10.1093/database/baz046", "url": "https://pubmed.ncbi.nlm.nih.gov/30951143/"}], "evidence_scope": "database_level_source", "verification_status": "aggregate_source_only_not_edge_verified"}
+          ]
+        },
+        "Pulmonary interstitial fibroblast": {
+          "cl_id": "CL:0002241",
+          "positive_markers": ["COL1A1", "COL1A2", "DCN", "LUM", "PDGFRA"],
+          "negative_markers": ["PECAM1", "EPCAM"],
+          "marker_evidence": [
+            {"gene": "COL1A1", "polarity": "positive", "species": ["human"], "tissue": "lung", "state": "baseline_or_unspecified", "atlas_version": "lung-evidence-0.1.0-beta", "sources": [{"source_id": "cellmarker_2_0", "name": "CellMarker 2.0", "pmid": "36300619", "doi": "10.1093/nar/gkac947", "url": "https://pubmed.ncbi.nlm.nih.gov/36300619/"}], "evidence_scope": "database_level_source", "verification_status": "aggregate_source_only_not_edge_verified"},
+            {"gene": "COL1A2", "polarity": "positive", "species": ["human"], "tissue": "lung", "state": "baseline_or_unspecified", "atlas_version": "lung-evidence-0.1.0-beta", "sources": [{"source_id": "panglaodb", "name": "PanglaoDB", "pmid": "30951143", "doi": "10.1093/database/baz046", "url": "https://pubmed.ncbi.nlm.nih.gov/30951143/"}], "evidence_scope": "database_level_source", "verification_status": "aggregate_source_only_not_edge_verified"},
+            {"gene": "DCN", "polarity": "positive", "species": ["human"], "tissue": "lung", "state": "baseline_or_unspecified", "atlas_version": "lung-evidence-0.1.0-beta", "sources": [{"source_id": "cellmarker_2_0", "name": "CellMarker 2.0", "pmid": "36300619", "doi": "10.1093/nar/gkac947", "url": "https://pubmed.ncbi.nlm.nih.gov/36300619/"}], "evidence_scope": "database_level_source", "verification_status": "aggregate_source_only_not_edge_verified"},
+            {"gene": "LUM", "polarity": "positive", "species": ["human"], "tissue": "lung", "state": "baseline_or_unspecified", "atlas_version": "lung-evidence-0.1.0-beta", "sources": [{"source_id": "panglaodb", "name": "PanglaoDB", "pmid": "30951143", "doi": "10.1093/database/baz046", "url": "https://pubmed.ncbi.nlm.nih.gov/30951143/"}], "evidence_scope": "database_level_source", "verification_status": "aggregate_source_only_not_edge_verified"},
+            {"gene": "PDGFRA", "polarity": "positive", "species": ["human"], "tissue": "lung", "state": "baseline_or_unspecified", "atlas_version": "lung-evidence-0.1.0-beta", "sources": [{"source_id": "cellmarker_2_0", "name": "CellMarker 2.0", "pmid": "36300619", "doi": "10.1093/nar/gkac947", "url": "https://pubmed.ncbi.nlm.nih.gov/36300619/"}], "evidence_scope": "database_level_source", "verification_status": "aggregate_source_only_not_edge_verified"},
+            {"gene": "PECAM1", "polarity": "negative", "species": ["human"], "tissue": "lung", "state": "baseline_or_unspecified", "atlas_version": "lung-evidence-0.1.0-beta", "sources": [{"source_id": "panglaodb", "name": "PanglaoDB", "pmid": "30951143", "doi": "10.1093/database/baz046", "url": "https://pubmed.ncbi.nlm.nih.gov/30951143/"}], "evidence_scope": "database_level_source", "verification_status": "aggregate_source_only_not_edge_verified"},
+            {"gene": "EPCAM", "polarity": "negative", "species": ["human"], "tissue": "lung", "state": "baseline_or_unspecified", "atlas_version": "lung-evidence-0.1.0-beta", "sources": [{"source_id": "cellmarker_2_0", "name": "CellMarker 2.0", "pmid": "36300619", "doi": "10.1093/nar/gkac947", "url": "https://pubmed.ncbi.nlm.nih.gov/36300619/"}], "evidence_scope": "database_level_source", "verification_status": "aggregate_source_only_not_edge_verified"}
+          ]
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,27 @@
+{
+  "schema_version": "celltypepilot.label-map-audit.v1",
+  "cohort_id": "travaglini_lung_smartseq2_2020",
+  "evaluation_level": "predeclared_broad_cell_class",
+  "truth_labels": 40,
+  "celltypepilot_atlas_labels": 8,
+  "canonical_classes": [
+    "Unknown",
+    "b_cell",
+    "endothelial",
+    "epithelial",
+    "fibroblast_stromal",
+    "myeloid",
+    "nk_cell",
+    "other",
+    "pericyte",
+    "plasma_cell",
+    "smooth_muscle",
+    "t_cell"
+  ],
+  "other_truth_labels": [
+    "lymphocyte"
+  ],
+  "mapping_policy": "ordered_token_aware_rules_in_scripts/build_public_label_maps.py",
+  "label_map_sha256": "9ce2517698cc7b3cab47f4723bc615db14911e82d8cae4f5a7faa119a0976e05",
+  "frozen_before_prediction_scoring": true
+}

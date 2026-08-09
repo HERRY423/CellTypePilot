@@ -243,7 +243,7 @@ def test_calibration_is_risk_coverage_aware_and_can_only_downgrade():
             "confidence": [0.95, 0.2, 0.9, 0.8],
         }
     )
-    diagnostics, bins, risk = calibration_diagnostics(
+    diagnostics, bins, risk, _ = calibration_diagnostics(
         truth.to_numpy(),
         predictions["predicted_label"].to_numpy(),
         predictions["confidence"].to_numpy(),
@@ -383,6 +383,7 @@ def test_reference_ensemble_critic_writeback_report_and_manifest_are_one_pipelin
         "ensemble",
         "critic",
         "state",
+        "novelty_ood",
         "writeback",
         "report",
         "manifest",

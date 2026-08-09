@@ -1,0 +1,78 @@
+method,raw_label,canonical_label
+__truth__,Schwann cell,other
+__truth__,capillary endothelial cell,endothelial
+__truth__,colon endothelial cell,endothelial
+__truth__,endothelial cell of artery,endothelial
+__truth__,endothelial cell of lymphatic vessel,endothelial
+__truth__,endothelial cell of venule,endothelial
+__truth__,endothelial tip cell,endothelial
+__truth__,fibroblast,fibroblast_stromal
+__truth__,myofibroblast cell,fibroblast_stromal
+__truth__,pericyte,pericyte
+__truth__,smooth muscle cell,smooth_muscle
+celltypepilot,Endothelial cell,endothelial
+celltypepilot,Epithelial cell,epithelial
+celltypepilot,Fibroblast,fibroblast_stromal
+celltypepilot,Macrophage,myeloid
+celltypepilot,Mast cell,mast_cell
+celltypepilot,Pericyte,pericyte
+celltypepilot,Schwann cell,other
+celltypepilot,Unknown,Unknown
+celltypepilot,capillary endothelial cell,endothelial
+celltypepilot,colon endothelial cell,endothelial
+celltypepilot,endothelial cell of artery,endothelial
+celltypepilot,endothelial cell of lymphatic vessel,endothelial
+celltypepilot,endothelial cell of venule,endothelial
+celltypepilot,endothelial tip cell,endothelial
+celltypepilot,fibroblast,fibroblast_stromal
+celltypepilot,myofibroblast cell,fibroblast_stromal
+celltypepilot,pericyte,pericyte
+celltypepilot,smooth muscle cell,smooth_muscle
+celltypist,Schwann cell,other
+celltypist,Unknown,Unknown
+celltypist,capillary endothelial cell,endothelial
+celltypist,colon endothelial cell,endothelial
+celltypist,endothelial cell of artery,endothelial
+celltypist,endothelial cell of lymphatic vessel,endothelial
+celltypist,endothelial cell of venule,endothelial
+celltypist,endothelial tip cell,endothelial
+celltypist,fibroblast,fibroblast_stromal
+celltypist,myofibroblast cell,fibroblast_stromal
+celltypist,pericyte,pericyte
+celltypist,smooth muscle cell,smooth_muscle
+singler,Schwann cell,other
+singler,Unknown,Unknown
+singler,capillary endothelial cell,endothelial
+singler,colon endothelial cell,endothelial
+singler,endothelial cell of artery,endothelial
+singler,endothelial cell of lymphatic vessel,endothelial
+singler,endothelial cell of venule,endothelial
+singler,endothelial tip cell,endothelial
+singler,fibroblast,fibroblast_stromal
+singler,myofibroblast cell,fibroblast_stromal
+singler,pericyte,pericyte
+singler,smooth muscle cell,smooth_muscle
+azimuth,Schwann cell,other
+azimuth,Unknown,Unknown
+azimuth,capillary endothelial cell,endothelial
+azimuth,colon endothelial cell,endothelial
+azimuth,endothelial cell of artery,endothelial
+azimuth,endothelial cell of lymphatic vessel,endothelial
+azimuth,endothelial cell of venule,endothelial
+azimuth,endothelial tip cell,endothelial
+azimuth,fibroblast,fibroblast_stromal
+azimuth,myofibroblast cell,fibroblast_stromal
+azimuth,pericyte,pericyte
+azimuth,smooth muscle cell,smooth_muscle
+popv,Schwann cell,other
+popv,Unknown,Unknown
+popv,capillary endothelial cell,endothelial
+popv,colon endothelial cell,endothelial
+popv,endothelial cell of artery,endothelial
+popv,endothelial cell of lymphatic vessel,endothelial
+popv,endothelial cell of venule,endothelial
+popv,endothelial tip cell,endothelial
+popv,fibroblast,fibroblast_stromal
+popv,myofibroblast cell,fibroblast_stromal
+popv,pericyte,pericyte
+popv,smooth muscle cell,smooth_muscle

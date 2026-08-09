@@ -1,0 +1,35 @@
+{
+  "schema_version": "celltypepilot.evidence-promotion.v1",
+  "proposal_id": "ep-8e3e0fb31ed06a28",
+  "created_at": "2026-08-09T12:40:01.247687+00:00",
+  "requested_by": "celltypepilot-agent-evidence-draft",
+  "proposal_origin": "automated_search",
+  "atlas_version": "lung-evidence-0.1.0-beta",
+  "edge": {
+    "tissue": "lung",
+    "cell_path": "Capillary endothelial cell",
+    "gene": "CA4",
+    "polarity": "positive"
+  },
+  "current_status": "aggregate_source_only_not_edge_verified",
+  "target_status": "primary_source_verified",
+  "current_record_sha256": "7f72b42f2ac393d5e48bf6e53bbfdaa8afefee56b0f55cda272fcd1ccd6e4617",
+  "evidence": {
+    "evidence_locator": "Schupp et al. 2021, Figure 4A and Methods: CA4 protein localized to lung capillaries by serial immunofluorescence microscopy; adult human control lungs.",
+    "curator_notes": "High-value subtype edge. Independent adult human lung endothelial atlas with spatial protein validation. Do not interpret as sufficient alone; ordinary critic, negative-marker, and abstention gates remain active.",
+    "sources": [
+      {
+        "source_id": "schupp_human_lung_ec_2021",
+        "name": "Integrated Single-Cell Atlas of Endothelial Cells of the Human Lung",
+        "pmid": "34030460",
+        "doi": "10.1161/CIRCULATIONAHA.120.052318",
+        "url": "https://pubmed.ncbi.nlm.nih.gov/34030460/",
+        "source_type": "primary"
+      }
+    ],
+    "automated_candidate_only": true
+  },
+  "reviews": [],
+  "status": "pending_human_review",
+  "claim_boundary": "A proposal is not atlas evidence. Only an applied, versioned proposal with the required independent human approvals changes runtime evidence status."
+}

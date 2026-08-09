@@ -1,0 +1,368 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CellTypePilot Annotation Report</title>
+<style>
+/* CellTypePilot — HTML Report styles */
+:root {
+  --bg: #ffffff; --fg: #1a1a2e; --accent: #0072B2;
+  --success: #009E73; --warning: #E69F00; --danger: #D55E00;
+  --muted: #6c757d; --border: #dee2e6; --card-bg: #f8f9fa;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  color: var(--fg); background: var(--bg); line-height: 1.6;
+  max-width: 1200px; margin: 0 auto; padding: 2rem;
+}
+h1 { color: var(--accent); margin-bottom: 0.5rem; font-size: 1.8rem; }
+h2 { color: var(--accent); margin: 2rem 0 1rem; font-size: 1.3rem;
+     border-bottom: 2px solid var(--accent); padding-bottom: 0.3rem; }
+h3 { margin: 1.5rem 0 0.5rem; font-size: 1.1rem; }
+.subtitle { color: var(--muted); font-size: 0.9rem; margin-bottom: 2rem; }
+table { width: 100%; border-collapse: collapse; margin: 1rem 0; font-size: 0.85rem; }
+th { background: var(--accent); color: white; padding: 0.6rem; text-align: left; }
+td { padding: 0.5rem; border-bottom: 1px solid var(--border); }
+tr:nth-child(even) { background: var(--card-bg); }
+.badge {
+  display: inline-block; padding: 0.15rem 0.5rem; border-radius: 3px;
+  font-size: 0.75rem; font-weight: 600; color: white;
+}
+.badge-high { background: var(--success); }
+.badge-medium { background: var(--warning); }
+.badge-low { background: var(--danger); }
+.badge-review { background: #CC0000; }
+.badge-pass { background: var(--success); }
+.badge-flag { background: var(--danger); }
+.card {
+  background: var(--card-bg); border: 1px solid var(--border);
+  border-radius: 6px; padding: 1rem; margin: 0.5rem 0;
+}
+.card-header { font-weight: 600; margin-bottom: 0.5rem; }
+.stats-grid {
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 1rem; margin: 1rem 0;
+}
+.stat-card {
+  background: var(--card-bg); border: 1px solid var(--border);
+  border-radius: 6px; padding: 1rem; text-align: center;
+}
+.stat-value { font-size: 1.8rem; font-weight: 700; color: var(--accent); }
+.stat-label { font-size: 0.8rem; color: var(--muted); }
+.figure-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(400px, 1fr)); gap: 1rem; }
+.figure-card { border: 1px solid var(--border); border-radius: 6px; overflow: hidden; }
+.figure-card img { width: 100%; display: block; }
+.figure-card .caption { padding: 0.5rem; font-size: 0.85rem; text-align: center; color: var(--muted); }
+.warning-box {
+  background: #fff3cd; border: 1px solid #ffc107; border-radius: 6px;
+  padding: 0.8rem; margin: 0.5rem 0; font-size: 0.85rem;
+}
+.evidence-text { font-size: 0.8rem; color: var(--muted); margin-top: 0.3rem; }
+.evidence-summary { font-size: 0.85rem; margin-top: 0.3rem; }
+.narrative-box { border-left: 3px solid var(--info); font-size: 0.9rem; }
+.report-footer { margin: 2rem 0 0; border: none; border-top: 1px solid var(--border); }
+.report-footer-text { text-align: center; color: var(--muted); font-size: 0.8rem; padding-top: 1rem; }
+
+</style>
+</head>
+<body>
+<h1>CellTypePilot Annotation Report</h1>
+<p class="subtitle">
+  Generated: 2026-08-09T16:03:48.930174+00:00 |
+  CellTypePilot v0.3.0 |
+  MKG: mkg-2026.08.1
+</p>
+
+<h2>Overview</h2>
+
+<div class="card narrative-box"><p>6 cluster(s) reviewed: 0 passed critic checks, 6 flagged for review. Confidence distribution: 4 needs_review, 2 low. Flag breakdown: AGGREGATE_PROVENANCE_ONLY ×6, PARTIAL_EVIDENCE ×4, PARTIAL_DE_SUPPORT ×2, POSSIBLE_DOUBLET ×2, LOW_DE_SUPPORT ×2, ENSEMBLE_MILD_DISAGREEMENT ×2. Flagged clusters need human adjudication before publication; unflagged clusters carry full marker evidence in evidence_table.csv.</p></div>
+
+<div class="stats-grid">
+  <div class="stat-card">
+    <div class="stat-value">test_query.h5ad</div>
+    <div class="stat-label">Input File</div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-value">6</div>
+    <div class="stat-label">Total Clusters</div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-value" style="color: var(--success)">0</div>
+    <div class="stat-label">Passed Critic</div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-value" style="color: var(--danger)">6</div>
+    <div class="stat-label">Flagged for Review</div>
+  </div>
+</div>
+
+<div class="stats-grid">
+  <div class="stat-card">
+    <div class="stat-value" style="color: var(--success)">0</div>
+    <div class="stat-label">High Confidence</div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-value" style="color: var(--warning)">0</div>
+    <div class="stat-label">Medium Confidence</div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-value" style="color: var(--danger)">2</div>
+    <div class="stat-label">Low Confidence</div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-value" style="color: #CC0000">4</div>
+    <div class="stat-label">Needs Review</div>
+  </div>
+</div>
+
+<p><strong>Species:</strong> human |
+   <strong>Tissue:</strong> lung |
+   <strong>Cluster key:</strong> ctp_cluster</p>
+
+
+
+<div class="warning-box">
+  <strong>Validation scope:</strong>
+  draft_annotation_for_human_review.
+  Batch robustness: not_assessed;
+  complex-sample robustness: not_assessed.
+  Use celltypepilot benchmark/benchmark-run with predeclared study_key, donor_key, truth_key, strategy, label map, and comparator configuration.
+</div>
+
+
+
+
+<div class="warning-box">
+  <strong>Score and uncertainty language:</strong>
+  combined_score/evidence_score =
+  heuristic_evidence_score_not_probability;
+  critic_confidence =
+  rule_based_review_category_not_probability.
+  Calibrated probability:
+  not_available_from_annotation_run.
+  Unknown = safety_abstention_not_biological_class.
+</div>
+
+
+
+
+<h2>Annotation Results</h2>
+<table>
+<thead>
+<tr>
+  <th>Cluster</th><th>Final Cell Type</th><th>Candidate</th><th>Identity Decision</th><th>CL ID</th>
+  <th>State Candidate</th><th>State Decision</th>
+  <th>Novelty/OOD</th><th>Evidence Score</th><th>Review Level</th><th>Critic</th><th>Evidence Summary</th>
+</tr>
+</thead>
+<tbody>
+
+<tr>
+  <td><strong>2::0</strong></td>
+  <td>Unknown</td>
+  <td>Basal cell</td>
+  <td>abstain: PARTIAL_DE_SUPPORT; PARTIAL_EVIDENCE</td>
+  <td></td>
+  <td>interferon_responsive</td>
+  <td>hypothesis (0.700)</td>
+  <td>not_assessed (0.000)</td>
+  <td>0.380</td>
+  <td><span class="badge badge-low">low</span></td>
+  <td><span class="badge badge-flag">AGGREGATE_PROVENANCE_ONLY; PARTIAL_EVIDE</span></td>
+  <td class="evidence-text">Cluster 2::0 → Unknown (candidate: Basal cell) [LOW] FLAGGED (AGGREGATE_PROVENANCE_ONLY; PARTIAL_EVIDENCE; PARTIAL_DE_SUPPORT) | Evidence: marker overlap 20%, score 0.38 | Action: Treat as a draft; verify marker edges against stable records or primary sources. Review; may be correct for rare/transitional states. Partial directional DE support; review before labeling.</td>
+</tr>
+
+<tr>
+  <td><strong>2::1</strong></td>
+  <td>Unknown</td>
+  <td>Ciliated cell</td>
+  <td>abstain: POSSIBLE_DOUBLET</td>
+  <td></td>
+  <td>hypoxic</td>
+  <td>hypothesis (0.767)</td>
+  <td>not_assessed (0.000)</td>
+  <td>0.869</td>
+  <td><span class="badge badge-needsreview">needs_review</span></td>
+  <td><span class="badge badge-flag">AGGREGATE_PROVENANCE_ONLY; POSSIBLE_DOUB</span></td>
+  <td class="evidence-text">Cluster 2::1 → Unknown (candidate: Ciliated cell) [NEEDS_REVIEW] FLAGGED (AGGREGATE_PROVENANCE_ONLY; POSSIBLE_DOUBLET) | Evidence: marker overlap 80%, score 0.87 | Action: Treat as a draft; verify marker edges against stable records or primary sources. Sub-cluster or mark as doublet.</td>
+</tr>
+
+<tr>
+  <td><strong>2::2</strong></td>
+  <td>Unknown</td>
+  <td>Basal cell</td>
+  <td>abstain: PARTIAL_DE_SUPPORT; PARTIAL_EVIDENCE</td>
+  <td></td>
+  <td>inflammatory_nfkB</td>
+  <td>hypothesis (0.125)</td>
+  <td>not_assessed (0.000)</td>
+  <td>0.378</td>
+  <td><span class="badge badge-low">low</span></td>
+  <td><span class="badge badge-flag">AGGREGATE_PROVENANCE_ONLY; PARTIAL_EVIDE</span></td>
+  <td class="evidence-text">Cluster 2::2 → Unknown (candidate: Basal cell) [LOW] FLAGGED (AGGREGATE_PROVENANCE_ONLY; PARTIAL_EVIDENCE; PARTIAL_DE_SUPPORT) | Evidence: marker overlap 20%, score 0.38 | Action: Treat as a draft; verify marker edges against stable records or primary sources. Review; may be correct for rare/transitional states. Partial directional DE support; review before labeling.</td>
+</tr>
+
+<tr>
+  <td><strong>2::3</strong></td>
+  <td>Unknown</td>
+  <td>Ciliated cell</td>
+  <td>abstain: LOW_DE_SUPPORT; PARTIAL_EVIDENCE</td>
+  <td></td>
+  <td>cycling_g2m</td>
+  <td>hypothesis (0.388)</td>
+  <td>not_assessed (0.000)</td>
+  <td>0.257</td>
+  <td><span class="badge badge-needsreview">needs_review</span></td>
+  <td><span class="badge badge-flag">AGGREGATE_PROVENANCE_ONLY; PARTIAL_EVIDE</span></td>
+  <td class="evidence-text">Cluster 2::3 → Unknown (candidate: Ciliated cell) [NEEDS_REVIEW] FLAGGED (AGGREGATE_PROVENANCE_ONLY; PARTIAL_EVIDENCE; LOW_DE_SUPPORT; ENSEMBLE_MILD_DISAGREEMENT) | Evidence: marker overlap 0%, score 0.26 | Action: Treat as a draft; verify marker edges against stable records or primary sources. Review; may be correct for rare/transitional states. Insufficient directional DE support; keep as Unknown. Minor method disagreement; usually acceptable.</td>
+</tr>
+
+<tr>
+  <td><strong>2::4</strong></td>
+  <td>Unknown</td>
+  <td>Alveolar type 2 cell</td>
+  <td>abstain: POSSIBLE_DOUBLET</td>
+  <td></td>
+  <td>inflammatory_nfkB</td>
+  <td>supported (0.865)</td>
+  <td>not_assessed (0.000)</td>
+  <td>0.882</td>
+  <td><span class="badge badge-needsreview">needs_review</span></td>
+  <td><span class="badge badge-flag">AGGREGATE_PROVENANCE_ONLY; POSSIBLE_DOUB</span></td>
+  <td class="evidence-text">Cluster 2::4 → Unknown (candidate: Alveolar type 2 cell) [NEEDS_REVIEW] FLAGGED (AGGREGATE_PROVENANCE_ONLY; POSSIBLE_DOUBLET) | Evidence: marker overlap 80%, score 0.88 | Action: Treat as a draft; verify marker edges against stable records or primary sources. Sub-cluster or mark as doublet.</td>
+</tr>
+
+<tr>
+  <td><strong>2::5</strong></td>
+  <td>Unknown</td>
+  <td>Alveolar type 1 cell</td>
+  <td>abstain: LOW_DE_SUPPORT; PARTIAL_EVIDENCE</td>
+  <td></td>
+  <td>apoptotic_stress</td>
+  <td>hypothesis (0.125)</td>
+  <td>not_assessed (0.000)</td>
+  <td>0.352</td>
+  <td><span class="badge badge-needsreview">needs_review</span></td>
+  <td><span class="badge badge-flag">AGGREGATE_PROVENANCE_ONLY; PARTIAL_EVIDE</span></td>
+  <td class="evidence-text">Cluster 2::5 → Unknown (candidate: Alveolar type 1 cell) [NEEDS_REVIEW] FLAGGED (AGGREGATE_PROVENANCE_ONLY; PARTIAL_EVIDENCE; LOW_DE_SUPPORT; ENSEMBLE_MILD_DISAGREEMENT) | Evidence: marker overlap 0%, score 0.35 | Action: Treat as a draft; verify marker edges against stable records or primary sources. Review; may be correct for rare/transitional states. Insufficient directional DE support; keep as Unknown. Minor method disagreement; usually acceptable.</td>
+</tr>
+
+</tbody>
+</table>
+
+<h2>Figures</h2>
+<div class="figure-grid">
+
+<div class="figure-card">
+  <img src="figures/umap_clusters.png" alt="Umap Clusters" loading="lazy">
+  <div class="caption">Umap Clusters</div>
+</div>
+
+<div class="figure-card">
+  <img src="figures/umap_celltype.png" alt="Umap Celltype" loading="lazy">
+  <div class="caption">Umap Celltype</div>
+</div>
+
+<div class="figure-card">
+  <img src="figures/umap_confidence.png" alt="Umap Confidence" loading="lazy">
+  <div class="caption">Umap Confidence</div>
+</div>
+
+<div class="figure-card">
+  <img src="figures/confidence_distribution.png" alt="Confidence Distribution" loading="lazy">
+  <div class="caption">Confidence Distribution</div>
+</div>
+
+<div class="figure-card">
+  <img src="figures/umap_identity_state.png" alt="Umap Identity State" loading="lazy">
+  <div class="caption">Umap Identity State</div>
+</div>
+
+<div class="figure-card">
+  <img src="figures/identity_state_distribution.png" alt="Identity State Distribution" loading="lazy">
+  <div class="caption">Identity State Distribution</div>
+</div>
+
+</div>
+
+
+<h2>Critic Details — Flagged Clusters</h2>
+<div class="warning-box">
+  6 cluster(s) flagged for review. See details below.
+</div>
+
+<div class="card">
+  <div class="card-header">Cluster: 2::0 | Final: Unknown | Candidate: Basal cell</div>
+  <p><strong>Decision:</strong> abstain (PARTIAL_DE_SUPPORT; PARTIAL_EVIDENCE)</p>
+  <p><strong>State:</strong> interferon_responsive — hypothesis</p>
+  <p class="evidence-text"><strong>State evidence:</strong> support=4/7; expressed=57%; missing=1; silent=2</p>
+  <p class="evidence-summary"><strong>Summary:</strong> Cluster 2::0 → Unknown (candidate: Basal cell) [LOW] FLAGGED (AGGREGATE_PROVENANCE_ONLY; PARTIAL_EVIDENCE; PARTIAL_DE_SUPPORT) | Evidence: marker overlap 20%, score 0.38 | Action: Treat as a draft; verify marker edges against stable records or primary sources. Review; may be correct for rare/transitional states. Partial directional DE support; review before labeling.</p>
+  <p><strong>Flags:</strong> AGGREGATE_PROVENANCE_ONLY; PARTIAL_EVIDENCE; PARTIAL_DE_SUPPORT</p>
+  <p class="evidence-text"><strong>Evidence:</strong> Coverage: 1/5 (20%) expected markers expressed; 0 missing from matrix; 4 present but silent | DE support: 20% of expected markers | All 2 negative markers appropriately absent | No doublet signal detected | Ensemble: marker=0.39, ref=0.37, source=both</p>
+  <p class="evidence-text"><strong>Notes:</strong> Marker relations cite database-level sources but have not been verified against a stable database record or primary-source evidence locator; Moderate marker coverage (20%) — consider manual review; Partial directional DE support; candidate requires review</p>
+</div>
+
+<div class="card">
+  <div class="card-header">Cluster: 2::1 | Final: Unknown | Candidate: Ciliated cell</div>
+  <p><strong>Decision:</strong> abstain (POSSIBLE_DOUBLET)</p>
+  <p><strong>State:</strong> hypoxic — hypothesis</p>
+  <p class="evidence-text"><strong>State evidence:</strong> support=4/6; expressed=67%; missing=0; silent=2</p>
+  <p class="evidence-summary"><strong>Summary:</strong> Cluster 2::1 → Unknown (candidate: Ciliated cell) [NEEDS_REVIEW] FLAGGED (AGGREGATE_PROVENANCE_ONLY; POSSIBLE_DOUBLET) | Evidence: marker overlap 80%, score 0.87 | Action: Treat as a draft; verify marker edges against stable records or primary sources. Sub-cluster or mark as doublet.</p>
+  <p><strong>Flags:</strong> AGGREGATE_PROVENANCE_ONLY; POSSIBLE_DOUBLET</p>
+  <p class="evidence-text"><strong>Evidence:</strong> Coverage: 4/5 (80%) expected markers expressed; 1 missing from matrix; 0 present but silent | All 2 negative markers appropriately absent | Cross-lineage co-expression of Ciliated cell (80%) and Club cell (67%) markers | Ensemble: marker=0.84, ref=0.94, source=both</p>
+  <p class="evidence-text"><strong>Notes:</strong> Marker relations cite database-level sources but have not been verified against a stable database record or primary-source evidence locator; Two distinct lineage signatures co-expressed — possible doublet or transitional state. Consider sub-clustering.</p>
+</div>
+
+<div class="card">
+  <div class="card-header">Cluster: 2::2 | Final: Unknown | Candidate: Basal cell</div>
+  <p><strong>Decision:</strong> abstain (PARTIAL_DE_SUPPORT; PARTIAL_EVIDENCE)</p>
+  <p><strong>State:</strong> inflammatory_nfkB — hypothesis</p>
+  <p class="evidence-text"><strong>State evidence:</strong> support=0/6; expressed=50%; missing=0; silent=3</p>
+  <p class="evidence-summary"><strong>Summary:</strong> Cluster 2::2 → Unknown (candidate: Basal cell) [LOW] FLAGGED (AGGREGATE_PROVENANCE_ONLY; PARTIAL_EVIDENCE; PARTIAL_DE_SUPPORT) | Evidence: marker overlap 20%, score 0.38 | Action: Treat as a draft; verify marker edges against stable records or primary sources. Review; may be correct for rare/transitional states. Partial directional DE support; review before labeling.</p>
+  <p><strong>Flags:</strong> AGGREGATE_PROVENANCE_ONLY; PARTIAL_EVIDENCE; PARTIAL_DE_SUPPORT</p>
+  <p class="evidence-text"><strong>Evidence:</strong> Coverage: 1/5 (20%) expected markers expressed; 0 missing from matrix; 4 present but silent | DE support: 20% of expected markers | All 2 negative markers appropriately absent | No doublet signal detected | Ensemble: marker=0.38, ref=0.37, source=both</p>
+  <p class="evidence-text"><strong>Notes:</strong> Marker relations cite database-level sources but have not been verified against a stable database record or primary-source evidence locator; Moderate marker coverage (20%) — consider manual review; Partial directional DE support; candidate requires review</p>
+</div>
+
+<div class="card">
+  <div class="card-header">Cluster: 2::3 | Final: Unknown | Candidate: Ciliated cell</div>
+  <p><strong>Decision:</strong> abstain (LOW_DE_SUPPORT; PARTIAL_EVIDENCE)</p>
+  <p><strong>State:</strong> cycling_g2m — hypothesis</p>
+  <p class="evidence-text"><strong>State evidence:</strong> support=1/8; expressed=12%; missing=0; silent=7</p>
+  <p class="evidence-summary"><strong>Summary:</strong> Cluster 2::3 → Unknown (candidate: Ciliated cell) [NEEDS_REVIEW] FLAGGED (AGGREGATE_PROVENANCE_ONLY; PARTIAL_EVIDENCE; LOW_DE_SUPPORT; ENSEMBLE_MILD_DISAGREEMENT) | Evidence: marker overlap 0%, score 0.26 | Action: Treat as a draft; verify marker edges against stable records or primary sources. Review; may be correct for rare/transitional states. Insufficient directional DE support; keep as Unknown. Minor method disagreement; usually acceptable.</p>
+  <p><strong>Flags:</strong> AGGREGATE_PROVENANCE_ONLY; PARTIAL_EVIDENCE; LOW_DE_SUPPORT; ENSEMBLE_MILD_DISAGREEMENT</p>
+  <p class="evidence-text"><strong>Evidence:</strong> Coverage: 1/5 (20%) expected markers expressed; 1 missing from matrix; 3 present but silent | DE support: 0% of expected markers | All 2 negative markers appropriately absent | No doublet signal detected | Ensemble: marker=0.04, ref=0.35, source=both</p>
+  <p class="evidence-text"><strong>Notes:</strong> Marker relations cite database-level sources but have not been verified against a stable database record or primary-source evidence locator; Moderate marker coverage (20%) — consider manual review; Too few expected markers pass direction, logFC, FDR, and expression gates; Mild disagreement between methods (gap=0.31)</p>
+</div>
+
+<div class="card">
+  <div class="card-header">Cluster: 2::4 | Final: Unknown | Candidate: Alveolar type 2 cell</div>
+  <p><strong>Decision:</strong> abstain (POSSIBLE_DOUBLET)</p>
+  <p><strong>State:</strong> inflammatory_nfkB — supported</p>
+  <p class="evidence-text"><strong>State evidence:</strong> support=5/6; expressed=83%; missing=0; silent=1</p>
+  <p class="evidence-summary"><strong>Summary:</strong> Cluster 2::4 → Unknown (candidate: Alveolar type 2 cell) [NEEDS_REVIEW] FLAGGED (AGGREGATE_PROVENANCE_ONLY; POSSIBLE_DOUBLET) | Evidence: marker overlap 80%, score 0.88 | Action: Treat as a draft; verify marker edges against stable records or primary sources. Sub-cluster or mark as doublet.</p>
+  <p><strong>Flags:</strong> AGGREGATE_PROVENANCE_ONLY; POSSIBLE_DOUBLET</p>
+  <p class="evidence-text"><strong>Evidence:</strong> Coverage: 4/5 (80%) expected markers expressed; 1 missing from matrix; 0 present but silent | All 3 negative markers appropriately absent | Cross-lineage co-expression of Alveolar type 2 cell (75%) and Ciliated cell (40%) markers | Ensemble: marker=0.83, ref=0.99, source=both</p>
+  <p class="evidence-text"><strong>Notes:</strong> Marker relations cite database-level sources but have not been verified against a stable database record or primary-source evidence locator; Two distinct lineage signatures co-expressed — possible doublet or transitional state. Consider sub-clustering.</p>
+</div>
+
+<div class="card">
+  <div class="card-header">Cluster: 2::5 | Final: Unknown | Candidate: Alveolar type 1 cell</div>
+  <p><strong>Decision:</strong> abstain (LOW_DE_SUPPORT; PARTIAL_EVIDENCE)</p>
+  <p><strong>State:</strong> apoptotic_stress — hypothesis</p>
+  <p class="evidence-text"><strong>State evidence:</strong> support=0/6; expressed=50%; missing=0; silent=3</p>
+  <p class="evidence-summary"><strong>Summary:</strong> Cluster 2::5 → Unknown (candidate: Alveolar type 1 cell) [NEEDS_REVIEW] FLAGGED (AGGREGATE_PROVENANCE_ONLY; PARTIAL_EVIDENCE; LOW_DE_SUPPORT; ENSEMBLE_MILD_DISAGREEMENT) | Evidence: marker overlap 0%, score 0.35 | Action: Treat as a draft; verify marker edges against stable records or primary sources. Review; may be correct for rare/transitional states. Insufficient directional DE support; keep as Unknown. Minor method disagreement; usually acceptable.</p>
+  <p><strong>Flags:</strong> AGGREGATE_PROVENANCE_ONLY; PARTIAL_EVIDENCE; LOW_DE_SUPPORT; ENSEMBLE_MILD_DISAGREEMENT</p>
+  <p class="evidence-text"><strong>Evidence:</strong> Coverage: 1/4 (25%) expected markers expressed; 2 missing from matrix; 1 present but silent | DE support: 0% of expected markers | All 3 negative markers appropriately absent | No doublet signal detected | Ensemble: marker=0.08, ref=0.47, source=both</p>
+  <p class="evidence-text"><strong>Notes:</strong> Marker relations cite database-level sources but have not been verified against a stable database record or primary-source evidence locator; Moderate marker coverage (25%) — consider manual review; Too few expected markers pass direction, logFC, FDR, and expression gates; Mild disagreement between methods (gap=0.38)</p>
+</div>
+
+
+<hr class="report-footer">
+<p class="report-footer-text">
+  Generated by CellTypePilot v0.3.0 | MKG mkg-2026.08.1 | 2026-08-09 16:03 UTC
+</p>
+</body>
+</html>

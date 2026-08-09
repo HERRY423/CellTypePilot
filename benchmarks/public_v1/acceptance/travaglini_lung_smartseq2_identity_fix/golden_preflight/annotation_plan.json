@@ -1,0 +1,350 @@
+{
+  "schema_version": "celltypepilot.agent-annotation-plan.v1",
+  "created_at": "2026-08-09T12:49:27.461797+00:00",
+  "status": "ready",
+  "input_path": "C:\\Users\\13264\\Desktop\\celltypepilot\\benchmarks\\public_v1\\runs\\travaglini_lung_smartseq2_2020_identity_fix\\donor_travaglini_2020__2\\test_query.h5ad",
+  "input_sha256": "d8c37bce2906dcf41e4d15d0b33fd605ffcb2e3fdd69d8aba155179d50d5dc9d",
+  "output_dir": "C:\\Users\\13264\\Desktop\\celltypepilot\\benchmarks\\public_v1\\acceptance\\travaglini_lung_smartseq2_identity_fix\\golden_preflight",
+  "cluster_key": "ctp_cluster",
+  "species": "human",
+  "tissue": "lung",
+  "embedding_key": null,
+  "packs": [],
+  "marker_evidence_policy": "database",
+  "context_file_path": null,
+  "custom_markers_path": null,
+  "blockers": [],
+  "warnings": [],
+  "inspection": {
+    "n_obs": 3273,
+    "n_vars": 53514,
+    "species": "human",
+    "annotation_species_supported": true,
+    "supported_annotation_species": [
+      "human",
+      "mouse"
+    ],
+    "tissue": "lung",
+    "obs_columns": [
+      "nGene",
+      "nReads",
+      "plate.barcode",
+      "cell.id",
+      "region",
+      "label",
+      "sorter",
+      "sort.location",
+      "sample",
+      "location",
+      "donor_id",
+      "percent.ercc",
+      "percent.ribo",
+      "gating",
+      "Number of splices: Total",
+      "Number of splices: Annotated (sjdb)",
+      "Number of splices: GT-AG",
+      "Number of splices: GC-AG",
+      "Number of splices: AT-AC",
+      "Number of splices: Non-canonical",
+      "Mapping speed, Million of reads per hour",
+      "Average input read length",
+      "compartment",
+      "tissue_ontology_term_id",
+      "disease_ontology_term_id",
+      "development_stage_ontology_term_id",
+      "assay_ontology_term_id",
+      "self_reported_ethnicity_ontology_term_id",
+      "sex_ontology_term_id",
+      "is_primary_data",
+      "suspension_type",
+      "tissue_type",
+      "assay",
+      "disease",
+      "sex",
+      "tissue",
+      "self_reported_ethnicity",
+      "development_stage",
+      "observation_joinid",
+      "__ctp_study__",
+      "ctp_cluster"
+    ],
+    "obsm_keys": [
+      "X_Compartment_tSNE",
+      "X_tSNE"
+    ],
+    "layers": [
+      null
+    ],
+    "layer_info": {
+      "counts": null,
+      "lognorm": "X"
+    },
+    "has_raw": true,
+    "cluster_keys": [
+      "label",
+      "ctp_cluster"
+    ],
+    "embedding_keys": [
+      "X_Compartment_tSNE",
+      "X_tSNE"
+    ],
+    "cluster_sizes": {
+      "2::1": 654,
+      "2::2": 593,
+      "2::0": 590,
+      "2::5": 520,
+      "2::4": 509,
+      "2::3": 407
+    },
+    "warnings": [
+      "No embedding_key specified. Candidates found: ['X_Compartment_tSNE', 'X_tSNE']"
+    ],
+    "fatal": [],
+    "gene_id_convention": "ensembl_human",
+    "path": "C:\\Users\\13264\\Desktop\\celltypepilot\\benchmarks\\public_v1\\runs\\travaglini_lung_smartseq2_2020_identity_fix\\donor_travaglini_2020__2\\test_query.h5ad",
+    "sha256": "d8c37bce2906dcf41e4d15d0b33fd605ffcb2e3fdd69d8aba155179d50d5dc9d"
+  },
+  "evidence_coverage": {
+    "schema_version": "celltypepilot.evidence-coverage.v1",
+    "input_path": "C:\\Users\\13264\\Desktop\\celltypepilot\\benchmarks\\public_v1\\runs\\travaglini_lung_smartseq2_2020_identity_fix\\donor_travaglini_2020__2\\test_query.h5ad",
+    "species": "human",
+    "tissue": "lung",
+    "evidence_policy": "database",
+    "gene_identity": {
+      "schema_version": "celltypepilot.gene-identity-contract.v1",
+      "source": "feature_name",
+      "applied": true,
+      "n_features": 53514,
+      "marker_universe_size": 65,
+      "marker_overlap_before": 0,
+      "marker_overlap_after": 57,
+      "ambiguous_duplicate_symbol_count": 22,
+      "ambiguous_duplicate_symbols": [
+        "ANAPC1P2",
+        "BCRP3",
+        "C4orf36",
+        "CYP4F30P",
+        "ECEL1P2",
+        "GABARAPL3",
+        "GUSBP11",
+        "GUSBP5",
+        "LINC03021",
+        "LINC03023",
+        "LINC03025",
+        "MALL",
+        "NPEPPSP1",
+        "PDE4C",
+        "PDE8B",
+        "SFTA3",
+        "SIGLEC5",
+        "SNORD22",
+        "SNORD27",
+        "SNORD30",
+        "SNORD33",
+        "ZNF833P"
+      ],
+      "original_var_names_sha256": "63b5d8e4cfcac83de7e75bc251f9a6414d9402579ac96b9532cb517ff42a98ac",
+      "active_var_names_sha256": "fd67e5851fbe2a90c449d7d72ce8816ec81563a9d3c595e3dd602094916457ac",
+      "claim_boundary": "Identifier normalization makes existing expression evidence addressable; it does not validate marker specificity or biological accuracy."
+    },
+    "identity_scope": {
+      "schema_version": "celltypepilot.identity-scope.v1",
+      "requested_tissue": "lung",
+      "active_tissues": [
+        "lung",
+        "general"
+      ],
+      "n_cell_types": 13,
+      "collisions": [],
+      "pack_contract_sources": [],
+      "include_unverified_candidates": false
+    },
+    "candidate_inventory_scope": {
+      "schema_version": "celltypepilot.identity-scope.v1",
+      "requested_tissue": "lung",
+      "active_tissues": [
+        "lung",
+        "general"
+      ],
+      "n_cell_types": 13,
+      "collisions": [],
+      "pack_contract_sources": [],
+      "include_unverified_candidates": true
+    },
+    "cell_types": [
+      {
+        "cell_type": "Alveolar macrophage",
+        "cl_id": "CL:0000583",
+        "evidence_tissue": "lung",
+        "n_positive_markers": 5,
+        "n_reachable_positive_markers": 5,
+        "reachable_fraction": 1.0,
+        "unreachable_positive_markers": [],
+        "n_runtime_eligible_positive_markers": 5,
+        "n_reachable_runtime_eligible_positive_markers": 5,
+        "runtime_reachable_fraction": 1.0
+      },
+      {
+        "cell_type": "Alveolar type 1 cell",
+        "cl_id": "CL:0002062",
+        "evidence_tissue": "lung",
+        "n_positive_markers": 4,
+        "n_reachable_positive_markers": 2,
+        "reachable_fraction": 0.5,
+        "unreachable_positive_markers": [
+          "AGER",
+          "B2M"
+        ],
+        "n_runtime_eligible_positive_markers": 4,
+        "n_reachable_runtime_eligible_positive_markers": 2,
+        "runtime_reachable_fraction": 0.5
+      },
+      {
+        "cell_type": "Alveolar type 2 cell",
+        "cl_id": "CL:0002063",
+        "evidence_tissue": "lung",
+        "n_positive_markers": 5,
+        "n_reachable_positive_markers": 4,
+        "reachable_fraction": 0.8,
+        "unreachable_positive_markers": [
+          "CHGA"
+        ],
+        "n_runtime_eligible_positive_markers": 5,
+        "n_reachable_runtime_eligible_positive_markers": 4,
+        "runtime_reachable_fraction": 0.8
+      },
+      {
+        "cell_type": "Ciliated cell",
+        "cl_id": "CL:0002145",
+        "evidence_tissue": "lung",
+        "n_positive_markers": 5,
+        "n_reachable_positive_markers": 4,
+        "reachable_fraction": 0.8,
+        "unreachable_positive_markers": [
+          "CCDC39"
+        ],
+        "n_runtime_eligible_positive_markers": 5,
+        "n_reachable_runtime_eligible_positive_markers": 4,
+        "runtime_reachable_fraction": 0.8
+      },
+      {
+        "cell_type": "Club cell",
+        "cl_id": "CL:0000158",
+        "evidence_tissue": "lung",
+        "n_positive_markers": 4,
+        "n_reachable_positive_markers": 3,
+        "reachable_fraction": 0.75,
+        "unreachable_positive_markers": [
+          "CCSP"
+        ],
+        "n_runtime_eligible_positive_markers": 4,
+        "n_reachable_runtime_eligible_positive_markers": 3,
+        "runtime_reachable_fraction": 0.75
+      },
+      {
+        "cell_type": "Goblet cell",
+        "cl_id": "CL:0002370",
+        "evidence_tissue": "lung",
+        "n_positive_markers": 4,
+        "n_reachable_positive_markers": 3,
+        "reachable_fraction": 0.75,
+        "unreachable_positive_markers": [
+          "MUC5AC"
+        ],
+        "n_runtime_eligible_positive_markers": 4,
+        "n_reachable_runtime_eligible_positive_markers": 3,
+        "runtime_reachable_fraction": 0.75
+      },
+      {
+        "cell_type": "Basal cell",
+        "cl_id": "CL:0002633",
+        "evidence_tissue": "lung",
+        "n_positive_markers": 5,
+        "n_reachable_positive_markers": 5,
+        "reachable_fraction": 1.0,
+        "unreachable_positive_markers": [],
+        "n_runtime_eligible_positive_markers": 5,
+        "n_reachable_runtime_eligible_positive_markers": 5,
+        "runtime_reachable_fraction": 1.0
+      },
+      {
+        "cell_type": "Endothelial cell",
+        "cl_id": "CL:0000115",
+        "evidence_tissue": "general",
+        "n_positive_markers": 5,
+        "n_reachable_positive_markers": 5,
+        "reachable_fraction": 1.0,
+        "unreachable_positive_markers": [],
+        "n_runtime_eligible_positive_markers": 5,
+        "n_reachable_runtime_eligible_positive_markers": 5,
+        "runtime_reachable_fraction": 1.0
+      },
+      {
+        "cell_type": "Pericyte",
+        "cl_id": "CL:0000669",
+        "evidence_tissue": "general",
+        "n_positive_markers": 5,
+        "n_reachable_positive_markers": 4,
+        "reachable_fraction": 0.8,
+        "unreachable_positive_markers": [
+          "RGS5"
+        ],
+        "n_runtime_eligible_positive_markers": 5,
+        "n_reachable_runtime_eligible_positive_markers": 4,
+        "runtime_reachable_fraction": 0.8
+      },
+      {
+        "cell_type": "Fibroblast",
+        "cl_id": "CL:0000057",
+        "evidence_tissue": "general",
+        "n_positive_markers": 6,
+        "n_reachable_positive_markers": 6,
+        "reachable_fraction": 1.0,
+        "unreachable_positive_markers": [],
+        "n_runtime_eligible_positive_markers": 6,
+        "n_reachable_runtime_eligible_positive_markers": 6,
+        "runtime_reachable_fraction": 1.0
+      },
+      {
+        "cell_type": "Macrophage",
+        "cl_id": "CL:0000235",
+        "evidence_tissue": "general",
+        "n_positive_markers": 6,
+        "n_reachable_positive_markers": 6,
+        "reachable_fraction": 1.0,
+        "unreachable_positive_markers": [],
+        "n_runtime_eligible_positive_markers": 6,
+        "n_reachable_runtime_eligible_positive_markers": 6,
+        "runtime_reachable_fraction": 1.0
+      },
+      {
+        "cell_type": "Mast cell",
+        "cl_id": "CL:0000097",
+        "evidence_tissue": "general",
+        "n_positive_markers": 5,
+        "n_reachable_positive_markers": 5,
+        "reachable_fraction": 1.0,
+        "unreachable_positive_markers": [],
+        "n_runtime_eligible_positive_markers": 5,
+        "n_reachable_runtime_eligible_positive_markers": 5,
+        "runtime_reachable_fraction": 1.0
+      },
+      {
+        "cell_type": "Epithelial cell",
+        "cl_id": "CL:0000066",
+        "evidence_tissue": "general",
+        "n_positive_markers": 5,
+        "n_reachable_positive_markers": 5,
+        "reachable_fraction": 1.0,
+        "unreachable_positive_markers": [],
+        "n_runtime_eligible_positive_markers": 5,
+        "n_reachable_runtime_eligible_positive_markers": 5,
+        "runtime_reachable_fraction": 1.0
+      }
+    ],
+    "warnings": [],
+    "claim_boundary": "Candidate inventory coverage measures addressability, not annotation accuracy. Only runtime-eligible markers satisfying evidence_policy may enter scoring."
+  },
+  "claim_boundary": "Preparation establishes executable scope and marker addressability; it does not make an annotation or biological accuracy claim.",
+  "plan_sha256": "e1029c04e6d6d25891b7fceedfd41448ecd941c91fd9621b52abf1ee2dd18210"
+}

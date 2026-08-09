@@ -1,0 +1,13 @@
+method,fold_id,started_at_utc,completed_at_utc,wall_seconds,version,reference_policy,confidence_semantics
+celltypepilot,donor=travaglini_2020::1,2026-08-09T04:15:46.845642+00:00,2026-08-09T04:16:00.833060+00:00,13.987418,0.1.0,fold_train_only,cluster_evidence_score_not_probability_calibrated
+celltypist,donor=travaglini_2020::1,2026-08-09T04:41:17.634577+00:00,2026-08-09T04:43:24.068831+00:00,126.434254,1.7.1,fold_train_only,maximum_multiclass_probability
+popv,donor=travaglini_2020::1,2026-08-09T08:41:52.894723+00:00,2026-08-09T09:56:12.069444+00:00,4459.174721,0.6.1,fold_train_only,fraction_of_executed_popV_experts_agreeing_with_consensus_not_a_probability
+singler,donor=travaglini_2020::1,2026-08-09T05:06:26.877438+00:00,2026-08-09T05:07:39.176109+00:00,72.298671,2.12.0,fold_train_only,affine_transform_of_maximum_SingleR_similarity_not_a_probability
+celltypepilot,donor=travaglini_2020::2,2026-08-09T04:15:22.371314+00:00,2026-08-09T04:15:45.675185+00:00,23.303871,0.1.0,fold_train_only,cluster_evidence_score_not_probability_calibrated
+celltypist,donor=travaglini_2020::2,2026-08-09T04:38:00.417731+00:00,2026-08-09T04:41:17.284918+00:00,196.867187,1.7.1,fold_train_only,maximum_multiclass_probability
+popv,donor=travaglini_2020::2,2026-08-09T07:25:39.952538+00:00,2026-08-09T08:41:52.450976+00:00,4572.498438,0.6.1,fold_train_only,fraction_of_executed_popV_experts_agreeing_with_consensus_not_a_probability
+singler,donor=travaglini_2020::2,2026-08-09T05:05:14.032383+00:00,2026-08-09T05:06:26.558664+00:00,72.526281,2.12.0,fold_train_only,affine_transform_of_maximum_SingleR_similarity_not_a_probability
+celltypepilot,donor=travaglini_2020::3,2026-08-09T04:16:02.011840+00:00,2026-08-09T04:16:12.324225+00:00,10.312385,0.1.0,fold_train_only,cluster_evidence_score_not_probability_calibrated
+celltypist,donor=travaglini_2020::3,2026-08-09T04:43:24.382499+00:00,2026-08-09T04:46:53.515352+00:00,209.132853,1.7.1,fold_train_only,maximum_multiclass_probability
+popv,donor=travaglini_2020::3,2026-08-09T09:56:12.530549+00:00,2026-08-09T11:14:36.017351+00:00,4703.486802,0.6.1,fold_train_only,fraction_of_executed_popV_experts_agreeing_with_consensus_not_a_probability
+singler,donor=travaglini_2020::3,2026-08-09T05:07:39.526462+00:00,2026-08-09T05:08:36.610946+00:00,57.084484,2.12.0,fold_train_only,affine_transform_of_maximum_SingleR_similarity_not_a_probability

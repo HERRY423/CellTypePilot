@@ -1,0 +1,117 @@
+{
+  "schema_version": "celltypepilot.three-way-product-acceptance.v1",
+  "generated_at_utc": "2026-08-09T12:46:55.817061+00:00",
+  "decision": "rejected_not_claim_ready",
+  "claim_ready": false,
+  "comparison_contract": {
+    "input_sha256": true,
+    "assignments_sha256": true,
+    "cluster_map_sha256": true,
+    "label_map_sha256": true
+  },
+  "arms": {
+    "traditional_software": {
+      "status": "completed",
+      "methods": [
+        "celltypist",
+        "popv",
+        "singler"
+      ],
+      "metrics": [
+        {
+          "method": "celltypist",
+          "status": "evaluated",
+          "n_cells": 9409,
+          "accuracy": 0.8940376235519184,
+          "macro_f1": 0.7475176302704027,
+          "balanced_accuracy": 0.7609537914733212,
+          "coverage": 1.0,
+          "abstain_rate": 0.0,
+          "selective_accuracy": 0.8940376235519184
+        },
+        {
+          "method": "singler",
+          "status": "evaluated",
+          "n_cells": 9409,
+          "accuracy": 0.9191199914975025,
+          "macro_f1": 0.8717987017503954,
+          "balanced_accuracy": 0.886816698795176,
+          "coverage": 0.9779997874375598,
+          "abstain_rate": 0.0220002125624402,
+          "selective_accuracy": 0.9397956965876983
+        },
+        {
+          "method": "popv",
+          "status": "evaluated",
+          "n_cells": 9409,
+          "accuracy": 0.9212456158996706,
+          "macro_f1": 0.8471354908416445,
+          "balanced_accuracy": 0.8501251213298421,
+          "coverage": 1.0,
+          "abstain_rate": 0.0,
+          "selective_accuracy": 0.9212456158996706
+        }
+      ]
+    },
+    "standalone_agent": {
+      "status": "not_run",
+      "path": null,
+      "n_tasks": 0,
+      "n_expert_accepted": 0,
+      "correction_minutes_available": false
+    },
+    "agent_plus_celltypepilot": {
+      "status": "backend_completed_agent_product_not_run",
+      "backend_metrics": [
+        {
+          "method": "celltypepilot",
+          "status": "evaluated",
+          "n_cells": 9409,
+          "accuracy": 0.1211605909235838,
+          "macro_f1": 0.0679805599451385,
+          "balanced_accuracy": 0.0555393159894767,
+          "coverage": 0.1257306833882453,
+          "abstain_rate": 0.8742693166117547,
+          "selective_accuracy": 0.9636517328825022
+        }
+      ],
+      "agent_observations": {
+        "status": "not_run",
+        "path": null,
+        "n_tasks": 0,
+        "n_expert_accepted": 0,
+        "correction_minutes_available": false
+      },
+      "observed_prediction_scope": {
+        "accepted_cell_fraction": 0.1257306833882453,
+        "accepted_identity": "Endothelial cell only",
+        "warning": "Backend recovery is single-lineage and does not establish product utility."
+      }
+    }
+  },
+  "gates": {
+    "same_locked_data_contract": true,
+    "traditional_software_completed": true,
+    "fixed_celltypepilot_backend_completed": true,
+    "standalone_agent_tasks_completed": false,
+    "agent_plus_celltypepilot_tasks_completed": false,
+    "blinded_expert_acceptance_available": false,
+    "correction_time_available_for_both_agent_arms": false,
+    "celltypepilot_not_single_lineage_only": false
+  },
+  "blocking_findings": [
+    "standalone_agent_tasks_completed",
+    "agent_plus_celltypepilot_tasks_completed",
+    "blinded_expert_acceptance_available",
+    "correction_time_available_for_both_agent_arms",
+    "celltypepilot_not_single_lineage_only"
+  ],
+  "product_conclusion": "The gene-identity defect is repaired, but current CellTypePilot does not yet solve general lung annotation: coverage remains low and accepted predictions collapse to one broad lineage. No superiority over traditional software or standalone Agents may be claimed without paired Agent runs and blinded review.",
+  "claim_boundary": "Traditional backend accuracy, CellTypePilot backend accuracy, Agent usability, expert acceptance, and correction time are separate endpoints. Missing arms are never imputed.",
+  "inputs": {
+    "traditional_run": "benchmarks\\public_v1\\runs\\travaglini_lung_smartseq2_2020",
+    "traditional_results_sha256": "89cd753cbc6d1e5510cc46b1aeb49b56b2bf3c6d73a748c76c241fcc45523d68",
+    "plugin_run": "benchmarks\\public_v1\\runs\\travaglini_lung_smartseq2_2020_identity_fix",
+    "plugin_results_sha256": "f27fa5faacb45c14f927b477dafa70eb15c6bacc7c2a3c46cbf9349a29c3f6cc"
+  }
+}

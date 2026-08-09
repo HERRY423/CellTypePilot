@@ -3,156 +3,568 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>CellTypePilot — Web Inspector</title>
+    <title>CellTypePilot — 判读驾驶舱 (Review Cockpit)</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='inspector.css') }}">
 </head>
 <body>
-    <header>
-        <h1>CellTypePilot Web Inspector</h1>
-        <div class="subtitle">v{{ version }} — Interactive annotation review panel</div>
+    <header class="cockpit-header">
+        <div class="header-left">
+            <h1>CellTypePilot 判读驾驶舱</h1>
+            <div class="subtitle">v{{ version }} — Annotation Review & Clinical Cockpit</div>
+        </div>
+        <div class="header-right">
+            <span class="signoff-badge badge-{{ signoff.decision|lower }}" id="headerSignoffBadge">
+                Sign-off: {{ signoff.decision }}
+            </span>
+            <span class="artifact-badge badge-{{ artifact_status.review_state }}" id="headerArtifactBadge">
+                Artifacts: {{ artifact_status.review_state }}
+            </span>
+        </div>
     </header>
 
+    <!-- Cockpit Navigation Tabs -->
+    <nav class="cockpit-nav">
+        <button class="nav-tab active" data-tab="tab-overview" onclick="switchTab('tab-overview')">📊 驾驶舱大屏</button>
+        <button class="nav-tab" data-tab="tab-observability" onclick="switchTab('tab-observability'); refreshObservability()">
+            📡 运行观测
+            {% if observability.checkpoints and observability.checkpoints.n_status_files %}
+            <span class="tab-pill" id="obsTabPill">{{ observability.checkpoints.n_status_files }}</span>
+            {% endif %}
+        </button>
+        <button class="nav-tab" data-tab="tab-matrix" onclick="switchTab('tab-matrix')">🔬 聚类判读矩阵</button>
+        <button class="nav-tab" data-tab="tab-diff" onclick="switchTab('tab-diff')">
+            🔀 修改对比 (Diff)
+            {% if diff_summary.modified_clusters > 0 %}
+            <span class="tab-pill">{{ diff_summary.modified_clusters }}</span>
+            {% endif %}
+        </button>
+        <button class="nav-tab" data-tab="tab-checklist" onclick="switchTab('tab-checklist')">
+            📋 判读 Checklist
+            <span class="tab-pill" id="checklistTabPill">{{ checklist_status.readiness_pct }}%</span>
+        </button>
+        <button class="nav-tab" data-tab="tab-signoff" onclick="switchTab('tab-signoff')">✍️ 签署与导包</button>
+    </nav>
+
     <div class="container">
-        <!-- Stats -->
-        <div class="stats-grid">
-            <div class="stat-card">
-                <div class="label">Total Clusters</div>
-                <div class="value">{{ stats.total_clusters }}</div>
-            </div>
-            <div class="stat-card">
-                <div class="label">High Review Level</div>
-                <div class="value high">{{ stats.high }}</div>
-            </div>
-            <div class="stat-card">
-                <div class="label">Medium Review Level</div>
-                <div class="value medium">{{ stats.medium }}</div>
-            </div>
-            <div class="stat-card">
-                <div class="label">Low / Needs Review</div>
-                <div class="value low">{{ stats.low + stats.needs_review }}</div>
-            </div>
-            <div class="stat-card">
-                <div class="label">Critic Flags</div>
-                <div class="value" style="color: var(--info);">{{ stats.flagged }}</div>
-            </div>
-        </div>
 
-        <div class="panel">
-            <div class="panel-header">Score & Uncertainty Language</div>
-            <div class="panel-body">
-                <p>
-                    Evidence Score is a deterministic evidence-ranking signal, not a calibrated
-                    probability. Review Level is a rule-based Critic category. Unknown means
-                    fail-closed abstention, not a biological cell class. Statistical robustness,
-                    OOD/novelty, and selective-risk claims require separate benchmark or
-                    calibration artifacts.
-                </p>
+        <!-- ==================== TAB 1: OVERVIEW DASHBOARD ==================== -->
+        <div id="tab-overview" class="tab-content active">
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="label">Total Clusters</div>
+                    <div class="value">{{ stats.total_clusters }}</div>
+                </div>
+                <div class="stat-card">
+                    <div class="label">High Confidence</div>
+                    <div class="value high">{{ stats.high }}</div>
+                </div>
+                <div class="stat-card">
+                    <div class="label">Medium Confidence</div>
+                    <div class="value medium">{{ stats.medium }}</div>
+                </div>
+                <div class="stat-card">
+                    <div class="label">Low / Needs Review</div>
+                    <div class="value low">{{ stats.low + stats.needs_review }}</div>
+                </div>
+                <div class="stat-card">
+                    <div class="label">Critic Flagged</div>
+                    <div class="value" style="color: var(--danger);">{{ stats.flagged }}</div>
+                </div>
+                <div class="stat-card">
+                    <div class="label">Checklist Readiness</div>
+                    <div class="value" style="color: var(--accent);">{{ checklist_status.readiness_pct }}%</div>
+                </div>
             </div>
-        </div>
 
-        <!-- Review Audit Status -->
-        <div class="panel">
-            <div class="panel-header">
-                <span>Review Audit</span>
-                <button class="btn" onclick="refreshAudit()">Refresh</button>
-            </div>
-            <div class="panel-body">
-                <div class="audit-grid">
-                    <div>
-                        <div class="audit-label">Artifact State</div>
-                        <div class="audit-state" id="artifactState">{{ artifact_status.review_state }}</div>
-                        <p class="audit-message" id="artifactMessage">{{ artifact_status.message }}</p>
+            <div class="dashboard-grid">
+                <div class="panel">
+                    <div class="panel-header">Score & Scientific Language Boundaries</div>
+                    <div class="panel-body">
+                        <p class="text-muted">
+                            Evidence Score is a deterministic marker-ranking signal, not a calibrated probability.
+                            Review Level is a rule-based Critic category. Abstention (Unknown) represents conservative fail-closed safety,
+                            not a biological cell identity. Statistical claims and OOD novelty require standalone benchmark artifacts.
+                        </p>
                     </div>
-                    <div>
-                        <div class="audit-label">Stale Artifacts</div>
-                        <ul class="audit-list" id="staleArtifacts">
-                            {% for item in artifact_status.stale_artifacts %}
-                            <li>{{ item }}</li>
-                            {% else %}
-                            <li>None</li>
-                            {% endfor %}
-                        </ul>
+                </div>
+
+                <div class="panel">
+                    <div class="panel-header">
+                        <span>Review Audit & Artifact Status</span>
+                        <button class="btn btn-sm" onclick="refreshAudit()">Refresh</button>
                     </div>
-                    <div>
-                        <div class="audit-label">Recent Events</div>
-                        <ul class="audit-list" id="auditEvents">
-                            {% for event in audit_tail[-5:] %}
-                            <li>{{ event.timestamp }} — {{ event.event_type }}</li>
-                            {% else %}
-                            <li>No review events yet</li>
-                            {% endfor %}
-                        </ul>
+                    <div class="panel-body">
+                        <div class="audit-grid">
+                            <div>
+                                <div class="audit-label">Artifact State</div>
+                                <div class="audit-state" id="artifactState">{{ artifact_status.review_state }}</div>
+                                <p class="audit-message" id="artifactMessage">{{ artifact_status.message }}</p>
+                            </div>
+                            <div>
+                                <div class="audit-label">Stale Artifacts</div>
+                                <ul class="audit-list" id="staleArtifacts">
+                                    {% for item in artifact_status.stale_artifacts %}
+                                    <li>{{ item }}</li>
+                                    {% else %}
+                                    <li>None</li>
+                                    {% endfor %}
+                                </ul>
+                            </div>
+                            <div>
+                                <div class="audit-label">Recent Audit Trail</div>
+                                <ul class="audit-list" id="auditEvents">
+                                    {% for event in audit_tail[-5:] %}
+                                    <li>{{ event.timestamp[:19] }} — {{ event.event_type }}</li>
+                                    {% else %}
+                                    <li>No audit events recorded</li>
+                                    {% endfor %}
+                                </ul>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
+            {% if load_error %}
+            <div class="panel" style="margin-top:16px">
+                <div class="panel-header">Annotation products</div>
+                <div class="panel-body">
+                    <p class="text-muted">Observability-only mode: {{ load_error }}</p>
+                    <p class="text-muted">Checkpoint / ETA / host metrics are available under <strong>运行观测</strong>. This panel does not write predictions.</p>
+                </div>
+            </div>
+            {% endif %}
         </div>
 
-        <!-- Annotation Table -->
-        <div class="panel">
-            <div class="panel-header">
-                <span>Annotation Results</span>
-                <button class="btn" onclick="exportOverrides()">Export JSON</button>
-                <button class="btn btn-primary" onclick="applyOverrides()" style="margin-left:8px">Apply to .h5ad</button>
+        <!-- ==================== TAB: RUN OBSERVABILITY (READ-ONLY) ==================== -->
+        <div id="tab-observability" class="tab-content">
+            <div class="obs-banner">
+                <strong>只读观测</strong>
+                — checkpoints / ETA / CPU·GPU / 失败原因 / 产物哈希 / stale 状态。
+                本页<strong>不会</strong>改写预测；人工覆盖仍走 append-only audit log（Override → Apply）。
+                <button class="btn btn-sm" style="margin-left:12px" onclick="refreshObservability()">Refresh</button>
+                <label class="obs-auto" style="margin-left:12px">
+                    <input type="checkbox" id="obsAutoRefresh" onchange="toggleObsAutoRefresh(this.checked)"> Auto 10s
+                </label>
             </div>
-            <div class="panel-body">
-                <div class="filter-bar">
-                    <select id="confidenceFilter" onchange="filterTable()">
-                        <option value="">All confidence levels</option>
-                        <option value="high">High</option>
-                        <option value="medium">Medium</option>
-                        <option value="low">Low</option>
-                        <option value="needs_review">Needs Review</option>
-                    </select>
-                    <select id="flagFilter" onchange="filterTable()">
-                        <option value="">All critic flags</option>
-                        <option value="PASS">PASS</option>
-                        <option value="LOW_EVIDENCE">LOW_EVIDENCE</option>
-                        <option value="PARTIAL_EVIDENCE">PARTIAL_EVIDENCE</option>
-                        <option value="NEG_MARKER_CONFLICT">NEG_MARKER_CONFLICT</option>
-                        <option value="POSSIBLE_DOUBLET">POSSIBLE_DOUBLET</option>
-                    </select>
-                    <input type="text" id="searchBox" placeholder="Search cell type..." oninput="filterTable()">
+
+            <div class="stats-grid" id="obsStatsGrid">
+                <div class="stat-card">
+                    <div class="label">Checkpoints</div>
+                    <div class="value" id="obsNCheckpoints">{{ observability.checkpoints.n_status_files if observability.checkpoints else 0 }}</div>
                 </div>
-                <table id="annotationTable">
-                    <thead>
-                        <tr>
-                            <th>Cluster</th>
-                            <th>Cell Type</th>
-                            <th>CL ID</th>
-                            <th>Evidence Score</th>
-                            <th>Review Level</th>
-                            <th>Critic Flags</th>
-                            <th>Cells</th>
-                            <th>Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for row in annotations %}
-                        <tr data-confidence="{{ row.confidence }}" data-flag="{{ row.flags }}" data-celltype="{{ row.cell_type|lower }}">
-                            <td>{{ row.cluster }}</td>
-                            <td><strong>{{ row.cell_type }}</strong></td>
-                            <td>{{ row.cl_id }}</td>
-                            <td>{{ "%.3f"|format(row.score) }}</td>
-                            <td><span class="badge badge-{{ row.confidence }}">{{ row.confidence }}</span></td>
-                            <td><span class="badge badge-{{ row.flags|lower }}">{{ row.flags }}</span></td>
-                            <td>{{ row.n_cells }}</td>
-                            <td>
-                                <button class="btn" onclick="showEvidence('{{ row.cluster }}')">Evidence</button>
-                                <button class="btn" onclick="showOverride('{{ row.cluster }}', '{{ row.cell_type }}')">Override</button>
-                            </td>
-                        </tr>
+                <div class="stat-card">
+                    <div class="label">Completed / Running / Failed</div>
+                    <div class="value" id="obsProgress">
+                        {% set eta = observability.fold_eta or {} %}
+                        {{ eta.get('n_completed', 0) }} / {{ eta.get('n_running', 0) }} / {{ eta.get('n_failed', 0) }}
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="label">ETA remaining (s)</div>
+                    <div class="value" id="obsEta">
+                        {% if observability.fold_eta and observability.fold_eta.estimated_remaining_seconds is not none %}
+                        {{ '%.0f'|format(observability.fold_eta.estimated_remaining_seconds) }}
+                        {% else %}
+                        —
+                        {% endif %}
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="label">Stale</div>
+                    <div class="value" id="obsStale">
+                        {% if observability.stale and observability.stale.derived_artifacts_stale %}yes{% else %}no{% endif %}
+                    </div>
+                </div>
+            </div>
+
+            <div class="dashboard-grid">
+                <div class="panel">
+                    <div class="panel-header">Host CPU / GPU</div>
+                    <div class="panel-body" id="obsHostBody">
+                        {% set host = observability.host or {} %}
+                        {% set cpu = host.cpu or {} %}
+                        {% set gpu = host.gpu or {} %}
+                        <p><strong>CPU%:</strong> {{ cpu.get('cpu_percent', 'n/a') }} · cores {{ cpu.get('cpu_count_logical', 'n/a') }}</p>
+                        <p><strong>Platform:</strong> {{ cpu.get('platform', 'n/a') }}</p>
+                        {% if gpu.get('available') %}
+                        <p><strong>GPU source:</strong> {{ gpu.get('source') }}</p>
+                        <ul class="audit-list">
+                            {% for dev in gpu.get('devices', []) %}
+                            <li>{{ dev.get('index') }}: {{ dev.get('name') }}
+                                {% if dev.get('utilization_gpu_percent') is not none %} · util {{ dev.get('utilization_gpu_percent') }}%{% endif %}
+                                {% if dev.get('memory_used_mib') is not none %} · mem {{ dev.get('memory_used_mib') }}/{{ dev.get('memory_total_mib') }} MiB{% endif %}
+                            </li>
+                            {% endfor %}
+                        </ul>
+                        {% else %}
+                        <p class="text-muted">No GPU reported (nvidia-smi / torch.cuda unavailable).</p>
+                        {% endif %}
+                    </div>
+                </div>
+                <div class="panel">
+                    <div class="panel-header">Stale / product state</div>
+                    <div class="panel-body" id="obsStaleBody">
+                        {% set stale = observability.stale or {} %}
+                        <p><strong>Source:</strong> {{ stale.get('source', 'n/a') }}</p>
+                        <p><strong>Review state:</strong> {{ stale.get('review_state', 'n/a') }}</p>
+                        <p><strong>Reason:</strong> {{ stale.get('stale_reason', 'n/a') }}</p>
+                        <p class="text-muted">Run root: <code id="obsRunRoot">{{ observability.run_root or '' }}</code></p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="panel" style="margin-top:16px">
+                <div class="panel-header">checkpoints/*.status.json</div>
+                <div class="panel-body" style="overflow-x:auto">
+                    <table class="data-table" id="obsCheckpointTable">
+                        <thead>
+                            <tr>
+                                <th>Method</th>
+                                <th>Fold</th>
+                                <th>Status</th>
+                                <th>Elapsed / Duration (s)</th>
+                                <th>Failure reason</th>
+                                <th>Prediction SHA-256</th>
+                            </tr>
+                        </thead>
+                        <tbody id="obsCheckpointBody">
+                            {% for row in (observability.checkpoints.records if observability.checkpoints else []) %}
+                            <tr class="obs-status-{{ row.status }}">
+                                <td>{{ row.method }}</td>
+                                <td><code>{{ row.fold_id }}</code></td>
+                                <td><span class="badge-status">{{ row.status }}</span></td>
+                                <td>
+                                    {% if row.elapsed_seconds is not none %}{{ '%.1f'|format(row.elapsed_seconds) }}{% else %}—{% endif %}
+                                    /
+                                    {% if row.duration_seconds is not none %}{{ '%.1f'|format(row.duration_seconds) }}{% else %}—{% endif %}
+                                </td>
+                                <td class="text-muted">{{ row.failure_reason or row.error or '—' }}</td>
+                                <td><code class="hash">{{ (row.prediction_sha256 or '—')[:16] }}{% if row.prediction_sha256 %}…{% endif %}</code></td>
+                            </tr>
+                            {% else %}
+                            <tr><td colspan="6" class="text-muted">No checkpoint status files found under this run root.</td></tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div class="panel" style="margin-top:16px">
+                <div class="panel-header">Failures</div>
+                <div class="panel-body">
+                    <ul class="audit-list" id="obsFailures">
+                        {% for f in observability.failures or [] %}
+                        <li><strong>{{ f.method }}</strong> / {{ f.fold_id }}: {{ f.failure_reason }}</li>
+                        {% else %}
+                        <li class="text-muted">No failed checkpoints.</li>
                         {% endfor %}
-                    </tbody>
-                </table>
+                    </ul>
+                </div>
+            </div>
+
+            <div class="panel" style="margin-top:16px">
+                <div class="panel-header">Product hashes</div>
+                <div class="panel-body" style="overflow-x:auto">
+                    <table class="data-table" id="obsProductTable">
+                        <thead>
+                            <tr><th>Name</th><th>Present</th><th>Bytes</th><th>SHA-256</th></tr>
+                        </thead>
+                        <tbody id="obsProductBody">
+                            {% for p in observability.products or [] %}
+                            <tr>
+                                <td><code>{{ p.name }}</code></td>
+                                <td>{{ 'yes' if p.present else 'no' }}</td>
+                                <td>{{ p.byte_size if p.byte_size is not none else '—' }}</td>
+                                <td><code class="hash">{{ p.sha256 or p.hash_skipped or p.error or '—' }}</code></td>
+                            </tr>
+                            {% else %}
+                            <tr><td colspan="4" class="text-muted">No product inventory.</td></tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
             </div>
         </div>
+
+        <!-- ==================== TAB 2: CLUSTER MATRIX & INSPECTOR ==================== -->
+        <div id="tab-matrix" class="tab-content">
+            <div class="panel">
+                <div class="panel-header">
+                    <span>Cluster Decision Matrix</span>
+                    <div>
+                        <button class="btn btn-secondary" onclick="exportOverrides()">Export JSON</button>
+                        <button class="btn btn-primary" onclick="applyOverrides()" style="margin-left:8px">Apply to .h5ad</button>
+                    </div>
+                </div>
+                <div class="panel-body">
+                    <div class="filter-bar">
+                        <select id="confidenceFilter" onchange="filterTable()">
+                            <option value="">All confidence levels</option>
+                            <option value="high">High</option>
+                            <option value="medium">Medium</option>
+                            <option value="low">Low</option>
+                            <option value="needs_review">Needs Review</option>
+                        </select>
+                        <select id="flagFilter" onchange="filterTable()">
+                            <option value="">All critic flags</option>
+                            <option value="PASS">PASS</option>
+                            <option value="LOW_EVIDENCE">LOW_EVIDENCE</option>
+                            <option value="PARTIAL_EVIDENCE">PARTIAL_EVIDENCE</option>
+                            <option value="NEG_MARKER_CONFLICT">NEG_MARKER_CONFLICT</option>
+                            <option value="POSSIBLE_DOUBLET">POSSIBLE_DOUBLET</option>
+                        </select>
+                        <select id="statusFilter" onchange="filterTable()">
+                            <option value="">All review statuses</option>
+                            <option value="unreviewed">Unreviewed</option>
+                            <option value="reviewed">Reviewed</option>
+                            <option value="flagged">Flagged for discussion</option>
+                        </select>
+                        <input type="text" id="searchBox" placeholder="Search cell type..." oninput="filterTable()">
+                    </div>
+
+                    <table id="annotationTable">
+                        <thead>
+                            <tr>
+                                <th>Cluster</th>
+                                <th>Baseline Identity</th>
+                                <th>CL ID</th>
+                                <th>Evidence Score</th>
+                                <th>Review Level</th>
+                                <th>Novelty / OOD</th>
+                                <th>Critic Flags</th>
+                                <th>Cells</th>
+                                <th>Review Status</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for row in annotations %}
+                            <tr data-confidence="{{ row.confidence }}" data-flag="{{ row.flags }}" data-status="{{ row.review_status }}" data-celltype="{{ row.cell_type|lower }}">
+                                <td><strong>{{ row.cluster }}</strong></td>
+                                <td>
+                                    <span class="celltype-text">{{ row.cell_type }}</span>
+                                    {% if row.cluster in diff_summary.diff_rows and diff_summary.diff_rows[loop.index0].status == 'pending_change' %}
+                                    <span class="badge badge-warning" title="Pending Override">Override Pending</span>
+                                    {% endif %}
+                                </td>
+                                <td><code>{{ row.cl_id }}</code></td>
+                                <td>{{ "%.3f"|format(row.score) }}</td>
+                                <td><span class="badge badge-{{ row.confidence }}">{{ row.confidence }}</span></td>
+                                <td>{{ row.novelty_decision }} ({{ "%.3f"|format(row.novelty_score) }})</td>
+                                <td><span class="badge badge-{{ row.flags|lower }}">{{ row.flags }}</span></td>
+                                <td>{{ row.n_cells }}</td>
+                                <td>
+                                    <select class="status-select status-{{ row.review_status }}" onchange="updateClusterStatus('{{ row.cluster }}', this.value)">
+                                        <option value="unreviewed" {% if row.review_status == 'unreviewed' %}selected{% endif %}>⚪ Unreviewed</option>
+                                        <option value="reviewed" {% if row.review_status == 'reviewed' %}selected{% endif %}>🟢 Reviewed</option>
+                                        <option value="flagged" {% if row.review_status == 'flagged' %}selected{% endif %}>🔴 Flagged</option>
+                                    </select>
+                                </td>
+                                <td class="action-cell">
+                                    <button class="btn btn-sm" onclick="showEvidence('{{ row.cluster }}')">Evidence</button>
+                                    <button class="btn btn-sm btn-secondary" onclick="showOverride('{{ row.cluster }}', '{{ row.cell_type }}')">Override</button>
+                                    <button class="btn btn-sm" onclick="showClusterHistory('{{ row.cluster }}')">History ({% if row.note_count > 0 %}{{ row.note_count }}{% else %}0{% endif %})</button>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- ==================== TAB 3: OVERRIDE DIFF ==================== -->
+        <div id="tab-diff" class="tab-content">
+            <div class="panel">
+                <div class="panel-header">
+                    <span>Differential Impact Analysis (Override Diff)</span>
+                    <div>
+                        <button class="btn btn-secondary" onclick="exportOverrides()">Export JSON</button>
+                        <button class="btn btn-primary" onclick="applyOverrides()" style="margin-left:8px">Apply to .h5ad</button>
+                    </div>
+                </div>
+                <div class="panel-body">
+                    <div class="diff-summary-cards">
+                        <div class="diff-card">
+                            <div class="diff-card-label">Modified Clusters</div>
+                            <div class="diff-card-value">{{ diff_summary.modified_clusters }} / {{ diff_summary.total_clusters }}</div>
+                        </div>
+                        <div class="diff-card">
+                            <div class="diff-card-label">Reclassified Cell Count</div>
+                            <div class="diff-card-value">{{ diff_summary.affected_cells }} cells</div>
+                        </div>
+                        <div class="diff-card">
+                            <div class="diff-card-label">Dataset Impact Ratio</div>
+                            <div class="diff-card-value">{{ diff_summary.affected_cells_pct }}%</div>
+                        </div>
+                    </div>
+
+                    <table class="diff-table">
+                        <thead>
+                            <tr>
+                                <th>Cluster</th>
+                                <th>Original Identity</th>
+                                <th>Proposed / Pending Identity</th>
+                                <th>Affected Cells</th>
+                                <th>Impact Status</th>
+                                <th>Rationale / Reason</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for row in diff_summary.diff_rows %}
+                            <tr class="diff-row-{{ row.status }}">
+                                <td><strong>{{ row.cluster }}</strong></td>
+                                <td><span class="diff-orig">{{ row.original_type }}</span></td>
+                                <td>
+                                    {% if row.status == 'pending_change' %}
+                                    <span class="diff-new">{{ row.pending_type }}</span>
+                                    {% else %}
+                                    <span class="text-muted">{{ row.pending_type }}</span>
+                                    {% endif %}
+                                </td>
+                                <td>{{ row.n_cells }}</td>
+                                <td>
+                                    {% if row.status == 'pending_change' %}
+                                    <span class="badge badge-warning">MODIFIED</span>
+                                    {% else %}
+                                    <span class="badge badge-muted">UNCHANGED</span>
+                                    {% endif %}
+                                </td>
+                                <td>{{ row.reason }}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- ==================== TAB 4: CHECKLIST & PROTOCOL ==================== -->
+        <div id="tab-checklist" class="tab-content">
+            <div class="panel">
+                <div class="panel-header">
+                    <span>Annotation Readiness Checklist</span>
+                    <span class="badge badge-info">Readiness: <strong id="checklistPct">{{ checklist_status.readiness_pct }}%</strong></span>
+                </div>
+                <div class="panel-body">
+                    <div class="progress-bar-container">
+                        <div class="progress-bar-fill" id="checklistProgressBar" style="width: {{ checklist_status.readiness_pct }}%;"></div>
+                    </div>
+
+                    <h3>1. Automated Quality & Evidence Checks</h3>
+                    <div class="checklist-group" id="autoChecklistGroup">
+                        {% for key, item in checklist_status.automated_items.items() %}
+                        <div class="checklist-item auto-item">
+                            <div class="checklist-status-icon {% if item.completed %}check-pass{% else %}check-warn{% endif %}">
+                                {% if item.completed %}✓{% else %}⚠️{% endif %}
+                            </div>
+                            <div class="checklist-text">
+                                <strong>{{ item.label }}</strong>
+                                {% if item.flagged_clusters %}
+                                <div class="sub-text">Flagged clusters: {{ item.flagged_clusters|join(', ') }}</div>
+                                {% endif %}
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+
+                    <h3 style="margin-top:24px;">2. Expert Review Protocol Checklist</h3>
+                    <div class="checklist-group" id="manualChecklistGroup">
+                        {% for key, item in checklist_status.manual_items.items() %}
+                        <label class="checklist-item manual-item">
+                            <input type="checkbox" onchange="toggleChecklistItem('{{ key }}', this.checked)" {% if item.completed %}checked{% endif %}>
+                            <div class="checklist-text">
+                                <strong>{{ item.label }}</strong>
+                            </div>
+                        </label>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ==================== TAB 5: SIGNOFF & REVIEW PACKET ==================== -->
+        <div id="tab-signoff" class="tab-content">
+            <div class="panel">
+                <div class="panel-header">
+                    <span>Formal Review Sign-off & Audit Bundle Export</span>
+                    <button class="btn btn-secondary" onclick="resignReview()">Regenerate + Re-sign artifacts</button>
+                </div>
+                <div class="panel-body">
+                    <p class="text-muted" style="margin-bottom:12px">
+                        Manual overrides append to <code>annotation_audit_log.jsonl</code>. After Apply,
+                        derived report/evidence/figures/manifest are <strong>stale</strong> until you
+                        regenerate and re-sign. Packs remain data-only and still pass critic/abstention gates.
+                    </p>
+                    <div class="signoff-section">
+                        <div class="panel" style="background: var(--surface-subtle); margin-bottom: 20px;">
+                            <div class="panel-header">Sign-off Certificate Status</div>
+                            <div class="panel-body" id="signoffCertificateBox">
+                                {% if signoff.signed_off %}
+                                <div class="certificate-badge certificate-{{ signoff.decision|lower }}">
+                                    <h2>CERTIFICATE OF REVIEW: {{ signoff.decision }}</h2>
+                                    <p><strong>Reviewer:</strong> {{ signoff.reviewer_name }} ({{ signoff.reviewer_role }})</p>
+                                    <p><strong>Signed At:</strong> {{ signoff.timestamp }}</p>
+                                    <p><strong>Notes:</strong> {{ signoff.notes }}</p>
+                                </div>
+                                {% else %}
+                                <p class="text-muted">No formal sign-off certificate recorded yet.</p>
+                                {% endif %}
+                            </div>
+                        </div>
+
+                        <h3>Submit Expert Sign-off Certificate</h3>
+                        <form id="signoffForm" onsubmit="submitSignoff(event)">
+                            <div class="form-group">
+                                <label>Reviewer Name *</label>
+                                <input type="text" id="reviewerName" required placeholder="e.g. Dr. Alex Morgan" value="{{ signoff.reviewer_name }}">
+                            </div>
+                            <div class="form-group">
+                                <label>Reviewer Role *</label>
+                                <input type="text" id="reviewerRole" required placeholder="e.g. Lead Bioinformatician / Principal Investigator" value="{{ signoff.reviewer_role }}">
+                            </div>
+                            <div class="form-group">
+                                <label>Review Decision *</label>
+                                <select id="reviewDecision" required>
+                                    <option value="APPROVED" {% if signoff.decision == 'APPROVED' %}selected{% endif %}>APPROVED — All annotations verified</option>
+                                    <option value="APPROVED_WITH_RESERVATIONS" {% if signoff.decision == 'APPROVED_WITH_RESERVATIONS' %}selected{% endif %}>APPROVED WITH RESERVATIONS — Pending minor validation</option>
+                                    <option value="REVISIONS_REQUIRED" {% if signoff.decision == 'REVISIONS_REQUIRED' %}selected{% endif %}>REVISIONS REQUIRED — Further marker analysis needed</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label>Sign-off Notes / Summary Rationale</label>
+                                <textarea id="signoffNotes" rows="3" placeholder="Enter review summary rationale for paper or audit compliance...">{{ signoff.notes }}</textarea>
+                            </div>
+                            <div class="form-group">
+                                <label style="display:flex; align-items:center; gap:8px;">
+                                    <input type="checkbox" id="forceSignoff">
+                                    <span>Force Sign-off even if checklist is incomplete</span>
+                                </label>
+                            </div>
+                            <button type="submit" class="btn btn-primary" style="margin-top:12px;">Sign and Issue Certificate</button>
+                        </form>
+
+                        <hr style="margin: 32px 0; border: none; border-top: 1px solid var(--border);">
+
+                        <h3>Export Complete Review Packet</h3>
+                        <p class="text-muted">
+                            Download a self-contained, machine-readable JSON bundle containing dataset metadata, cluster state histories, checklist completion snapshot, override diffs, audit trails, and signed certificate.
+                        </p>
+                        <a href="/api/export/review-packet" download="review_packet.json" class="btn btn-secondary" style="display:inline-block; text-decoration:none; margin-top:8px;">
+                            📥 Export Review Packet (review_packet.json)
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+
     </div>
 
     <!-- Save Bar -->
     <div class="save-bar" id="saveBar">
         <div class="info"><span id="overrideCount">0</span> override(s) pending</div>
         <div class="actions">
-            <button class="btn" onclick="exportOverrides()">Export JSON</button>
+            <button class="btn btn-secondary" onclick="exportOverrides()">Export JSON</button>
             <button class="btn btn-primary" onclick="applyOverrides()">Apply to .h5ad</button>
             <button class="btn" onclick="hideSaveBar()" style="color:var(--muted)">Dismiss</button>
         </div>
@@ -164,7 +576,7 @@
             <h3>Cluster <span id="evidenceCluster"></span> — Evidence</h3>
             <div id="evidenceContent"></div>
             <br>
-            <button class="btn" onclick="closeModal('evidenceModal')">Close</button>
+            <button class="btn btn-secondary" onclick="closeModal('evidenceModal')">Close</button>
         </div>
     </div>
 
@@ -185,12 +597,37 @@
             </div>
             <br>
             <button class="btn btn-primary" onclick="saveOverride()">Save Override</button>
-            <button class="btn" onclick="closeModal('overrideModal')">Cancel</button>
+            <button class="btn btn-secondary" onclick="closeModal('overrideModal')">Cancel</button>
+        </div>
+    </div>
+
+    <!-- Cluster History & Notes Drawer/Modal -->
+    <div class="modal-overlay" id="historyModal">
+        <div class="modal modal-lg">
+            <h3>Cluster <span id="historyClusterId"></span> — History & Review Notes</h3>
+            
+            <div id="historyContent">
+                <h4>Baseline Prediction</h4>
+                <div id="historyBaseline" class="history-card">Loading...</div>
+
+                <h4 style="margin-top:16px;">Expert Notes & Comments</h4>
+                <div id="historyNotesList" class="notes-list">No notes added yet.</div>
+                
+                <div class="add-note-box" style="margin-top:12px;">
+                    <input type="text" id="noteAuthor" placeholder="Author name" style="width: 30%; margin-right: 8px;">
+                    <input type="text" id="noteText" placeholder="Add expert note..." style="width: 55%; margin-right: 8px;">
+                    <button class="btn btn-primary btn-sm" onclick="addClusterNote()">Add Note</button>
+                </div>
+
+                <h4 style="margin-top:20px;">Cluster Audit Event Trail</h4>
+                <ul id="historyAuditList" class="audit-list"></ul>
+            </div>
+            <br>
+            <button class="btn btn-secondary" onclick="closeModal('historyModal')">Close</button>
         </div>
     </div>
 
     <script>
-        // Evidence payload injected server-side; consumed by inspector.js
         const evidenceData = {{ evidence_json|safe }};
     </script>
     <script src="{{ url_for('static', filename='inspector.js') }}"></script>

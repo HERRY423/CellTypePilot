@@ -208,7 +208,7 @@ def test_uncertainty_language_never_rebrands_scores_as_probabilities():
     assert set(enriched["calibrated_probability_semantics"]) == {
         "not_available_from_annotation_run"
     }
-    assert set(enriched["ood_novelty_signal"]) == {"not_assessed_in_annotation_run"}
+    assert set(enriched["ood_novelty_signal"]) == {"separate_novelty_review_axis_required"}
     assert enriched.loc[1, "unknown_label_semantics"] == "safety_abstention_not_biological_class"
 
     manifest_block = build_uncertainty_language_manifest()

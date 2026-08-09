@@ -1,0 +1,47 @@
+{
+  "schema_version": "celltypepilot.state-atlas.v1",
+  "version": "test-pack-1.0.0",
+  "sources": {
+    "test_source": {
+      "name": "Test Source",
+      "pmid": "12345678",
+      "doi": "10.1000/test",
+      "url": "https://example.org/test"
+    }
+  },
+  "states": {
+    "test_state": {
+      "species": [
+        "human"
+      ],
+      "tissues": [
+        "general"
+      ],
+      "parent_cell_types": [
+        "test_cell"
+      ],
+      "positive_markers": [
+        "TESTS1"
+      ],
+      "negative_markers": [],
+      "marker_evidence": [
+        {
+          "gene": "TESTS1",
+          "polarity": "positive",
+          "state": "test_state",
+          "species": [
+            "human"
+          ],
+          "tissues": [
+            "general"
+          ],
+          "atlas_version": "test-pack-1.0.0",
+          "source_ids": [
+            "test_source"
+          ],
+          "verification_status": "aggregate_source_only_not_edge_verified"
+        }
+      ]
+    }
+  }
+}

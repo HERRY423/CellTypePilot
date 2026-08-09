@@ -1,0 +1,406 @@
+{
+  "schema_version": "celltypepilot.actionable-evidence-gaps.v1",
+  "status": "action_required",
+  "n_unknown_clusters": 6,
+  "gap_type_counts": {
+    "aggregate_provenance_gap": 6,
+    "candidate_separation_unresolved": 2,
+    "directional_support_gap": 4,
+    "marker_not_measured": 4,
+    "marker_present_but_silent": 4,
+    "mixed_lineage_or_doublet": 2
+  },
+  "clusters": [
+    {
+      "cluster": "2::0",
+      "published_identity": "Unknown",
+      "candidate_cell_type": "Basal cell",
+      "candidate_cl_id": "CL:0002633",
+      "alternative_candidate": "Ciliated cell",
+      "decision": "abstain",
+      "critic_confidence": "low",
+      "critic_flags": "AGGREGATE_PROVENANCE_ONLY; PARTIAL_EVIDENCE; PARTIAL_DE_SUPPORT",
+      "gaps": [
+        {
+          "gap_type": "marker_present_but_silent",
+          "observed": "4/5 expected markers silent",
+          "why_it_matters": "Expected markers are measured but do not meet the expression-fraction gate.",
+          "allowed_next_actions": [
+            "review_expression_layer_and_cluster_qc",
+            "inspect_marker_expression",
+            "keep_unknown"
+          ]
+        },
+        {
+          "gap_type": "directional_support_gap",
+          "observed": "pct_overlap=0.2; flags=AGGREGATE_PROVENANCE_ONLY;PARTIAL_DE_SUPPORT;PARTIAL_EVIDENCE",
+          "why_it_matters": "Too few expected markers pass direction, logFC, FDR, and expression gates.",
+          "allowed_next_actions": [
+            "inspect_cluster_level_de",
+            "review_clustering_resolution",
+            "keep_unknown"
+          ]
+        },
+        {
+          "gap_type": "aggregate_provenance_gap",
+          "observed": "AGGREGATE_PROVENANCE_ONLY",
+          "why_it_matters": "Marker relationships have aggregate provenance but no locked edge-level record.",
+          "allowed_next_actions": [
+            "queue_marker_edges_for_human_curation",
+            "keep_unknown"
+          ]
+        }
+      ],
+      "allowed_next_actions": [
+        "review_expression_layer_and_cluster_qc",
+        "inspect_marker_expression",
+        "keep_unknown",
+        "inspect_cluster_level_de",
+        "review_clustering_resolution",
+        "queue_marker_edges_for_human_curation"
+      ],
+      "forbidden_actions": [
+        "do_not_convert_ranking_margin_to_probability",
+        "do_not_accept_a_candidate_only_because_it_is_ranked_first",
+        "do_not_use_free_text_or_literature_search_as_scoring_evidence",
+        "do_not_use_state_or_novelty_to_rescue_identity",
+        "do_not_override_unknown_without_an_explicit_human_decision"
+      ],
+      "human_action_required": true
+    },
+    {
+      "cluster": "2::1",
+      "published_identity": "Unknown",
+      "candidate_cell_type": "Ciliated cell",
+      "candidate_cl_id": "CL:0002145",
+      "alternative_candidate": "Club cell",
+      "decision": "abstain",
+      "critic_confidence": "needs_review",
+      "critic_flags": "AGGREGATE_PROVENANCE_ONLY; POSSIBLE_DOUBLET",
+      "gaps": [
+        {
+          "gap_type": "marker_not_measured",
+          "observed": "1/5 expected markers absent",
+          "why_it_matters": "Expected markers are absent from the active expression feature space.",
+          "allowed_next_actions": [
+            "inspect_gene_identity_and_assay_coverage",
+            "request_a_compatible_expression_matrix",
+            "keep_unknown"
+          ]
+        },
+        {
+          "gap_type": "mixed_lineage_or_doublet",
+          "observed": "POSSIBLE_DOUBLET critic flag",
+          "why_it_matters": "More than one lineage program is active in the cluster.",
+          "allowed_next_actions": [
+            "run_or_import_doublet_diagnostics",
+            "review_subclustering",
+            "keep_unknown"
+          ]
+        },
+        {
+          "gap_type": "aggregate_provenance_gap",
+          "observed": "AGGREGATE_PROVENANCE_ONLY",
+          "why_it_matters": "Marker relationships have aggregate provenance but no locked edge-level record.",
+          "allowed_next_actions": [
+            "queue_marker_edges_for_human_curation",
+            "keep_unknown"
+          ]
+        }
+      ],
+      "allowed_next_actions": [
+        "inspect_gene_identity_and_assay_coverage",
+        "request_a_compatible_expression_matrix",
+        "keep_unknown",
+        "run_or_import_doublet_diagnostics",
+        "review_subclustering",
+        "queue_marker_edges_for_human_curation"
+      ],
+      "forbidden_actions": [
+        "do_not_convert_ranking_margin_to_probability",
+        "do_not_accept_a_candidate_only_because_it_is_ranked_first",
+        "do_not_use_free_text_or_literature_search_as_scoring_evidence",
+        "do_not_use_state_or_novelty_to_rescue_identity",
+        "do_not_override_unknown_without_an_explicit_human_decision"
+      ],
+      "human_action_required": true
+    },
+    {
+      "cluster": "2::2",
+      "published_identity": "Unknown",
+      "candidate_cell_type": "Basal cell",
+      "candidate_cl_id": "CL:0002633",
+      "alternative_candidate": "Ciliated cell",
+      "decision": "abstain",
+      "critic_confidence": "low",
+      "critic_flags": "AGGREGATE_PROVENANCE_ONLY; PARTIAL_EVIDENCE; PARTIAL_DE_SUPPORT",
+      "gaps": [
+        {
+          "gap_type": "marker_present_but_silent",
+          "observed": "4/5 expected markers silent",
+          "why_it_matters": "Expected markers are measured but do not meet the expression-fraction gate.",
+          "allowed_next_actions": [
+            "review_expression_layer_and_cluster_qc",
+            "inspect_marker_expression",
+            "keep_unknown"
+          ]
+        },
+        {
+          "gap_type": "directional_support_gap",
+          "observed": "pct_overlap=0.2; flags=AGGREGATE_PROVENANCE_ONLY;PARTIAL_DE_SUPPORT;PARTIAL_EVIDENCE",
+          "why_it_matters": "Too few expected markers pass direction, logFC, FDR, and expression gates.",
+          "allowed_next_actions": [
+            "inspect_cluster_level_de",
+            "review_clustering_resolution",
+            "keep_unknown"
+          ]
+        },
+        {
+          "gap_type": "aggregate_provenance_gap",
+          "observed": "AGGREGATE_PROVENANCE_ONLY",
+          "why_it_matters": "Marker relationships have aggregate provenance but no locked edge-level record.",
+          "allowed_next_actions": [
+            "queue_marker_edges_for_human_curation",
+            "keep_unknown"
+          ]
+        }
+      ],
+      "allowed_next_actions": [
+        "review_expression_layer_and_cluster_qc",
+        "inspect_marker_expression",
+        "keep_unknown",
+        "inspect_cluster_level_de",
+        "review_clustering_resolution",
+        "queue_marker_edges_for_human_curation"
+      ],
+      "forbidden_actions": [
+        "do_not_convert_ranking_margin_to_probability",
+        "do_not_accept_a_candidate_only_because_it_is_ranked_first",
+        "do_not_use_free_text_or_literature_search_as_scoring_evidence",
+        "do_not_use_state_or_novelty_to_rescue_identity",
+        "do_not_override_unknown_without_an_explicit_human_decision"
+      ],
+      "human_action_required": true
+    },
+    {
+      "cluster": "2::3",
+      "published_identity": "Unknown",
+      "candidate_cell_type": "Ciliated cell",
+      "candidate_cl_id": "CL:0002145",
+      "alternative_candidate": "Basal cell",
+      "decision": "abstain",
+      "critic_confidence": "needs_review",
+      "critic_flags": "AGGREGATE_PROVENANCE_ONLY; PARTIAL_EVIDENCE; LOW_DE_SUPPORT; ENSEMBLE_MILD_DISAGREEMENT",
+      "gaps": [
+        {
+          "gap_type": "marker_not_measured",
+          "observed": "1/5 expected markers absent",
+          "why_it_matters": "Expected markers are absent from the active expression feature space.",
+          "allowed_next_actions": [
+            "inspect_gene_identity_and_assay_coverage",
+            "request_a_compatible_expression_matrix",
+            "keep_unknown"
+          ]
+        },
+        {
+          "gap_type": "marker_present_but_silent",
+          "observed": "3/5 expected markers silent",
+          "why_it_matters": "Expected markers are measured but do not meet the expression-fraction gate.",
+          "allowed_next_actions": [
+            "review_expression_layer_and_cluster_qc",
+            "inspect_marker_expression",
+            "keep_unknown"
+          ]
+        },
+        {
+          "gap_type": "directional_support_gap",
+          "observed": "pct_overlap=0.0; flags=AGGREGATE_PROVENANCE_ONLY;ENSEMBLE_MILD_DISAGREEMENT;LOW_DE_SUPPORT;PARTIAL_EVIDENCE",
+          "why_it_matters": "Too few expected markers pass direction, logFC, FDR, and expression gates.",
+          "allowed_next_actions": [
+            "inspect_cluster_level_de",
+            "review_clustering_resolution",
+            "keep_unknown"
+          ]
+        },
+        {
+          "gap_type": "aggregate_provenance_gap",
+          "observed": "AGGREGATE_PROVENANCE_ONLY",
+          "why_it_matters": "Marker relationships have aggregate provenance but no locked edge-level record.",
+          "allowed_next_actions": [
+            "queue_marker_edges_for_human_curation",
+            "keep_unknown"
+          ]
+        },
+        {
+          "gap_type": "candidate_separation_unresolved",
+          "observed": "candidate=Ciliated cell; alternative=Basal cell; no selected-only directional markers",
+          "why_it_matters": "Top candidates lack candidate-specific directional marker support.",
+          "allowed_next_actions": [
+            "review_contrastive_evidence",
+            "inspect_discriminating_markers",
+            "keep_unknown"
+          ]
+        }
+      ],
+      "allowed_next_actions": [
+        "inspect_gene_identity_and_assay_coverage",
+        "request_a_compatible_expression_matrix",
+        "keep_unknown",
+        "review_expression_layer_and_cluster_qc",
+        "inspect_marker_expression",
+        "inspect_cluster_level_de",
+        "review_clustering_resolution",
+        "queue_marker_edges_for_human_curation",
+        "review_contrastive_evidence",
+        "inspect_discriminating_markers"
+      ],
+      "forbidden_actions": [
+        "do_not_convert_ranking_margin_to_probability",
+        "do_not_accept_a_candidate_only_because_it_is_ranked_first",
+        "do_not_use_free_text_or_literature_search_as_scoring_evidence",
+        "do_not_use_state_or_novelty_to_rescue_identity",
+        "do_not_override_unknown_without_an_explicit_human_decision"
+      ],
+      "human_action_required": true
+    },
+    {
+      "cluster": "2::4",
+      "published_identity": "Unknown",
+      "candidate_cell_type": "Alveolar type 2 cell",
+      "candidate_cl_id": "CL:0002063",
+      "alternative_candidate": "Club cell",
+      "decision": "abstain",
+      "critic_confidence": "needs_review",
+      "critic_flags": "AGGREGATE_PROVENANCE_ONLY; POSSIBLE_DOUBLET",
+      "gaps": [
+        {
+          "gap_type": "marker_not_measured",
+          "observed": "1/5 expected markers absent",
+          "why_it_matters": "Expected markers are absent from the active expression feature space.",
+          "allowed_next_actions": [
+            "inspect_gene_identity_and_assay_coverage",
+            "request_a_compatible_expression_matrix",
+            "keep_unknown"
+          ]
+        },
+        {
+          "gap_type": "mixed_lineage_or_doublet",
+          "observed": "POSSIBLE_DOUBLET critic flag",
+          "why_it_matters": "More than one lineage program is active in the cluster.",
+          "allowed_next_actions": [
+            "run_or_import_doublet_diagnostics",
+            "review_subclustering",
+            "keep_unknown"
+          ]
+        },
+        {
+          "gap_type": "aggregate_provenance_gap",
+          "observed": "AGGREGATE_PROVENANCE_ONLY",
+          "why_it_matters": "Marker relationships have aggregate provenance but no locked edge-level record.",
+          "allowed_next_actions": [
+            "queue_marker_edges_for_human_curation",
+            "keep_unknown"
+          ]
+        }
+      ],
+      "allowed_next_actions": [
+        "inspect_gene_identity_and_assay_coverage",
+        "request_a_compatible_expression_matrix",
+        "keep_unknown",
+        "run_or_import_doublet_diagnostics",
+        "review_subclustering",
+        "queue_marker_edges_for_human_curation"
+      ],
+      "forbidden_actions": [
+        "do_not_convert_ranking_margin_to_probability",
+        "do_not_accept_a_candidate_only_because_it_is_ranked_first",
+        "do_not_use_free_text_or_literature_search_as_scoring_evidence",
+        "do_not_use_state_or_novelty_to_rescue_identity",
+        "do_not_override_unknown_without_an_explicit_human_decision"
+      ],
+      "human_action_required": true
+    },
+    {
+      "cluster": "2::5",
+      "published_identity": "Unknown",
+      "candidate_cell_type": "Alveolar type 1 cell",
+      "candidate_cl_id": "CL:0002062",
+      "alternative_candidate": "Ciliated cell",
+      "decision": "abstain",
+      "critic_confidence": "needs_review",
+      "critic_flags": "AGGREGATE_PROVENANCE_ONLY; PARTIAL_EVIDENCE; LOW_DE_SUPPORT; ENSEMBLE_MILD_DISAGREEMENT",
+      "gaps": [
+        {
+          "gap_type": "marker_not_measured",
+          "observed": "2/4 expected markers absent",
+          "why_it_matters": "Expected markers are absent from the active expression feature space.",
+          "allowed_next_actions": [
+            "inspect_gene_identity_and_assay_coverage",
+            "request_a_compatible_expression_matrix",
+            "keep_unknown"
+          ]
+        },
+        {
+          "gap_type": "marker_present_but_silent",
+          "observed": "1/4 expected markers silent",
+          "why_it_matters": "Expected markers are measured but do not meet the expression-fraction gate.",
+          "allowed_next_actions": [
+            "review_expression_layer_and_cluster_qc",
+            "inspect_marker_expression",
+            "keep_unknown"
+          ]
+        },
+        {
+          "gap_type": "directional_support_gap",
+          "observed": "pct_overlap=0.0; flags=AGGREGATE_PROVENANCE_ONLY;ENSEMBLE_MILD_DISAGREEMENT;LOW_DE_SUPPORT;PARTIAL_EVIDENCE",
+          "why_it_matters": "Too few expected markers pass direction, logFC, FDR, and expression gates.",
+          "allowed_next_actions": [
+            "inspect_cluster_level_de",
+            "review_clustering_resolution",
+            "keep_unknown"
+          ]
+        },
+        {
+          "gap_type": "aggregate_provenance_gap",
+          "observed": "AGGREGATE_PROVENANCE_ONLY",
+          "why_it_matters": "Marker relationships have aggregate provenance but no locked edge-level record.",
+          "allowed_next_actions": [
+            "queue_marker_edges_for_human_curation",
+            "keep_unknown"
+          ]
+        },
+        {
+          "gap_type": "candidate_separation_unresolved",
+          "observed": "candidate=Alveolar type 1 cell; alternative=Ciliated cell; no selected-only directional markers",
+          "why_it_matters": "Top candidates lack candidate-specific directional marker support.",
+          "allowed_next_actions": [
+            "review_contrastive_evidence",
+            "inspect_discriminating_markers",
+            "keep_unknown"
+          ]
+        }
+      ],
+      "allowed_next_actions": [
+        "inspect_gene_identity_and_assay_coverage",
+        "request_a_compatible_expression_matrix",
+        "keep_unknown",
+        "review_expression_layer_and_cluster_qc",
+        "inspect_marker_expression",
+        "inspect_cluster_level_de",
+        "review_clustering_resolution",
+        "queue_marker_edges_for_human_curation",
+        "review_contrastive_evidence",
+        "inspect_discriminating_markers"
+      ],
+      "forbidden_actions": [
+        "do_not_convert_ranking_margin_to_probability",
+        "do_not_accept_a_candidate_only_because_it_is_ranked_first",
+        "do_not_use_free_text_or_literature_search_as_scoring_evidence",
+        "do_not_use_state_or_novelty_to_rescue_identity",
+        "do_not_override_unknown_without_an_explicit_human_decision"
+      ],
+      "human_action_required": true
+    }
+  ],
+  "claim_boundary": "Evidence gaps route investigation and review. They do not select a replacement identity, weaken abstention, or authorize autonomous evidence promotion."
+}

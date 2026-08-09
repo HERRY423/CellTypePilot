@@ -1,0 +1,43 @@
+cluster,cell_type,ensemble_score,marker_score,ref_score,marker_weight_used,ref_weight_used,agreement,source,rank
+2::0,Basal cell,0.38,0.3919,0.368,0.5,0.5,True,both,1
+2::0,Ciliated cell,0.2748,0.0498,0.4998,0.5,0.5,False,both,2
+2::0,Alveolar type 1 cell,0.2465,0.076,0.417,0.5,0.5,False,both,3
+2::0,Alveolar macrophage,0.1546,0.0143,0.295,0.5,0.5,False,both,4
+2::0,Alveolar type 2 cell,0.1487,0.0082,0.2892,0.5,0.5,True,reference,5
+2::0,Club cell,0.1355,0.0011,0.2699,0.5,0.5,True,reference,6
+2::0,Goblet cell,0.1349,0.0006,0.2692,0.5,0.5,True,reference,7
+2::1,Ciliated cell,0.8685,0.8399,0.9352,0.7,0.3,True,both,1
+2::1,Club cell,0.656,0.6282,0.7207,0.7,0.3,True,both,2
+2::1,Goblet cell,0.3866,0.3461,0.4812,0.7,0.3,True,both,3
+2::1,Alveolar macrophage,0.3849,0.3663,0.4284,0.7,0.3,True,both,4
+2::1,Alveolar type 2 cell,0.2823,0.2388,0.3839,0.7,0.3,True,both,5
+2::1,Alveolar type 1 cell,0.2285,0.1163,0.4902,0.7,0.3,False,both,6
+2::1,Basal cell,0.1355,0.0201,0.4048,0.7,0.3,False,both,7
+2::2,Basal cell,0.378,0.3831,0.3729,0.5,0.5,True,both,1
+2::2,Ciliated cell,0.2052,0.0455,0.3649,0.5,0.5,False,both,2
+2::2,Alveolar type 1 cell,0.1878,0.0147,0.3608,0.5,0.5,False,both,3
+2::2,Alveolar macrophage,0.1443,0.0087,0.2799,0.5,0.5,True,reference,4
+2::2,Alveolar type 2 cell,0.1434,0.0051,0.2816,0.5,0.5,True,reference,5
+2::2,Club cell,0.1391,0.002,0.2763,0.5,0.5,True,reference,6
+2::2,Goblet cell,0.1361,0.0013,0.2709,0.5,0.5,True,reference,7
+2::3,Ciliated cell,0.2573,0.0429,0.3492,0.3,0.7,False,both,1
+2::3,Basal cell,0.2327,0.0067,0.3295,0.3,0.7,True,reference,2
+2::3,Alveolar macrophage,0.2127,0.0286,0.2916,0.3,0.7,False,both,3
+2::3,Alveolar type 2 cell,0.193,0.0015,0.275,0.3,0.7,True,reference,4
+2::3,Alveolar type 1 cell,0.1884,0.0001,0.2691,0.3,0.7,True,reference,5
+2::3,Club cell,0.1882,0.0,0.2689,0.3,0.7,True,reference,6
+2::3,Goblet cell,0.1882,0.0,0.2689,0.3,0.7,True,reference,7
+2::4,Alveolar type 2 cell,0.8816,0.8335,0.9938,0.7,0.3,True,both,1
+2::4,Club cell,0.5639,0.5286,0.6463,0.7,0.3,True,both,2
+2::4,Ciliated cell,0.4323,0.3235,0.6861,0.7,0.3,False,both,3
+2::4,Basal cell,0.3745,0.3116,0.5211,0.7,0.3,False,both,4
+2::4,Alveolar type 1 cell,0.3395,0.2499,0.5484,0.7,0.3,False,both,5
+2::4,Alveolar macrophage,0.307,0.2841,0.3606,0.7,0.3,True,both,6
+2::4,Goblet cell,0.0888,0.0,0.2959,0.7,0.3,True,reference,7
+2::5,Alveolar type 1 cell,0.3517,0.084,0.4664,0.3,0.7,False,both,1
+2::5,Ciliated cell,0.3088,0.0484,0.4204,0.3,0.7,False,both,2
+2::5,Basal cell,0.2289,0.0067,0.3241,0.3,0.7,True,reference,3
+2::5,Alveolar macrophage,0.2027,0.0181,0.2818,0.3,0.7,False,both,4
+2::5,Alveolar type 2 cell,0.1972,0.0034,0.2802,0.3,0.7,True,reference,5
+2::5,Club cell,0.1959,0.0026,0.2788,0.3,0.7,True,reference,6
+2::5,Goblet cell,0.189,0.0007,0.2697,0.3,0.7,True,reference,7

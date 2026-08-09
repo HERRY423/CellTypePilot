@@ -1,0 +1,17 @@
+diagnostic,method,stratum,donor_unit,metric,estimate,n_cells,status,identity_effect
+low_quality,celltypepilot,not_flagged,travaglini_2020::travaglini_2020::1,macro_f1,0.0,3987.0,estimated_donor_stratum,none
+low_quality,celltypepilot,not_flagged,travaglini_2020::travaglini_2020::2,macro_f1,0.0,3273.0,estimated_donor_stratum,none
+low_quality,celltypepilot,not_flagged,travaglini_2020::travaglini_2020::3,macro_f1,0.0,2149.0,estimated_donor_stratum,none
+low_quality,celltypist,not_flagged,travaglini_2020::travaglini_2020::1,macro_f1,0.7826842888654724,3987.0,estimated_donor_stratum,none
+low_quality,celltypist,not_flagged,travaglini_2020::travaglini_2020::2,macro_f1,0.817626907784181,3273.0,estimated_donor_stratum,none
+low_quality,celltypist,not_flagged,travaglini_2020::travaglini_2020::3,macro_f1,0.7280780643635026,2149.0,estimated_donor_stratum,none
+low_quality,popv,not_flagged,travaglini_2020::travaglini_2020::1,macro_f1,0.8569836386203594,3987.0,estimated_donor_stratum,none
+low_quality,popv,not_flagged,travaglini_2020::travaglini_2020::2,macro_f1,0.8849319231710173,3273.0,estimated_donor_stratum,none
+low_quality,popv,not_flagged,travaglini_2020::travaglini_2020::3,macro_f1,0.8192323941093929,2149.0,estimated_donor_stratum,none
+low_quality,singler,not_flagged,travaglini_2020::travaglini_2020::1,macro_f1,0.8870381314131904,3987.0,estimated_donor_stratum,none
+low_quality,singler,not_flagged,travaglini_2020::travaglini_2020::2,macro_f1,0.906100582911905,3273.0,estimated_donor_stratum,none
+low_quality,singler,not_flagged,travaglini_2020::travaglini_2020::3,macro_f1,0.8043132322659298,2149.0,estimated_donor_stratum,none
+doublet,,not_assessed,,macro_f1,,,not_assessed_missing_predeclared_column,none
+ambient_rna,,not_assessed,,macro_f1,,,not_assessed_missing_predeclared_column,none
+low_rna,,not_assessed,,macro_f1,,,not_assessed_missing_predeclared_column,none
+high_mito,,not_assessed,,macro_f1,,,not_assessed_missing_predeclared_column,none

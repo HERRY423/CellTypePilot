@@ -1,0 +1,118 @@
+[
+  {
+    "cluster": "2::0",
+    "candidate_cell_type": "Basal cell",
+    "cl_id": "CL:0002633",
+    "decision": "abstain",
+    "critic_flags": "AGGREGATE_PROVENANCE_ONLY; PARTIAL_EVIDENCE; PARTIAL_DE_SUPPORT",
+    "critic_confidence": "low",
+    "abstain_reason": "PARTIAL_DE_SUPPORT; PARTIAL_EVIDENCE",
+    "supporting_markers": [
+      "ITGA6"
+    ],
+    "suggested_pubmed_query": "\"Basal cell\" AND (ITGA6)",
+    "recommended_action": "Treat as a draft; verify marker edges against stable records or primary sources.",
+    "literature_validation": {
+      "assessment": "not_run_explicit_opt_in_required",
+      "total_refs": 0,
+      "claim_boundary": "Literature search is optional context for human review and cannot enter annotation scoring or promote marker evidence automatically."
+    }
+  },
+  {
+    "cluster": "2::1",
+    "candidate_cell_type": "Ciliated cell",
+    "cl_id": "CL:0002145",
+    "decision": "abstain",
+    "critic_flags": "AGGREGATE_PROVENANCE_ONLY; POSSIBLE_DOUBLET",
+    "critic_confidence": "needs_review",
+    "abstain_reason": "POSSIBLE_DOUBLET",
+    "supporting_markers": [
+      "FOXJ1",
+      "DNAI1",
+      "DNAH5",
+      "TUBB4B"
+    ],
+    "suggested_pubmed_query": "\"Ciliated cell\" AND (FOXJ1 OR DNAI1 OR DNAH5 OR TUBB4B)",
+    "recommended_action": "Treat as a draft; verify marker edges against stable records or primary sources.",
+    "literature_validation": {
+      "assessment": "not_run_explicit_opt_in_required",
+      "total_refs": 0,
+      "claim_boundary": "Literature search is optional context for human review and cannot enter annotation scoring or promote marker evidence automatically."
+    }
+  },
+  {
+    "cluster": "2::2",
+    "candidate_cell_type": "Basal cell",
+    "cl_id": "CL:0002633",
+    "decision": "abstain",
+    "critic_flags": "AGGREGATE_PROVENANCE_ONLY; PARTIAL_EVIDENCE; PARTIAL_DE_SUPPORT",
+    "critic_confidence": "low",
+    "abstain_reason": "PARTIAL_DE_SUPPORT; PARTIAL_EVIDENCE",
+    "supporting_markers": [
+      "ITGA6"
+    ],
+    "suggested_pubmed_query": "\"Basal cell\" AND (ITGA6)",
+    "recommended_action": "Treat as a draft; verify marker edges against stable records or primary sources.",
+    "literature_validation": {
+      "assessment": "not_run_explicit_opt_in_required",
+      "total_refs": 0,
+      "claim_boundary": "Literature search is optional context for human review and cannot enter annotation scoring or promote marker evidence automatically."
+    }
+  },
+  {
+    "cluster": "2::3",
+    "candidate_cell_type": "Ciliated cell",
+    "cl_id": "CL:0002145",
+    "decision": "abstain",
+    "critic_flags": "AGGREGATE_PROVENANCE_ONLY; PARTIAL_EVIDENCE; LOW_DE_SUPPORT; ENSEMBLE_MILD_DISAGREEMENT",
+    "critic_confidence": "needs_review",
+    "abstain_reason": "LOW_DE_SUPPORT; PARTIAL_EVIDENCE",
+    "supporting_markers": [],
+    "suggested_pubmed_query": "\"Ciliated cell\" single cell marker",
+    "recommended_action": "Treat as a draft; verify marker edges against stable records or primary sources.",
+    "literature_validation": {
+      "assessment": "not_run_explicit_opt_in_required",
+      "total_refs": 0,
+      "claim_boundary": "Literature search is optional context for human review and cannot enter annotation scoring or promote marker evidence automatically."
+    }
+  },
+  {
+    "cluster": "2::4",
+    "candidate_cell_type": "Alveolar type 2 cell",
+    "cl_id": "CL:0002063",
+    "decision": "abstain",
+    "critic_flags": "AGGREGATE_PROVENANCE_ONLY; POSSIBLE_DOUBLET",
+    "critic_confidence": "needs_review",
+    "abstain_reason": "POSSIBLE_DOUBLET",
+    "supporting_markers": [
+      "SFTPC",
+      "SFTPA1",
+      "ABCA3",
+      "NKX2-1"
+    ],
+    "suggested_pubmed_query": "\"Alveolar type 2 cell\" AND (SFTPC OR SFTPA1 OR ABCA3 OR NKX2-1)",
+    "recommended_action": "Treat as a draft; verify marker edges against stable records or primary sources.",
+    "literature_validation": {
+      "assessment": "not_run_explicit_opt_in_required",
+      "total_refs": 0,
+      "claim_boundary": "Literature search is optional context for human review and cannot enter annotation scoring or promote marker evidence automatically."
+    }
+  },
+  {
+    "cluster": "2::5",
+    "candidate_cell_type": "Alveolar type 1 cell",
+    "cl_id": "CL:0002062",
+    "decision": "abstain",
+    "critic_flags": "AGGREGATE_PROVENANCE_ONLY; PARTIAL_EVIDENCE; LOW_DE_SUPPORT; ENSEMBLE_MILD_DISAGREEMENT",
+    "critic_confidence": "needs_review",
+    "abstain_reason": "LOW_DE_SUPPORT; PARTIAL_EVIDENCE",
+    "supporting_markers": [],
+    "suggested_pubmed_query": "\"Alveolar type 1 cell\" single cell marker",
+    "recommended_action": "Treat as a draft; verify marker edges against stable records or primary sources.",
+    "literature_validation": {
+      "assessment": "not_run_explicit_opt_in_required",
+      "total_refs": 0,
+      "claim_boundary": "Literature search is optional context for human review and cannot enter annotation scoring or promote marker evidence automatically."
+    }
+  }
+]

@@ -1,0 +1,22 @@
+{
+  "method": "popv",
+  "reference_policy": "fold_train_only",
+  "confidence_semantics": "fraction_of_executed_popV_experts_agreeing_with_consensus_not_a_probability",
+  "argv": [
+    "python",
+    "{config_dir}/run_popv_docker.py",
+    "{train_h5ad}",
+    "{test_h5ad}",
+    "{output_csv}"
+  ],
+  "version_command": [
+    "docker",
+    "run",
+    "--rm",
+    "celltypepilot-popv:0.6.1",
+    "python",
+    "-c",
+    "import importlib.metadata as m; print(m.version('popv'))"
+  ],
+  "timeout_seconds": 14400
+}

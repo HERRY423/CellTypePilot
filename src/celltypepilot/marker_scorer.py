@@ -11,15 +11,20 @@ import pandas as pd
 import scanpy as sc
 from scipy import sparse
 
+from .atlas_lifecycle import compute_marker_weights
 from .constants import (
     CONFIDENCE_HIGH,
     CONFIDENCE_LOW,
     CONFIDENCE_MEDIUM,
     CONFIDENCE_REVIEW,
+    DISEASE_FC_RELAXATION,
+    DISEASE_SPECIFICITY_RELAXATION,
     MARKER_FC_THRESHOLD,
     MARKER_FDR_THRESHOLD,
     MARKER_PCT_THRESHOLD,
 )
+from .gene_aliases import build_var_alias_index, resolve_marker_list
+
 
 
 def compute_marker_scores(
@@ -27,6 +32,7 @@ def compute_marker_scores(
     cluster_key: str,
     markers: dict[str, dict],
     layer: str | None = None,
+    evidence_weighted: bool = False,
 ) -> pd.DataFrame:
     """Score each cluster against each cell type using marker overlap.
 
@@ -42,6 +48,18 @@ def compute_marker_scores(
         cluster, cell_type, pct_overlap, mean_expression, specificity,
         neg_conflict, combined_score, rank
     """
+    # Detect disease/tumor microenvironment context from adata
+    is_disease_context = False
+    obs_text = " ".join([str(col) for col in adata.obs.columns]) + " " + " ".join([str(v) for v in adata.obs.iloc[0].values if isinstance(v, str)])
+    obs_text = obs_text.lower()
+    if any(k in obs_text for k in ["tumor", "gbm", "cancer", "glioma", "lesion", "inflamed", "disease"]):
+        is_disease_context = True
+
+    effective_fc_threshold = MARKER_FC_THRESHOLD * DISEASE_FC_RELAXATION if is_disease_context else MARKER_FC_THRESHOLD
+
+    # Pre-build alias index
+    alias_index = build_var_alias_index(adata.var_names)
+
     # Step 1: Compute DE genes per cluster
     rank_kwargs = {
         "groupby": cluster_key,
@@ -68,7 +86,7 @@ def compute_marker_scores(
 
         significant_de = cluster_de[
             (pd.to_numeric(cluster_de["pval_adj"], errors="coerce") <= MARKER_FDR_THRESHOLD)
-            & (pd.to_numeric(cluster_de["logfoldchange"], errors="coerce") >= MARKER_FC_THRESHOLD)
+            & (pd.to_numeric(cluster_de["logfoldchange"], errors="coerce") >= effective_fc_threshold)
         ].copy()
         de_genes = set(significant_de["gene"].astype(str))
         de_genes_fc = dict(
@@ -93,21 +111,32 @@ def compute_marker_scores(
                 }
             )
 
-            # Positive marker analysis
-            pos_present = [g for g in pos_markers if g in adata.var_names]
-            pos_missing = [g for g in pos_markers if g not in adata.var_names]
+            # Positive marker analysis with alias resolution
+            pos_present, pos_missing = resolve_marker_list(pos_markers, alias_index)
             expression_pcts = _get_marker_expression_pcts(
                 adata, cluster, cluster_key, pos_present, layer=layer
             )
             pos_expressed = [g for g, pct in expression_pcts.items() if pct >= MARKER_PCT_THRESHOLD]
             pos_silent = [g for g in pos_present if g not in pos_expressed]
+
             # Supporting markers pass direction, logFC, FDR, and expression gates.
             pos_de = [g for g in pos_expressed if g in de_genes]
             context_supporting = [g for g in pos_de if g in context_positive]
             atlas_supporting = [g for g in pos_de if g in atlas_positive]
+            
+            gene_weights = compute_marker_weights(provenance_records)
 
             expected_denominator = max(len(pos_markers), 1)
-            pct_overlap = len(pos_de) / expected_denominator
+            
+            if evidence_weighted:
+                weighted_numerator = sum(gene_weights.get(g, 0.5) for g in pos_de)
+                weighted_denominator = sum(gene_weights.get(g, 0.5) for g in pos_markers)
+                pct_overlap = weighted_numerator / max(weighted_denominator, 0.001)
+                evidence_weight_mean = np.mean([gene_weights.get(g, 0.5) for g in pos_de]) if pos_de else 0.0
+            else:
+                pct_overlap = len(pos_de) / expected_denominator
+                evidence_weight_mean = 0.0
+                
             mean_fc = np.mean([de_genes_fc.get(g, 0) for g in pos_de]) if pos_de else 0.0
             pct_expressed = len(pos_expressed) / expected_denominator
 
@@ -116,11 +145,12 @@ def compute_marker_scores(
                 adata, cluster, cluster_key, pos_present, layer=layer
             )
 
-            # Negative marker analysis
-            neg_present = [g for g in neg_markers if g in adata.var_names]
+            # Negative marker analysis with alias resolution
+            neg_present, _ = resolve_marker_list(neg_markers, alias_index)
             neg_expressed = _get_expressed_markers(
                 adata, cluster, cluster_key, neg_present, layer=layer
             )
+
             neg_conflict = len(neg_expressed) / max(len(neg_markers), 1) if neg_markers else 0.0
 
             # Combined score
@@ -153,6 +183,7 @@ def compute_marker_scores(
                     "n_context_supporting_markers": len(context_supporting),
                     "n_atlas_supporting_markers": len(atlas_supporting),
                     "context_only_support": bool(pos_de) and not atlas_supporting,
+                    "evidence_weight_mean": round(evidence_weight_mean, 4),
                     "pct_overlap": round(pct_overlap, 4),
                     "mean_log2fc": round(mean_fc, 4),
                     "pct_expressed": round(pct_expressed, 4),
@@ -336,3 +367,54 @@ def generate_annotation_summary(
     top1["confidence"] = top1.apply(assign_confidence, axis=1)
 
     return top1.drop(columns=["rank"], errors="ignore").reset_index(drop=True)
+
+
+
+def compute_profile_correlation_scores(
+    adata: ad.AnnData,
+    cluster_key: str,
+    markers: dict[str, dict],
+    layer: str | None = None,
+) -> pd.DataFrame:
+    """Compute an independent secondary score based on cluster mean profile correlation.
+
+    This provides an internal secondary scoring method (zero external dependencies)
+    to enable ensemble consensus voting and detect score instability.
+
+    Returns DataFrame with: cluster, cell_type, ref_score
+    """
+    matrix = adata.layers[layer] if layer is not None else adata.X
+    clusters = sorted([str(c) for c in adata.obs[cluster_key].unique()])
+    gene_idx_map = {str(g): i for i, g in enumerate(adata.var_names)}
+    alias_index = build_var_alias_index(adata.var_names)
+
+    # Compute mean expression profile per cluster
+    cluster_means: dict[str, np.ndarray] = {}
+    for c in clusters:
+        mask = (adata.obs[cluster_key].astype(str) == str(c)).values
+        sub = matrix[mask]
+        mean_profile = sub.mean(axis=0)
+        mean_profile = mean_profile.A1 if sparse.issparse(mean_profile) else np.asarray(mean_profile).ravel()
+        cluster_means[c] = mean_profile
+
+    results = []
+    for c in clusters:
+        c_profile = cluster_means[c]
+        for ct_name, ct_info in markers.items():
+            pos_markers = ct_info.get("positive_markers", [])
+            pos_present, _ = resolve_marker_list(pos_markers, alias_index)
+
+            indices = [gene_idx_map[g] for g in pos_present if g in gene_idx_map]
+            if not indices:
+                results.append({"cluster": c, "cell_type": ct_name, "ref_score": 0.0})
+                continue
+
+            expr_vals = c_profile[indices]
+            # Higher average expression of positive markers = stronger profile score
+            profile_score = float(np.mean(expr_vals))
+            # Squashing to [0, 1] range using soft sigmoid
+            ref_score = float(1.0 / (1.0 + np.exp(-profile_score + 1.0)))
+            results.append({"cluster": c, "cell_type": ct_name, "ref_score": round(ref_score, 4)})
+
+    return pd.DataFrame(results)
+

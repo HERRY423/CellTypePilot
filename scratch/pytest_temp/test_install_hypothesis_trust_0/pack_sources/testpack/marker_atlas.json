@@ -1,0 +1,17 @@
+{
+  "version": "test-pack-1.0.0",
+  "tissues": {
+    "draft_tissue": {
+      "cell_types": {
+        "draft_cell": {
+          "cl_id": "CL:0000001",
+          "positive_markers": [
+            "DRAFTG1"
+          ],
+          "negative_markers": [],
+          "marker_evidence": []
+        }
+      }
+    }
+  }
+}

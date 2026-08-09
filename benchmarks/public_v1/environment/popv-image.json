@@ -1,0 +1,65 @@
+{
+  "Id": "sha256:f8580d8b1c7c15c793eb78034dd0f6ab2457692dda2ddfa1fd28cceba50ff302",
+  "RepoTags": [
+    "celltypepilot-popv:0.6.1"
+  ],
+  "RepoDigests": [
+    "celltypepilot-popv@sha256:f8580d8b1c7c15c793eb78034dd0f6ab2457692dda2ddfa1fd28cceba50ff302"
+  ],
+  "Comment": "buildkit.dockerfile.v0",
+  "Created": "2026-08-09T07:21:28.309825709Z",
+  "Config": {
+    "Env": [
+      "PATH=/usr/local/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin",
+      "LANG=C.UTF-8",
+      "GPG_KEY=7169605F62C751356D054A26A821E680E5FA6305",
+      "PYTHON_VERSION=3.12.13",
+      "PYTHON_SHA256=c08bc65a81971c1dd5783182826503369466c7e67374d1646519adf05207b684",
+      "PIP_DISABLE_PIP_VERSION_CHECK=1",
+      "PIP_DEFAULT_TIMEOUT=1000",
+      "PIP_RETRIES=10",
+      "DEBIAN_FRONTEND=noninteractive",
+      "PYTHONDONTWRITEBYTECODE=1",
+      "PYTHONUNBUFFERED=1"
+    ],
+    "Cmd": [
+      "python3"
+    ],
+    "Labels": {
+      "org.opencontainers.image.source": "benchmarks/public_v1/environment/popv.Dockerfile",
+      "org.opencontainers.image.title": "CellTypePilot public benchmark popV runtime",
+      "org.opencontainers.image.version": "0.6.1"
+    }
+  },
+  "Architecture": "amd64",
+  "Os": "linux",
+  "Size": 1752176782,
+  "RootFS": {
+    "Type": "layers",
+    "Layers": [
+      "sha256:6f94328331290cbd81edab450664d42da7b64c191416c9346cd5d28c84f76035",
+      "sha256:eeece50a9eae41fbec657a77c3360a561685b2fc638dbb59c4f59be2e9deb502",
+      "sha256:4bdf3c4a59c868d57940d8a761f38ce2a7269959ff6d1fd5a0157a86f6dac082",
+      "sha256:02bea5b709fab77889748c8fe2fed5a41e60e418e70d6a91b5a4f9c85475b043",
+      "sha256:70cc864f22045cc0eed8222efa206bc297cf01af1d9bcafac47f734dd15af729",
+      "sha256:8d4a611f07d7a4c47b4f2ba2be6240232240bc6eab0e4fc692721bfa50930e52",
+      "sha256:b09e704895294fa4f965b1a8a9880191487e2ee135042f426eaf14c8b2c316d2"
+    ]
+  },
+  "Metadata": {
+    "LastTagTime": "2026-08-09T07:22:45.409828257Z"
+  },
+  "Descriptor": {
+    "mediaType": "application/vnd.oci.image.index.v1+json",
+    "digest": "sha256:f8580d8b1c7c15c793eb78034dd0f6ab2457692dda2ddfa1fd28cceba50ff302",
+    "size": 856
+  },
+  "Identity": {
+    "Build": [
+      {
+        "Ref": "te4bu2c28aoavs05tinfigapq",
+        "CreatedAt": "2026-08-09T07:23:04.747355256Z"
+      }
+    ]
+  }
+}

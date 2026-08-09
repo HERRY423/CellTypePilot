@@ -1,0 +1,50 @@
+{
+  "schema_version": "celltypepilot.benchmark-batch.v1",
+  "batch_id": "gpu_popv_retrain_v1",
+  "frozen_at_utc": "2026-08-09T14:00:00Z",
+  "title": "GPU popV retrain — Travaglini Smart-seq2 all three donor folds",
+  "device_track": "gpu",
+  "status": "ready_for_gpu_nodes_not_started",
+  "isolation": {
+    "must_not_read_predictions_from": [
+      "benchmarks/public_v1/runs/travaglini_lung_smartseq2_2020/checkpoints",
+      "benchmarks/public_v1/runs/travaglini_lung_smartseq2_2020/out_of_fold_predictions.csv"
+    ],
+    "must_not_write_into": [
+      "benchmarks/public_v1/runs/travaglini_lung_smartseq2_2020"
+    ],
+    "reason": "CPU three-fold popV/partial results are a different frozen execution track. GPU is a new batch that re-runs all three popV donor folds under this tree."
+  },
+  "cohort": {
+    "cohort_id": "travaglini_lung_smartseq2_2020",
+    "input_h5ad": "benchmarks/public_v1/data/travaglini_lung_smartseq2.h5ad",
+    "expected_sha256": "e99da4d25e3000ee1bbe04d379ac5dc35594ead69d58bcc846e87cfd3c5e6927",
+    "cluster_map": "benchmarks/public_v1/runs/travaglini_lung_smartseq2_2020/cluster_map.csv",
+    "holdout_assignments": "benchmarks/public_v1/runs/travaglini_lung_smartseq2_2020/holdout_assignments.csv",
+    "label_map": "benchmarks/public_v1/label_maps/travaglini_lung_smartseq2_2020.csv",
+    "species": "human",
+    "tissue": "lung",
+    "truth_key": "cell_type",
+    "donor_key": "donor_id",
+    "constant_study_id": "travaglini_2020",
+    "cluster_key": "ctp_cluster",
+    "strategy": "donor"
+  },
+  "methods": ["popv"],
+  "comparator_config": "benchmarks/public_v1/adapters/popv_gpu.json",
+  "stack_pins": "benchmarks/public_v1/environment/gpu/stack_pins.json",
+  "required_folds": [
+    "donor=travaglini_2020::1",
+    "donor=travaglini_2020::2",
+    "donor=travaglini_2020::3"
+  ],
+  "execution": {
+    "mode": "donor_fold_distributed_or_single_node",
+    "worker_writes": "atomic_checkpoint_only_when_distributed",
+    "aggregate_writes": "batch_root/aggregate only",
+    "output_root": "benchmarks/public_v1/batches/gpu_popv_retrain_v1/run",
+    "checkpoint_dir": "benchmarks/public_v1/batches/gpu_popv_retrain_v1/run/checkpoints",
+    "aggregate_dir": "benchmarks/public_v1/batches/gpu_popv_retrain_v1/aggregate"
+  },
+  "claim_boundary": "GPU batch results apply only after all three required popV folds complete with matching stack pins and image digest. They must be reported as a separate execution track from the CPU three-fold run."
+}

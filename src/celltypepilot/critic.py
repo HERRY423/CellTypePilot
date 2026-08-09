@@ -15,7 +15,10 @@ import numpy as np
 import pandas as pd
 from scipy import sparse
 
+from .ambient_baseline import compute_ambient_baseline, is_ambient_contamination
 from .constants import (
+    AMBIENT_FOLD_THRESHOLD,
+    AMBIENT_MIN_CLUSTER_PCT,
     CONFIDENCE_HIGH,
     CONFIDENCE_LOW,
     CONFIDENCE_MEDIUM,
@@ -29,6 +32,7 @@ from .constants import (
     MARKER_PCT_THRESHOLD,
 )
 from .data_adapter import build_lineage_groups, get_all_markers_for_tissue
+from .gene_aliases import build_var_alias_index, resolve_marker_list
 
 
 def run_critic(
@@ -45,8 +49,8 @@ def run_critic(
     """Run the full critic pipeline on annotations.
 
     For each cluster annotation, performs:
-    1. Evidence sufficiency check
-    2. Negative marker conflict check
+    1. Evidence sufficiency check (with gene alias resolution)
+    2. Negative marker conflict check (with ambient RNA decontamination)
     3. Doublet/mixed signal heuristic
     4. Ontology consistency check
     5. Ensemble agreement check (if ensemble_info provided)
@@ -59,6 +63,9 @@ def run_critic(
         atlas: Marker atlas dict
         tissue: Tissue context
         ensemble_info: Optional ensemble scores DataFrame from ensemble_scorer
+        layer: Optional expression layer
+        evidence_policy: Marker evidence policy
+        marker_definitions: Optional pre-loaded marker definitions
 
     Returns the annotations DataFrame with added critic columns:
         critic_flags, critic_evidence, critic_confidence, critic_notes
@@ -70,7 +77,10 @@ def run_critic(
     )
     lineage_groups = build_lineage_groups(atlas, tissue)
     gene_idx = _gene_index_map(adata)
+    alias_index = build_var_alias_index(adata.var_names)
+    ambient_baseline = compute_ambient_baseline(adata, layer=layer)
     results = annotations.copy()
+
 
     # Build ensemble lookup if provided
     ensemble_lookup = {}
@@ -117,7 +127,7 @@ def run_critic(
 
         # 1. Evidence sufficiency check
         sufficiency_result = _check_evidence_sufficiency(
-            adata, cluster, cluster_key, pos_markers, gene_idx, layer=layer
+            adata, cluster, cluster_key, pos_markers, gene_idx, layer=layer, alias_index=alias_index
         )
         if sufficiency_result["flag"]:
             flags.append(sufficiency_result["flag"])
@@ -139,15 +149,24 @@ def run_critic(
             evidence_parts.append(f"DE support: {de_support:.0%} of expected markers")
             notes.append("Partial directional DE support; candidate requires review")
 
-        # 2. Negative marker conflict check
+        # 2. Negative marker conflict check with Ambient RNA Decontamination
         neg_result = _check_negative_markers(
-            adata, cluster, cluster_key, neg_markers, gene_idx, layer=layer
+            adata,
+            cluster,
+            cluster_key,
+            neg_markers,
+            gene_idx,
+            layer=layer,
+            tissue=tissue,
+            ambient_baseline=ambient_baseline,
+            alias_index=alias_index,
         )
         if neg_result["flag"]:
             flags.append(neg_result["flag"])
         evidence_parts.append(neg_result["evidence"])
         if neg_result["note"]:
             notes.append(neg_result["note"])
+
 
         # 3. Doublet / mixed signal heuristic
         doublet_result = _check_doublet_signal(
@@ -298,6 +317,7 @@ def _check_evidence_sufficiency(
     pos_markers: list[str],
     gene_idx: dict[str, int] | None = None,
     layer: str | None = None,
+    alias_index: dict[str, str] | None = None,
 ) -> dict:
     """Check if positive markers provide sufficient evidence for the annotation."""
     if not pos_markers:
@@ -320,18 +340,24 @@ def _check_evidence_sufficiency(
     if gene_idx is None:
         gene_idx = _gene_index_map(adata)
 
-    present = [g for g in pos_markers if g in gene_idx]
-    missing = [g for g in pos_markers if g not in gene_idx]
+    # Use alias resolution if alias_index is available
+    if alias_index is not None:
+        present, missing = resolve_marker_list(pos_markers, alias_index)
+    else:
+        present = [g for g in pos_markers if g in gene_idx]
+        missing = [g for g in pos_markers if g not in gene_idx]
+
     mask = (adata.obs[cluster_key].astype(str) == str(cluster)).values
 
     expressed = []
     for gene in present:
-        pct = _expression_pct(adata, mask, gene, gene_idx, layer=layer)
-        if pct >= MARKER_PCT_THRESHOLD:
-            expressed.append(gene)
+        if gene in gene_idx:
+            pct = _expression_pct(adata, mask, gene, gene_idx, layer=layer)
+            if pct >= MARKER_PCT_THRESHOLD:
+                expressed.append(gene)
     silent = [g for g in present if g not in expressed]
 
-    coverage = len(expressed) / len(pos_markers)
+    coverage = len(expressed) / max(len(pos_markers), 1)
     evidence = (
         f"Coverage: {len(expressed)}/{len(pos_markers)} ({coverage:.0%}) expected markers expressed; "
         f"{len(missing)} missing from matrix; {len(silent)} present but silent"
@@ -374,6 +400,9 @@ def _check_negative_markers(
     neg_markers: list[str],
     gene_idx: dict[str, int] | None = None,
     layer: str | None = None,
+    tissue: str | None = None,
+    ambient_baseline: dict[str, float] | None = None,
+    alias_index: dict[str, str] | None = None,
 ) -> dict:
     """Check for negative marker conflicts — markers that should NOT be expressed."""
     if not neg_markers:
@@ -382,20 +411,48 @@ def _check_negative_markers(
     if gene_idx is None:
         gene_idx = _gene_index_map(adata)
 
-    detected = [g for g in neg_markers if g in gene_idx]
+    if alias_index is not None:
+        detected, _ = resolve_marker_list(neg_markers, alias_index)
+    else:
+        detected = [g for g in neg_markers if g in gene_idx]
+
     mask = (adata.obs[cluster_key].astype(str) == str(cluster)).values
 
     conflicts = []
+    ambient_detected = []
     for gene in detected:
+        if gene not in gene_idx:
+            continue
         pct = _expression_pct(adata, mask, gene, gene_idx, layer=layer)
         if pct > CRITIC_NEG_MARKER_PCT_THRESHOLD:
-            conflicts.append(f"{gene} ({pct:.0%})")
+            # Check if this expression is ambient RNA background
+            global_pct = ambient_baseline.get(gene, 0.0) if ambient_baseline else 0.0
+            if ambient_baseline and is_ambient_contamination(
+                gene,
+                pct,
+                global_pct,
+                tissue=tissue,
+                ambient_fold_threshold=AMBIENT_FOLD_THRESHOLD,
+                min_cluster_pct=AMBIENT_MIN_CLUSTER_PCT,
+            ):
+                ambient_detected.append(f"{gene} ({pct:.0%}, bg={global_pct:.0%})")
+            else:
+                conflicts.append(f"{gene} ({pct:.0%})")
 
     if conflicts:
+        evidence_msg = f"Negative markers expressed: {', '.join(conflicts)}"
+        if ambient_detected:
+            evidence_msg += f" [Ambient background ignored: {', '.join(ambient_detected)}]"
         return {
             "flag": "NEG_MARKER_CONFLICT",
-            "evidence": f"Negative markers expressed: {', '.join(conflicts)}",
+            "evidence": evidence_msg,
             "note": f"{len(conflicts)} negative marker(s) unexpectedly expressed — possible misannotation or doublet",
+        }
+    elif ambient_detected:
+        return {
+            "flag": "",
+            "evidence": f"All negative markers absent (Ambient background filtered: {', '.join(ambient_detected)})",
+            "note": "Ambient RNA background contamination filtered; no true negative marker conflict",
         }
     else:
         return {
@@ -763,3 +820,40 @@ def format_run_narrative(summary: dict) -> str:
     else:
         narrative += " All annotations carry full marker evidence in evidence_table.csv."
     return narrative
+
+
+def generate_escalation_signals(critic_results: pd.DataFrame) -> list[dict]:
+    """Generate structured escalation signals for Agent Hosts (Codex/Claude Code).
+
+    Identifies clusters that need human review or literature escalation,
+    providing candidate cell types, flags, supporting markers, and suggested PubMed queries.
+    """
+    signals = []
+    if critic_results.empty:
+        return signals
+
+    for _, row in critic_results.iterrows():
+        decision = row.get("decision", "accepted")
+        flags = row.get("critic_flags", "PASS")
+        cluster = str(row.get("cluster", ""))
+        candidate = str(row.get("candidate_cell_type", row.get("cell_type", "Unknown")))
+        supporting = str(row.get("pos_supporting_markers", "")).split(";")
+        supporting = [m for m in supporting if m]
+
+        if decision == "abstain" or flags != "PASS":
+            signal = {
+                "cluster": cluster,
+                "candidate_cell_type": candidate,
+                "cl_id": str(row.get("candidate_cl_id", "")),
+                "decision": decision,
+                "critic_flags": flags,
+                "critic_confidence": str(row.get("critic_confidence", "needs_review")),
+                "abstain_reason": str(row.get("abstain_reason", "")),
+                "supporting_markers": supporting,
+                "suggested_pubmed_query": f'"{candidate}" AND ({" OR ".join(supporting[:4])})' if supporting else f'"{candidate}" single cell marker',
+                "recommended_action": FLAG_ACTIONS.get(flags.split("; ")[0], "Review cluster evidence and literature."),
+            }
+            signals.append(signal)
+
+    return signals
+

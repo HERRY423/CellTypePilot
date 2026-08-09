@@ -129,6 +129,9 @@ def _annotation_rows(results: pd.DataFrame) -> list[dict]:
                 "state_score": float(row.get("state_score", 0.0) or 0.0),
                 "state_evidence": row.get("state_evidence", "state_not_scored"),
                 "display_label": row.get("display_label", row.get("cell_type", "Unknown")),
+                "novelty_decision": row.get("novelty_decision", "not_assessed"),
+                "novelty_score": float(row.get("novelty_score", 0.0) or 0.0),
+                "top_unmapped_markers": row.get("top_unmapped_markers", ""),
             }
         )
     return rows
@@ -236,11 +239,20 @@ def generate_methodology_text(
         else "Independent cell-state scoring was disabled. "
     )
     validation_scope = params.get("validation_scope", {})
+    novelty_ood = params.get("novelty_ood", {})
     validation_statement = (
         "This run was a draft annotation for human review and did not assess batch-effect, "
         "complex-sample, or cross-study robustness; such claims require the separate locked "
         "study/donor benchmark workflow. "
         if validation_scope
+        else ""
+    )
+    novelty_statement = (
+        "An independent Novelty/OOD review axis prioritized clusters as known-supported, "
+        "atlas-gap, OOD/novel candidates, mixed/artifact review candidates, or insufficient "
+        "signal; this axis did not rename identities or constitute validated new cell-type "
+        "discovery. "
+        if novelty_ood
         else ""
     )
 
@@ -260,7 +272,7 @@ def generate_methodology_text(
         f"Candidates with insufficient or conflicting evidence were explicitly reported as Unknown "
         f"while retaining the best candidate label for human adjudication. "
         f"{context_statement}{state_statement}"
-        f"{confidence_statement}{uncertainty_statement}"
+        f"{confidence_statement}{uncertainty_statement}{novelty_statement}"
         f"{validation_statement}"
         f"Of {total} clusters, {high} were assigned high confidence, {med} medium confidence, "
         f"and {flagged} were flagged for manual review. "

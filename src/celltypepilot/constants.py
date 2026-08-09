@@ -31,6 +31,12 @@ MARKER_SPECIFICITY_THRESHOLD = 0.3  # specificity score ≥ 0.3
 
 MARKER_FDR_THRESHOLD = 0.05  # Benjamini-Hochberg adjusted p-value
 
+# Governance and Lifecycle constants
+EVIDENCE_WEIGHT_MAP = {0: 0.5, 1: 0.7, 2: 0.85, 3: 1.0}
+DEPRECATION_SUNSET_DEFAULT_VERSIONS = 2
+CONFLICT_JACCARD_THRESHOLD = 0.8
+CURATION_STALE_MONTHS = 12
+
 # Critic thresholds
 CRITIC_NEG_MARKER_PCT_THRESHOLD = (
     0.20  # negative marker expressed in >20% → flag (tolerates dropout noise)
@@ -39,6 +45,15 @@ CRITIC_DOUBLET_COEXPR_THRESHOLD = 0.3  # cross-lineage co-expression ≥30% → 
 CRITIC_DOUBLET_ACTIVE_COVERAGE = 0.4  # a signature counts as "active" at ≥40% coverage
 CRITIC_DOUBLET_OVERLAP_JACCARD = 0.4  # marker Jaccard ≥0.4 → redundant signatures, not a doublet
 CRITIC_LOW_COVERAGE_THRESHOLD = 0.2  # <20% of all expected markers expressed → low evidence
+
+# Ambient RNA Decontamination thresholds
+AMBIENT_FOLD_THRESHOLD = 2.5  # cluster expression fraction must be >= 2.5x dataset global background to be non-ambient
+AMBIENT_MIN_CLUSTER_PCT = 0.15  # expression in cluster below 15% is considered ambient background noise
+
+# Disease / Tumor Microenvironment (TME) Context Adaptation
+DISEASE_FC_RELAXATION = 0.7  # Multiply FC threshold by 0.7 under disease/TME context
+DISEASE_SPECIFICITY_RELAXATION = 0.7  # Multiply specificity threshold by 0.7 under disease/TME context
+
 
 # Reference scoring thresholds
 REF_MIN_SHARED_GENES = 100  # min shared genes for KNN/correlation

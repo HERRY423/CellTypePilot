@@ -1,0 +1,233 @@
+{
+  "schema_version": "celltypepilot.public-benchmark-registry.v1",
+  "release_id": "celltypepilot-public-multicohort-v1.0.1-2026-08-08",
+  "frozen_at_utc": "2026-08-09T05:05:00Z",
+  "protocol_amendments_path": "protocol_amendments.jsonl",
+  "required_methods": [
+    "celltypepilot",
+    "celltypist",
+    "singler",
+    "azimuth",
+    "popv"
+  ],
+  "analysis_plan": {
+    "primary_metric": "macro_f1",
+    "evaluation_label_level": "predeclared_broad_cell_class",
+    "secondary_metrics": [
+      "balanced_accuracy",
+      "coverage",
+      "selective_accuracy",
+      "aurc"
+    ],
+    "independent_unit": "donor",
+    "reference_method": "celltypepilot",
+    "holdout_policy": "leave-one-study-out when a tissue track has at least two independent studies; otherwise leave-one-donor-out; test truth and label-like obs columns are stripped before comparator execution",
+    "multiplicity_correction": "Benjamini-Hochberg across the predeclared family of paired donor-level method comparisons",
+    "confidence_interval": "95% hierarchical bootstrap over studies then donors; donors only for single-study tracks",
+    "minimum_donors_for_inference": 3,
+    "negative_result_policy": "Retain unavailable comparators, failed folds, non-significant comparisons, underpowered strata, portal/content mismatches, and missing QC diagnostics in negative_results.csv.",
+    "truth_policy": "CELLxGENE cell_type is an expert-curated reference label after portal harmonization, not infallible ground truth. Original author labels are retained for discordance audits where present.",
+    "outcome_access_policy": "Dataset versions, label maps, metrics, thresholds, and comparator configurations are frozen before test prediction scoring. Test labels may be read only by the evaluator."
+  },
+  "cohorts": [
+    {
+      "cohort_id": "garrido_trigo_ibd_2023",
+      "title": "IBD and healthy-control colon mucosa",
+      "species": "human",
+      "tissue": "gut",
+      "collection_url": "https://cellxgene.cziscience.com/collections/7c7bd6c2-925b-4034-baab-620ef1b760e1",
+      "dataset_url": "https://datasets.cellxgene.cziscience.com/5e75dd8f-5c5f-4056-ade2-117748429022.h5ad",
+      "dataset_id": "9bfecd44-e6b5-4072-9b64-cb7f0a117f88",
+      "dataset_version_id": "5e75dd8f-5c5f-4056-ade2-117748429022",
+      "expected_cells": 46700,
+      "expected_bytes": 183688176,
+      "expected_sha256": "64b5595c7c5375353918a2728c0f82c118cdfb731e4543e7cce43c461a20f1e9",
+      "citation_doi": "10.1038/s41467-023-40156-6",
+      "truth_provenance": "Author annotation harmonized to Cell Ontology by CZ CELLxGENE; includes normal, Crohn disease, and ulcerative colitis donors.",
+      "constant_study_id": "garrido_trigo_2023",
+      "donor_namespace": "garrido_trigo_2023",
+      "local_path": "data/garrido_trigo_ibd.h5ad",
+      "cluster_map_path": "runs/garrido_trigo_ibd_2023/cluster_map.csv",
+      "assignments_path": "runs/garrido_trigo_ibd_2023/holdout_assignments.csv",
+      "predictions_path": "runs/garrido_trigo_ibd_2023/out_of_fold_predictions.csv",
+      "comparator_status_path": "runs/garrido_trigo_ibd_2023/comparator_status.csv",
+      "label_map_path": "label_maps/garrido_trigo_ibd_2023.csv",
+      "label_map_sha256": "25631896039d74593d2bdef623d2c3a88d1803d7397a27961ecccc1c542fe972",
+      "metadata": {
+        "truth_key": "cell_type",
+        "study_key": null,
+        "donor_key": "donor_id",
+        "platform_key": "assay",
+        "sample_key": "donor_id",
+        "condition_key": "disease",
+        "batch_key": "donor_id",
+        "cluster_key": "ctp_cluster"
+      },
+      "diagnostics": {}
+    },
+    {
+      "cohort_id": "pelka_crc_stromal_2021",
+      "title": "Colorectal cancer stromal compartment",
+      "species": "human",
+      "tissue": "general",
+      "collection_url": "https://cellxgene.cziscience.com/collections/4d82bd8e-8827-410b-8fc7-685b7dd92585",
+      "dataset_url": "https://datasets.cellxgene.cziscience.com/3e97852a-0caf-4e9b-9355-9d5f408b4fcb.h5ad",
+      "dataset_id": "f89af62b-4059-4fb9-8bc0-e8e189c4c340",
+      "dataset_version_id": "3e97852a-0caf-4e9b-9355-9d5f408b4fcb",
+      "expected_cells": 15438,
+      "expected_bytes": 176252181,
+      "expected_sha256": "5e4aa9fae7674d7245a310a33b6b6734cb590d9ed90439ec031cda766c60e3c8",
+      "citation_doi": "10.1016/j.cell.2021.08.003",
+      "truth_provenance": "Author tumor/stromal annotations harmonized to Cell Ontology by CZ CELLxGENE; malignant-context labels remain reference labels.",
+      "constant_study_id": "pelka_2021",
+      "donor_namespace": "pelka_2021",
+      "local_path": "data/pelka_crc_stromal.h5ad",
+      "cluster_map_path": "runs/pelka_crc_stromal_2021/cluster_map.csv",
+      "assignments_path": "runs/pelka_crc_stromal_2021/holdout_assignments.csv",
+      "predictions_path": "runs/pelka_crc_stromal_2021/out_of_fold_predictions.csv",
+      "comparator_status_path": "runs/pelka_crc_stromal_2021/comparator_status.csv",
+      "label_map_path": "label_maps/pelka_crc_stromal_2021.csv",
+      "label_map_sha256": "4eeebf3d495faca8f60c39523e0e0b44d2340566740519913b9143460aeb8e77",
+      "metadata": {
+        "truth_key": "cell_type",
+        "study_key": null,
+        "donor_key": "donor_id",
+        "platform_key": "assay",
+        "sample_key": "biosample_id",
+        "condition_key": "disease",
+        "batch_key": "ProcessingMethod",
+        "cluster_key": "ctp_cluster"
+      },
+      "diagnostics": {
+        "low_quality": {
+          "key": "qc_mitoFraction",
+          "threshold": 0.2,
+          "direction": "ge"
+        }
+      }
+    },
+    {
+      "cohort_id": "travaglini_lung_10x_2020",
+      "title": "Human lung atlas 10x",
+      "species": "human",
+      "tissue": "lung",
+      "collection_url": "https://cellxgene.cziscience.com/collections/5d445965-6f1a-4b68-ba3a-b8f765155d3a",
+      "dataset_url": "https://datasets.cellxgene.cziscience.com/f5568ea3-c249-4e4e-91f8-46abc30a5612.h5ad",
+      "dataset_id": "8c42cfd0-0b0a-46d5-910c-fc833d83c45e",
+      "dataset_version_id": "f5568ea3-c249-4e4e-91f8-46abc30a5612",
+      "expected_cells": 65662,
+      "expected_bytes": 596270115,
+      "expected_sha256": "b93b256c2acb4fff13a74e21640b127f739dd75745909af8943dd5d40ae7d8c5",
+      "citation_doi": "10.1038/s41586-020-2922-4",
+      "truth_provenance": "Multi-pronged author lung annotation harmonized to Cell Ontology by CZ CELLxGENE.",
+      "constant_study_id": "travaglini_2020",
+      "donor_namespace": "travaglini_2020",
+      "local_path": "data/travaglini_lung_10x.h5ad",
+      "cluster_map_path": "runs/travaglini_lung_10x_2020/cluster_map.csv",
+      "assignments_path": "runs/travaglini_lung_10x_2020/holdout_assignments.csv",
+      "predictions_path": "runs/travaglini_lung_10x_2020/out_of_fold_predictions.csv",
+      "comparator_status_path": "runs/travaglini_lung_10x_2020/comparator_status.csv",
+      "label_map_path": "label_maps/travaglini_lung_10x_2020.csv",
+      "label_map_sha256": "2886efd1df4fa8eb8c4939ac1beeb34c264d1bf337300b2f9b28afc318825bfa",
+      "metadata": {
+        "truth_key": "cell_type",
+        "study_key": null,
+        "donor_key": "donor_id",
+        "platform_key": "assay",
+        "sample_key": "sample",
+        "condition_key": "disease",
+        "batch_key": "channel",
+        "cluster_key": "ctp_cluster"
+      },
+      "diagnostics": {
+        "low_quality": {
+          "key": "nGene",
+          "threshold": 200,
+          "direction": "le"
+        }
+      }
+    },
+    {
+      "cohort_id": "travaglini_lung_smartseq2_2020",
+      "title": "Human lung atlas Smart-seq2",
+      "species": "human",
+      "tissue": "lung",
+      "collection_url": "https://cellxgene.cziscience.com/collections/5d445965-6f1a-4b68-ba3a-b8f765155d3a",
+      "dataset_url": "https://datasets.cellxgene.cziscience.com/c0ee0004-7bd1-4986-9b66-8a9d3593c0e6.h5ad",
+      "dataset_id": "e04daea4-4412-45b5-989e-76a9be070a89",
+      "dataset_version_id": "c0ee0004-7bd1-4986-9b66-8a9d3593c0e6",
+      "expected_cells": 9409,
+      "expected_bytes": 186675192,
+      "expected_sha256": "e99da4d25e3000ee1bbe04d379ac5dc35594ead69d58bcc846e87cfd3c5e6927",
+      "citation_doi": "10.1038/s41586-020-2922-4",
+      "truth_provenance": "Multi-pronged author lung annotation harmonized to Cell Ontology by CZ CELLxGENE; donor namespace is shared with the 10x asset.",
+      "constant_study_id": "travaglini_2020",
+      "donor_namespace": "travaglini_2020",
+      "local_path": "data/travaglini_lung_smartseq2.h5ad",
+      "cluster_map_path": "runs/travaglini_lung_smartseq2_2020/cluster_map.csv",
+      "assignments_path": "runs/travaglini_lung_smartseq2_2020/holdout_assignments.csv",
+      "predictions_path": "runs/travaglini_lung_smartseq2_2020/out_of_fold_predictions.csv",
+      "comparator_status_path": "runs/travaglini_lung_smartseq2_2020/comparator_status.csv",
+      "label_map_path": "label_maps/travaglini_lung_smartseq2_2020.csv",
+      "label_map_sha256": "9ce2517698cc7b3cab47f4723bc615db14911e82d8cae4f5a7faa119a0976e05",
+      "metadata": {
+        "truth_key": "cell_type",
+        "study_key": null,
+        "donor_key": "donor_id",
+        "platform_key": "assay",
+        "sample_key": "sample",
+        "condition_key": "disease",
+        "batch_key": "plate.barcode",
+        "cluster_key": "ctp_cluster"
+      },
+      "diagnostics": {
+        "low_quality": {
+          "key": "nGene",
+          "threshold": 500,
+          "direction": "le"
+        }
+      }
+    },
+    {
+      "cohort_id": "smillie_healthy_colon_portal_subset_2019",
+      "title": "Smillie healthy-colon portal subset",
+      "species": "human",
+      "tissue": "gut",
+      "collection_url": "https://cellxgene.cziscience.com/collections/33d19f34-87f5-455b-8ca5-9023a2e5453d",
+      "dataset_url": "https://datasets.cellxgene.cziscience.com/774d77e7-210d-4237-8ca8-8d2bb841a2e4.h5ad",
+      "dataset_id": "4dd00779-7f73-4f50-89bb-e2d3c6b71b18",
+      "dataset_version_id": "774d77e7-210d-4237-8ca8-8d2bb841a2e4",
+      "expected_cells": 34772,
+      "expected_bytes": 223403705,
+      "expected_sha256": "f23a1e4cd66cc376067cbd48b6c7d80c21b26be15f750b2d555a40d6f8aa8e31",
+      "citation_doi": "10.1016/j.cell.2019.06.029",
+      "truth_provenance": "Portal asset contains only 12 normal donors despite the UC collection title; retained as a healthy-gut stress/control cohort and explicitly excluded from inflamed-tissue claims.",
+      "constant_study_id": "smillie_2019_healthy_subset",
+      "donor_namespace": "smillie_2019_healthy_subset",
+      "local_path": "data/smillie_uc.h5ad",
+      "cluster_map_path": "runs/smillie_healthy_colon_portal_subset_2019/cluster_map.csv",
+      "assignments_path": "runs/smillie_healthy_colon_portal_subset_2019/holdout_assignments.csv",
+      "predictions_path": "runs/smillie_healthy_colon_portal_subset_2019/out_of_fold_predictions.csv",
+      "comparator_status_path": "runs/smillie_healthy_colon_portal_subset_2019/comparator_status.csv",
+      "label_map_path": "label_maps/smillie_healthy_colon_portal_subset_2019.csv",
+      "label_map_sha256": "f55d216dc5ad53f29c3785a3d0c6250640ab8cd2a5c495733fe7854ff09c2d2c",
+      "metadata": {
+        "truth_key": "cell_type",
+        "study_key": null,
+        "donor_key": "donor_id",
+        "platform_key": "assay",
+        "sample_key": "Source",
+        "condition_key": "disease",
+        "batch_key": "Source",
+        "cluster_key": "ctp_cluster"
+      },
+      "diagnostics": {
+        "low_quality": {
+          "key": "percent_mito",
+          "threshold": 20.0,
+          "direction": "ge"
+        }
+      }
+    }
+  ]
+}

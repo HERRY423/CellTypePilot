@@ -1,0 +1,27 @@
+{
+  "schema_version": "celltypepilot.pack.v1",
+  "name": "lung_evidence_v0_1",
+  "version": "lung-evidence-0.1.0-beta",
+  "description": "Draft lung identity contract and evidence candidates for governed review",
+  "species": ["human"],
+  "tissues": ["lung"],
+  "diseases": [],
+  "pack_kind": "evidence",
+  "license": "CC-BY-4.0",
+  "license_tier": "community",
+  "trust": "hypothesis",
+  "release_status": "draft_not_claim_ready",
+  "files": ["marker_atlas.json", "ontology_map.json", "reference_manifest.json"],
+  "runtime_gates": [
+    "gene_identity_contract",
+    "marker_evidence",
+    "critic",
+    "abstention",
+    "conflict_detection",
+    "human_review"
+  ],
+  "provenance": {
+    "curation_policy": "aggregate database candidates pending edge-level review",
+    "benchmark_leakage_policy": "no bundled reference; evaluation sources must be disjoint from pack derivation sources"
+  }
+}

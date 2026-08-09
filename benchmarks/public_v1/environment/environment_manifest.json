@@ -1,0 +1,13 @@
+{
+  "schema_version": "celltypepilot.benchmark-environment-freeze.v1",
+  "frozen_at_utc": "2026-08-09T11:15:20.677393+00:00",
+  "artifacts": {
+    "python-celltypist.freeze.txt": "7e075fc3ca30bdeaf8035f32708094416910ec9d58895ff798dcdabcd0460c42",
+    "r-singler.packages.csv": "87f4406d56e85d0cec07b64285d68c0054e0a99ee0832d8aadabb6bee7adf2f3",
+    "r-session-info.txt": "fa06e828b7cf9bd10297d05c7267b3d0b75289f16c881dcae7f42d43926850dc",
+    "popv-image.json": "cc219e9c7e61eadb908a19be9d7094d458290bca5be6789a6ea86b8ae1781886",
+    "python-popv.freeze.txt": "06c1a3a52c02266ad21c10cceb566125d3236a5fb735dc1a5e26afc14bd7a66f",
+    "installation_attempts.jsonl": "647f9fab0bbb71f0ebb15ada21a9ed3695adc15d8461694f7558abfb27f04dcb",
+    "README.md": "c203c0431131e5c3587716363cb9cec73bec1957626c26f13f70b5b3ab141712"
+  }
+}

@@ -1,0 +1,52 @@
+{
+  "schema_version": "celltypepilot.gpu-stack-pins.v1",
+  "pin_set_id": "gpu-linux-popv-retrain-v1",
+  "frozen_at_utc": "2026-08-09T14:00:00Z",
+  "description": "Pinned NVIDIA driver / CUDA / container stack for the GPU popV retrain batch. CPU Docker popV results must not be mixed into this batch.",
+  "host": {
+    "os": "ubuntu-22.04-lts",
+    "architecture": "x86_64",
+    "nvidia_driver": {
+      "package": "nvidia-driver-550",
+      "minimum_version": "550.54.15",
+      "recommended_version": "550.90.07",
+      "install_note": "Install from Ubuntu NVIDIA CUDA network repo or OEM cloud image; do not float to latest without re-pinning this file."
+    },
+    "cuda_toolkit_host": {
+      "version": "12.4",
+      "note": "Host CUDA toolkit is optional when using NVIDIA Container Toolkit + CUDA base image; driver must support CUDA 12.4."
+    },
+    "container_runtime": {
+      "docker_engine_minimum": "24.0",
+      "nvidia_container_toolkit": {
+        "package": "nvidia-container-toolkit",
+        "minimum_version": "1.15.0",
+        "configure": "nvidia-ctk runtime configure --runtime=docker && systemctl restart docker"
+      }
+    }
+  },
+  "container_image": {
+    "name": "celltypepilot-popv-gpu",
+    "tag": "0.6.1-cu124",
+    "dockerfile": "benchmarks/public_v1/environment/gpu/popv.gpu.Dockerfile",
+    "base_image": "nvidia/cuda:12.4.1-cudnn-runtime-ubuntu22.04",
+    "base_image_digest_pin": "sha256:PENDING_RESOLVE_ON_BUILD_HOST",
+    "built_image_digest_pin": "sha256:PENDING_AFTER_docker_build",
+    "popv_version": "0.6.1",
+    "torch_version": "2.4.1+cu124",
+    "torch_index_url": "https://download.pytorch.org/whl/cu124",
+    "gpu_required": true,
+    "device_request": "nvidia.com/gpu=1"
+  },
+  "isolation_from_cpu_batch": {
+    "cpu_image_tag": "celltypepilot-popv:0.6.1",
+    "cpu_run_root_forbidden": "benchmarks/public_v1/runs/travaglini_lung_smartseq2_2020",
+    "gpu_batch_root": "benchmarks/public_v1/batches/gpu_popv_retrain_v1",
+    "policy": "GPU popV must re-run all three donor folds under the GPU batch root; never append GPU predictions into the CPU three-fold checkpoint tree."
+  },
+  "verification_commands": [
+    "nvidia-smi",
+    "docker run --rm --gpus all nvidia/cuda:12.4.1-base-ubuntu22.04 nvidia-smi",
+    "docker image inspect celltypepilot-popv-gpu:0.6.1-cu124 --format '{{index .RepoDigests 0}} {{.Id}}'"
+  ]
+}

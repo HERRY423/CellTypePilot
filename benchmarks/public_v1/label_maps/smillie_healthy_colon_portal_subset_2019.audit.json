@@ -1,0 +1,25 @@
+{
+  "schema_version": "celltypepilot.label-map-audit.v1",
+  "cohort_id": "smillie_healthy_colon_portal_subset_2019",
+  "evaluation_level": "predeclared_broad_cell_class",
+  "truth_labels": 23,
+  "celltypepilot_atlas_labels": 6,
+  "canonical_classes": [
+    "Unknown",
+    "b_cell",
+    "epithelial",
+    "fibroblast_stromal",
+    "mast_cell",
+    "myeloid",
+    "nk_cell",
+    "other",
+    "plasma_cell",
+    "t_cell"
+  ],
+  "other_truth_labels": [
+    "innate lymphoid cell"
+  ],
+  "mapping_policy": "ordered_token_aware_rules_in_scripts/build_public_label_maps.py",
+  "label_map_sha256": "f55d216dc5ad53f29c3785a3d0c6250640ab8cd2a5c495733fe7854ff09c2d2c",
+  "frozen_before_prediction_scoring": true
+}
