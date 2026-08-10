@@ -329,8 +329,9 @@ class TestScanpyWorkflowIntegration:
         assert "ctp_cell_type" in adata.obs.columns
 
         # Step 3: Use results in Scanpy plotting
-        assert adata.obs["ctp_cell_type"].dtype == object or isinstance(
-            adata.obs["ctp_cell_type"].dtype, pd.CategoricalDtype
+        cell_type_dtype = adata.obs["ctp_cell_type"].dtype
+        assert pd.api.types.is_string_dtype(cell_type_dtype) or isinstance(
+            cell_type_dtype, pd.CategoricalDtype
         )
 
         # Step 4: Deep-review a flagged cluster
