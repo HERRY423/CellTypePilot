@@ -15,6 +15,7 @@ from celltypepilot.agent_lifecycle import (
     scan_checkpoint_dir,
 )
 from celltypepilot.host_acceptance import (
+    _normalize_cli_help,
     discover_cli_commands,
     discover_host_surfaces,
     discover_mcp_tools,
@@ -26,6 +27,11 @@ from celltypepilot.host_acceptance import (
 
 REPO = Path(__file__).resolve().parents[1]
 SCRATCH = REPO / "scratch" / "pytest_temp" / "agent_lifecycle"
+
+
+def test_cli_help_normalization_preserves_styled_options():
+    styled = "\x1b[1;36m-\x1b[0m\x1b[1;36m-input\x1b[0m"
+    assert _normalize_cli_help(styled) == "--input"
 
 
 def test_checkpoint_state_matrix():

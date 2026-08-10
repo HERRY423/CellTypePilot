@@ -14,6 +14,8 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
+from rich.text import Text
+
 from .agent_lifecycle import (
     AGENT_STATES,
     assert_agent_can_discriminate,
@@ -36,6 +38,11 @@ def _check(check_id: str, passed: bool, detail: str, **extra: Any) -> dict[str, 
     row = {"id": check_id, "passed": bool(passed), "detail": detail}
     row.update(extra)
     return row
+
+
+def _normalize_cli_help(text: str) -> str:
+    """Remove terminal styling before checking CLI commands or options."""
+    return Text.from_ansi(text).plain
 
 
 def discover_host_surfaces(repo: Path) -> dict[str, Any]:
@@ -86,7 +93,7 @@ def discover_cli_commands(python: str | None = None) -> dict[str, Any]:
             check=False,
             timeout=60,
         )
-        text = (completed.stdout or "") + (completed.stderr or "")
+        text = _normalize_cli_help((completed.stdout or "") + (completed.stderr or ""))
         if completed.returncode == 0 or "doctor" in text:
             help_text = text
             exit_code = completed.returncode
@@ -512,7 +519,7 @@ def run_host_acceptance(
         check=False,
         timeout=60,
     )
-    help_text = (help_br.stdout or "") + (help_br.stderr or "")
+    help_text = _normalize_cli_help((help_br.stdout or "") + (help_br.stderr or ""))
     if "Usage" not in help_text and "benchmark-run" not in help_text:
         # Fallback: introspect Typer command options without subprocess entrypoint issues.
         from . import cli as cli_mod
