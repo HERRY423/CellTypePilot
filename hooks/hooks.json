@@ -7,7 +7,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "python -c \"import celltypepilot; print(f'CellTypePilot {celltypepilot.__version__} ready')\" 2>&1 || echo 'CellTypePilot not installed — run: pip install -e .'",
+            "command": "python -c \"import celltypepilot; print(f'CellTypePilot {celltypepilot.__version__} ready')\" 2>&1 || echo 'CellTypePilot backend not installed — run: pip install celltypepilot'",
             "timeout": 10
           }
         ]

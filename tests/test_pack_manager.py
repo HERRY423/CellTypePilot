@@ -352,7 +352,8 @@ def test_list_includes_first_party_premium_pack(pack_env):
     premium = [entry for entry in entries if entry["name"] == "premium"]
     assert len(premium) == 1
     assert premium[0]["origin"] == "first_party"
-    assert premium[0]["license_tier"] == "academic"
+    assert premium[0]["license_tier"] == "community"
+    assert premium[0]["license"] == "MIT"
     assert "tumor_microenvironment" in premium[0]["tissues"]
 
 

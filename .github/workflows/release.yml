@@ -3,33 +3,139 @@ name: Release
 on:
   push:
     tags:
-      - "v*"
+      - "v[0-9]*"
+
+permissions:
+  contents: read
 
 jobs:
-  build-and-publish:
-    name: Build & Publish to PyPI
+  verify-and-build:
+    name: Verify & Build Release Artifacts
     runs-on: ubuntu-latest
-    permissions:
-      id-token: write  # For PyPI trusted publishing
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Require tag at current main
+        shell: bash
+        run: |
+          git fetch origin main
+          test "$GITHUB_SHA" = "$(git rev-parse origin/main)"
 
       - name: Set up Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v6
         with:
           python-version: "3.11"
 
-      - name: Install build tools
-        run: pip install build
+      - name: Install release dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -e ".[dev]" build hatchling twine
 
-      - name: Build package
-        run: python -m build
+      - name: Build Python distributions and Agent plugin bundle
+        shell: bash
+        run: |
+          python -m build --sdist --wheel --outdir dist
+          python scripts/build_plugin_bundle.py \
+            --tag "$GITHUB_REF_NAME" \
+            --output-dir release-assets
+          python -m twine check dist/*
+          (
+            cd dist
+            sha256sum *
+          ) > ../release-assets/SHA256SUMS
+          (
+            cd release-assets
+            sha256sum celltypepilot-plugin-*.zip
+          ) >> SHA256SUMS
 
-      - name: Publish to PyPI
-        uses: pypa/gh-action-pypi-publish@release/v1
+      - name: Run release verification suite
+        run: |
+          ruff check src/ tests/ scripts/build_plugin_bundle.py
+          ruff format --check src/ tests/ scripts/build_plugin_bundle.py
+          pytest --cov=celltypepilot --cov-report=term-missing
 
-      - name: Create GitHub Release
-        uses: softprops/action-gh-release@v2
+      - name: Smoke-test installed wheel and plugin bundle
+        shell: bash
+        run: |
+          python -m venv --system-site-packages .release-smoke
+          .release-smoke/bin/python -m pip install --no-deps --force-reinstall dist/*.whl
+          .release-smoke/bin/python -c \
+            "import celltypepilot; assert celltypepilot.__version__ == '${GITHUB_REF_NAME#v}'"
+          .release-smoke/bin/celltypepilot --version
+          .release-smoke/bin/celltypepilot doctor --json
+
+          mkdir plugin-smoke
+          python -m zipfile -e release-assets/celltypepilot-plugin-*.zip plugin-smoke
+          .release-smoke/bin/python -m pip install \
+            --no-build-isolation --no-deps --force-reinstall \
+            plugin-smoke/celltypepilot-plugin-*
+          .release-smoke/bin/celltypepilot --version
+
+      - name: Upload Python distributions
+        uses: actions/upload-artifact@v7
+        with:
+          name: python-distributions
+          path: dist/*
+          if-no-files-found: error
+          retention-days: 7
+
+      - name: Upload Agent plugin bundle
+        uses: actions/upload-artifact@v7
+        with:
+          name: agent-plugin-bundle
+          path: release-assets/*
+          if-no-files-found: error
+          retention-days: 7
+
+  github-release:
+    name: Publish GitHub Plugin Release
+    needs: verify-and-build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Download Python distributions
+        uses: actions/download-artifact@v8
+        with:
+          name: python-distributions
+          path: release-assets/python
+
+      - name: Download Agent plugin bundle
+        uses: actions/download-artifact@v8
+        with:
+          name: agent-plugin-bundle
+          path: release-assets/plugin
+
+      - name: Create GitHub Release before PyPI publication
+        uses: softprops/action-gh-release@v3
         with:
           generate_release_notes: true
-          files: dist/*
+          prerelease: ${{ startsWith(github.ref_name, 'v0.') }}
+          fail_on_unmatched_files: true
+          files: |
+            release-assets/python/*
+            release-assets/plugin/*
+
+  pypi-publish:
+    name: Publish Python Backend to PyPI
+    needs: github-release
+    runs-on: ubuntu-latest
+    environment:
+      name: pypi
+      url: https://pypi.org/p/celltypepilot
+    permissions:
+      id-token: write
+    steps:
+      - name: Download verified Python distributions
+        uses: actions/download-artifact@v8
+        with:
+          name: python-distributions
+          path: dist
+
+      - name: Publish backend with Trusted Publishing
+        uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          packages-dir: dist/
+          print-hash: true

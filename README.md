@@ -7,6 +7,10 @@
 > **Local-first single-cell annotation review plugin for your existing coding workspace.**
 > For individual researchers and small labs — no standalone app, no heavy infrastructure.
 
+CellTypePilot uses two coordinated distributions: PyPI provides the deterministic Python
+backend, while each GitHub Release provides the complete Agent plugin bundle for Codex and
+Claude Code. Installing the backend alone does not install the host plugin manifests or skills.
+
 **CellTypePilot** is a **plugin** for Claude Code / OpenAI Codex. It turns pre-clustered
 single-cell data into auditable draft cell-type annotations — with a governed context interface,
 **dual-engine** identity scoring (marker overlap + reference embedding), an independent cell-state
@@ -50,7 +54,7 @@ painful — not because the algorithms don't exist, but because:
 | Pain point | What CellTypePilot does |
 |---|---|
 | **No one reviews your annotations** | A rules-based Annotation Critic checks evidence sufficiency, negative marker conflicts, doublet signals, and ontology consistency — *before* you trust a label |
-| **Config barrier is too high** (MCP, pixi, conda...) | `git clone` + `pip install -e .` + run. Zero MCP required for the basic path. `doctor` tells you what you have *before* anything fails |
+| **Config barrier is too high** (MCP, pixi, conda...) | Plugin bundle + `pip install celltypepilot` + run. Zero MCP required for the basic path. `doctor` tells you what you have *before* anything fails |
 | **Workflow fragmentation** (scripts here, tool there) | Runs inside your Claude Code / Codex session — no context switch to a separate app |
 | **Can't explain *why* a cluster got its label** | Every annotation ships with: supporting markers, expression stats, critic flags, and a draft methods paragraph |
 | **Rare / transitional states forced into a label** | Low or conflicting evidence produces an explicit `Unknown`/`abstain`; the best candidate is retained separately for review |
@@ -93,8 +97,8 @@ Web Review also writes governance artifacts when manual overrides are used:
 derived evidence/report/figure/manifest artifacts are stale after overrides.
 
 ```bash
-# 1. Install
-pip install -e .
+# 1. Install the deterministic backend
+pip install celltypepilot
 
 # 2. Environment check — tells you what works and what's missing
 celltypepilot doctor
@@ -257,30 +261,40 @@ separate annotation application or autonomous analysis service.
 All three modes call the same Python backend. The `skills/` directory is shared between
 both platforms — each reads `SKILL.md` for workflow orchestration.
 
-### Installation
+### Distribution and installation
+
+CellTypePilot deliberately separates runtime packaging from Agent-host packaging:
+
+| Distribution | Contains | Intended use |
+|---|---|---|
+| **PyPI `celltypepilot`** | Python backend, CLI/MCP entry points, bundled MIT atlases, templates | Reproducible runtime installation and upgrades |
+| **GitHub plugin bundle** | Codex/Claude manifests, skills, commands, rules, hooks, MCP config, and installable backend source | Complete Agent plugin installation |
+
+The release asset is named `celltypepilot-plugin-<version>.zip` and includes a hashed
+`BUNDLE_MANIFEST.json`. Its version must match the PyPI backend version. The repository source
+archive is for development; it is not the curated plugin bundle.
 
 ```bash
-# Claude Code — install as a plugin
+# Install the backend from PyPI
+pip install celltypepilot
+celltypepilot doctor
+
+# Development/source checkout
 git clone https://github.com/HERRY423/CellTypePilot ~/.claude/plugins/marketplaces/local/plugins/celltypepilot
 cd ~/.claude/plugins/marketplaces/local/plugins/celltypepilot
 pip install -e .
-# Claude Code discovers .claude-plugin/plugin.json → skills/ + commands/ + hooks/
-
-# Codex — install as a plugin
-git clone https://github.com/HERRY423/CellTypePilot ~/.codex/plugins/cache/local/celltypepilot
-cd ~/.codex/plugins/cache/local/celltypepilot
-pip install -e .
-# Codex discovers .codex-plugin/plugin.json → skills/ + agents/openai.yaml
-
-# Standalone CLI — no agent needed
-git clone https://github.com/HERRY423/CellTypePilot && cd CellTypePilot
-pip install -e .
-celltypepilot doctor
 ```
 
-Optional extras: `pip install -e ".[web]"` (Web Inspector), `"[mcp]"` (native
-CellTypePilot MCP server), `"[seurat]"` (.rds support), `"[reference]"` (CellTypist),
-`"[embedding]"` (scVI/scANVI), `"[all]"` (everything).
+For a release installation, download and extract `celltypepilot-plugin-<version>.zip` from
+[GitHub Releases](https://github.com/HERRY423/CellTypePilot/releases), run
+`python -m pip install .` inside the extracted directory, then register that directory with
+the Agent host. Codex discovers `.codex-plugin/plugin.json`; Claude Code discovers
+`.claude-plugin/plugin.json`. Both use the bundled `skills/` and the same Python backend.
+
+Optional backend extras: `pip install "celltypepilot[web]"` (Web Inspector),
+`"celltypepilot[mcp]"` (native MCP server), `"celltypepilot[seurat]"` (.rds support),
+`"celltypepilot[reference]"` (CellTypist), `"celltypepilot[embedding]"` (scVI/scANVI),
+or `"celltypepilot[all]"`.
 
 ### Agent-native MCP
 
@@ -340,7 +354,7 @@ The CI badge reports the current default-branch state; it is not biological vali
 
 ## Built-in Marker Knowledge Graph
 
-The Marker Knowledge Graph (`mkg-2026.08`) covers 80+ cell types across 11 tissues,
+The Marker Knowledge Graph (`mkg-2026.08.1`) covers 80+ cell types across 11 tissues,
 with positive/negative markers, Cell Ontology IDs, and synonyms. Human and mouse are
 both supported with automatic gene symbol conversion.
 
@@ -499,8 +513,8 @@ and marks the critic result `AGGREGATE_PROVENANCE_ONLY`.
 
 - [x] **Phase 1 (MVP)** — h5ad adapter, marker knowledge graph, Wilcoxon DE scoring, Annotation Critic, doctor, figures, JSON output, HTML report, methodology draft, manifest provenance, literature validation (PubMed)
 - [x] **Phase 2** — Dual-platform plugin packaging (Claude Code `.claude-plugin/` + Codex `.codex-plugin/`), commands, hooks, rules, and optional literature integration
-- [x] **Phase 3** — Web Inspector (Flask interactive panel), Seurat .rds adapter, tiered license system (free/academic/commercial), premium atlas (tumor/brain/immune)
-- [x] **Phase 4** — Reference Embedding + Ensemble fusion (CellTypist / scANVI / KNN / Correlation backends), adaptive weighting, transitional state detection, ensemble-aware critic, RSA-2048 license security, sparse-preserving Seurat conversion, Web Inspector override API
+- [x] **Phase 3** — Web Inspector (Flask interactive panel), Seurat .rds adapter, and extended first-party atlas (tumor/brain/immune)
+- [x] **Phase 4** — Reference Embedding + Ensemble fusion (CellTypist / scANVI / KNN / Correlation backends), adaptive weighting, transitional state detection, ensemble-aware critic, sparse-preserving Seurat conversion, Web Inspector override API
 - [x] **Architecture hardening** — Orchestrator layer (pipeline logic extracted from CLI), Jinja2 templates, multi-species detection, synonym-based tissue detection, and Python 3.10–3.12 CI
 - [x] **Phase 5** — Governed Context Pack, custom marker trust boundary, legal identity ontology IDs, and independent Identity × State outputs
 - [ ] **Validation release** — The immutable public registry, donor-aware release builder,
@@ -511,4 +525,10 @@ and marks the critic result `AGGREGATE_PROVENANCE_ONLY`.
 
 ## License
 
-MIT
+CellTypePilot source code, the core atlas, and the historical `premium` first-party atlas are
+released under the [MIT License](LICENSE). The `premium` directory name is retained for
+backward compatibility; it no longer denotes a paid or license-gated content tier.
+
+Third-party references, imported datasets, and community extension packs retain their own
+licenses and provenance. An installed pack's license metadata does not convert that content to
+MIT. Biological outputs remain reviewable drafts requiring qualified human adjudication.

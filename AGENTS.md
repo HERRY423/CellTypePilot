@@ -27,17 +27,19 @@ celltypepilot doctor
 If core dependencies are missing, install them:
 
 ```bash
-pip install -e .
+pip install celltypepilot
 ```
+
+For a repository checkout used in development, `pip install -e .` remains appropriate.
 
 CellTypePilot runs on CPU, requires Python >= 3.10, scanpy, anndata, and matplotlib.
 No MCP servers, no pixi, no conda environment needed for the basic path.
 
 Optional extras:
-- `pip install -e ".[web]"` — Web Inspector (Flask-based interactive review panel)
-- `pip install -e ".[mcp]"` — Native local CellTypePilot MCP facade for Agent hosts
-- `pip install -e ".[seurat]"` — Seurat .rds conversion (requires rpy2 or R)
-- `pip install -e ".[all]"` — All optional features
+- `pip install "celltypepilot[web]"` — Web Inspector (Flask-based interactive review panel)
+- `pip install "celltypepilot[mcp]"` — Native local CellTypePilot MCP facade for Agent hosts
+- `pip install "celltypepilot[seurat]"` — Seurat .rds conversion (requires rpy2 or R)
+- `pip install "celltypepilot[all]"` — All optional features
 
 ## Workflow — Four Stages
 
@@ -176,7 +178,7 @@ All commands support `--json` for structured output.
 
 ## Supported tissues
 
-Built-in Marker Knowledge Graph (MKG mkg-2026.08) covers:
+Built-in Marker Knowledge Graph (MKG mkg-2026.08.1) covers:
 - **Blood/PBMC**: T cells (CD4/CD8/naive/memory/Treg/Th1/Th17), B cells, NK cells, monocytes, DCs, platelets
 - **Lung**: alveolar macrophages, AT1/AT2, ciliated, club, goblet, basal
 - **Liver**: hepatocytes, Kupffer, cholangiocytes, endothelial, stellate
@@ -189,7 +191,7 @@ Built-in Marker Knowledge Graph (MKG mkg-2026.08) covers:
 - **Skeletal muscle**: myofibers, satellite cells, FAPs
 - **General**: endothelial, pericytes, fibroblasts, macrophages, mast cells, epithelial
 
-Premium atlas (requires academic/commercial license):
+Bundled extended atlas (historical directory name `premium`, MIT-licensed and open to all users):
 - **Tumor microenvironment**: TAMs, CAFs, Tregs, exhausted T cells, MDSCs, malignant cells
 - **Developing brain**: radial glia, intermediate progenitors, migrating neurons
 - **Inflamed tissue**: activated fibroblasts, M1/M2 macrophages
@@ -258,7 +260,7 @@ celltypepilot/
 │   ├── constants.py             # Thresholds, species/tissue constants
 │   ├── data/
 │   │   ├── marker_atlas.json    # Built-in marker knowledge graph (80+ types)
-│   │   ├── packs/premium/       # First-party premium pack (academic license)
+│   │   ├── packs/premium/       # MIT first-party extended pack (legacy name)
 │   │   └── state_atlas.json     # Versioned exploratory cell-state modules
 │   ├── templates/               # Jinja2 templates (HTML report, web dashboard)
 │   ├── marker_scorer.py         # DE + marker overlap scoring
@@ -269,7 +271,7 @@ celltypepilot/
 │   ├── visualizer.py            # UMAP, dotplot, confidence figures
 │   ├── web_inspector.py         # Flask web review panel
 │   ├── literature.py            # PubMed literature validation
-│   ├── license_manager.py       # Tiered license system
+│   ├── license_manager.py       # Legacy service-entitlement compatibility
 │   ├── provenance.py            # manifest.json generation
 │   ├── reporter.py              # HTML report + methodology text
 │   └── doctor.py                # Environment check

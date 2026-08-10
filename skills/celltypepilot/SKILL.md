@@ -21,7 +21,7 @@ artifacts; a qualified human remains responsible for final biological adjudicati
 
 ## Operating principles
 
-- **Zero-friction entry.** `git clone` + `pip install -e .` + run. No MCP servers, no pixi, no
+- **Zero-friction entry.** GitHub plugin bundle + `pip install celltypepilot` + run. No MCP servers, no pixi, no
   conda environment to configure for the basic path. The `doctor` command tells users exactly
   what they have and what's missing, *before* anything fails.
 - **Evidence over black-box.** Every annotation comes with: which markers support it, what
@@ -230,7 +230,7 @@ All commands support `--json` for structured output that the host integration ca
 
 ## Marker Knowledge Graph (MKG)
 
-The built-in atlas (`mkg-2026.08`) covers:
+The built-in atlas (`mkg-2026.08.1`) covers:
 - **Blood/PBMC**: T cells (CD4/CD8/naive/memory/Treg/Th1/Th17), B cells (naive/memory/plasma), NK cells, monocytes (classical/non-classical), dendritic cells (cDC1/cDC2/pDC), platelets
 - **Lung**: alveolar macrophages, AT1/AT2, ciliated, club, goblet, basal cells
 - **Liver**: hepatocytes, Kupffer cells, cholangiocytes, endothelial, stellate cells
@@ -282,7 +282,7 @@ Mouse gene symbols are auto-converted from human conventions.
 # As a Claude Code plugin (recommended)
 git clone https://github.com/HERRY423/CellTypePilot ~/.claude/plugins/marketplaces/local/plugins/celltypepilot
 cd ~/.claude/plugins/marketplaces/local/plugins/celltypepilot
-pip install -e .
+pip install celltypepilot
 
 # Verify installation
 celltypepilot doctor

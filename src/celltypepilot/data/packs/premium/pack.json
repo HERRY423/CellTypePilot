@@ -2,7 +2,7 @@
   "schema_version": "celltypepilot.pack.v1",
   "name": "premium",
   "version": "premium-atlas-2026.08.1",
-  "description": "CellTypePilot Premium Atlas — Extended cell types for academic and commercial users",
+  "description": "MIT-licensed first-party extended atlas for CellTypePilot users",
   "species": [
     "human",
     "mouse"
@@ -13,7 +13,8 @@
     "inflamed_tissue",
     "tumor_microenvironment"
   ],
-  "license_tier": "academic",
+  "license": "MIT",
+  "license_tier": "community",
   "files": [
     "marker_atlas.json"
   ]

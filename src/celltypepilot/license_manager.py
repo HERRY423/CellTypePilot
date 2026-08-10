@@ -1,9 +1,10 @@
 """CellTypePilot — Tiered license manager.
 
-Manages license tiers and gates access to premium features:
-- Free tier: Built-in MKG (80+ cell types, 11 tissues)
-- Academic tier: Extended atlas (200+ cell types, disease states, developmental stages)
-- Commercial tier: Full atlas + priority support + custom tissue panels
+Manages legacy license tiers for service and workflow features. All bundled
+marker atlases, including the historical ``premium`` pack, are MIT-licensed
+and available to every user. Academic/commercial tiers may still represent
+support, collaboration, or custom-panel services without restricting the
+bundled biological content.
 
 Security model:
 - RSA-2048 asymmetric signing: public key embedded, private key offline
@@ -49,8 +50,8 @@ class LicenseInfo:
     issued_at: str = ""
     expires_at: str = ""
     features: list[str] = field(default_factory=list)
-    max_tissues: int = 11  # Free tier limit
-    max_cell_types: int = 80  # Free tier limit
+    max_tissues: int = 0  # 0 = no license-based limit on bundled tissues
+    max_cell_types: int = 0  # 0 = no license-based limit on bundled cell types
     machine_id: str = ""  # Bound machine fingerprint
     valid: bool = True
     _signature_valid: bool = False  # Internal: RSA signature check result
@@ -84,6 +85,9 @@ class LicenseInfo:
 
 FREE_FEATURES = {
     "basic_atlas",  # 80+ cell types, 11 tissues
+    "extended_atlas",  # Bundled MIT-licensed extended cell types
+    "developmental_atlas",  # Bundled developmental marker content
+    "disease_atlas",  # Bundled disease-context marker content
     "marker_scoring",  # Wilcoxon DE + 5-dim scoring
     "critic_review",  # Annotation Critic
     "basic_visualization",  # UMAP, dotplot, confidence
@@ -92,9 +96,6 @@ FREE_FEATURES = {
 }
 
 ACADEMIC_FEATURES = FREE_FEATURES | {
-    "extended_atlas",  # 200+ cell types, disease states
-    "developmental_atlas",  # Developmental stage markers
-    "disease_atlas",  # Disease-specific cell states
     "literature_validation",  # PubMed integration
     "advanced_visualization",  # Cross-sample comparisons
     "docx_export",  # Word document export
@@ -604,15 +605,16 @@ def check_feature_access(feature: str) -> tuple[bool, str]:
 
 
 # ──────────────────────────────────────────────
-# Premium atlas gating
+# Bundled atlas availability
 # ──────────────────────────────────────────────
 
 
 def get_atlas_access(tissue: str) -> tuple[bool, str]:
     """Check if a tissue is accessible in the atlas.
 
-    Free tier: 11 basic tissues
-    Academic/Commercial: All tissues including extended panels
+    All first-party bundled tissues are MIT-licensed and available to every
+    user. Unknown tissues still fail closed and require an explicit extension
+    pack; a license tier never implies biological support.
 
     Args:
         tissue: Tissue name to check
@@ -620,10 +622,7 @@ def get_atlas_access(tissue: str) -> tuple[bool, str]:
     Returns:
         Tuple of (has_access, message)
     """
-    license_info = load_license()
-
-    # Basic tissues available to all tiers
-    basic_tissues = {
+    bundled_tissues = {
         "blood",
         "lung",
         "liver",
@@ -635,17 +634,17 @@ def get_atlas_access(tissue: str) -> tuple[bool, str]:
         "pancreas",
         "muscle",
         "general",
+        "developing_brain",
+        "immune_activation",
+        "inflamed_tissue",
+        "tumor_microenvironment",
     }
 
-    if tissue in basic_tissues:
-        return True, f"Tissue '{tissue}' available (all tiers)"
-
-    # Extended tissues require academic+ tier
-    if license_info.tier in (LicenseTier.ACADEMIC, LicenseTier.COMMERCIAL, LicenseTier.TRIAL):
-        return True, f"Tissue '{tissue}' available ({license_info.tier.value} tier)"
+    if tissue in bundled_tissues:
+        return True, f"Tissue '{tissue}' available in the MIT-licensed bundled atlas"
 
     return False, (
-        f"Tissue '{tissue}' requires Academic or Commercial license. "
-        f"Current: {license_info.tier.value}. "
-        f"Available basic tissues: {', '.join(sorted(basic_tissues))}"
+        f"Tissue '{tissue}' is not bundled. Install and explicitly select a governed "
+        "extension pack before annotation. "
+        f"Available bundled tissues: {', '.join(sorted(bundled_tissues))}"
     )
