@@ -12,11 +12,11 @@ from collections import Counter
 from datetime import datetime, timezone
 from pathlib import Path
 
+from .atlas_conflict import detect_marker_conflicts
+from .atlas_curation import build_curation_queue
+from .atlas_lifecycle import sunset_check
 from .constants import ANNOTATION_SUPPORTED_SPECIES, ATLAS_PATH, FIRST_PARTY_PACKS_DIR
 from .data_adapter import summarize_atlas_evidence, validate_atlas_provenance
-from .atlas_conflict import detect_marker_conflicts
-from .atlas_lifecycle import sunset_check
-from .atlas_curation import build_curation_queue
 
 GOVERNANCE_SCHEMA_VERSION = "celltypepilot.atlas-governance.v1"
 
@@ -82,16 +82,18 @@ def _describe_atlas(path: Path, label: str, origin: str) -> dict:
     provenance_issues = validate_atlas_provenance(atlas)
     evidence = summarize_atlas_evidence(atlas)
     counts = _atlas_counts(atlas)
-    
+
     current_version = atlas.get("version", "1.0")
     sunsets = sunset_check(atlas, current_version)
-    
+
     conflicts = detect_marker_conflicts(atlas)
     high_conflicts = [c for c in conflicts if c.severity == "high"]
-    
+
     curation_q = build_curation_queue(atlas)
-    high_priority_curation = len(curation_q[curation_q["priority"] >= 90]) if not curation_q.empty else 0
-    
+    high_priority_curation = (
+        len(curation_q[curation_q["priority"] >= 90]) if not curation_q.empty else 0
+    )
+
     health_score = 100
     health_score -= min(30, len(provenance_issues) * 2)
     health_score -= min(40, len(high_conflicts) * 5)
@@ -114,16 +116,13 @@ def _describe_atlas(path: Path, label: str, origin: str) -> dict:
         "conflicts": {
             "total": len(conflicts),
             "high_severity": len(high_conflicts),
-            "examples": [vars(c) for c in high_conflicts[:5]]
+            "examples": [vars(c) for c in high_conflicts[:5]],
         },
-        "lifecycle": {
-            "sunset_issues": len(sunsets),
-            "sunset_examples": sunsets[:5]
-        },
+        "lifecycle": {"sunset_issues": len(sunsets), "sunset_examples": sunsets[:5]},
         "curation_queue": {
             "total_pending": len(curation_q),
-            "high_priority": high_priority_curation
-        }
+            "high_priority": high_priority_curation,
+        },
     }
 
 
@@ -208,7 +207,11 @@ def build_atlas_governance_report(include_packs: bool = True) -> dict:
             "This report summarizes atlas governance state. It is not biological "
             "validation, batch robustness evidence, or primary-source review."
         ),
-        "governance_health_score": float(sum(asset["health_score"] for asset in atlas_assets) / len(atlas_assets)) if atlas_assets else 100.0,
+        "governance_health_score": float(
+            sum(asset["health_score"] for asset in atlas_assets) / len(atlas_assets)
+        )
+        if atlas_assets
+        else 100.0,
         "atlas_assets": atlas_assets,
         "aggregate": {
             "n_assets": len(atlas_assets),

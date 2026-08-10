@@ -8,7 +8,7 @@ because cells from the same donor are not independent observations.
 from __future__ import annotations
 
 import logging
-from typing import Callable
+from collections.abc import Callable
 
 import numpy as np
 import pandas as pd
@@ -52,12 +52,14 @@ def donor_stratified_ece(
         global_ece = np.nan
 
     # Per-donor ECE
-    df = pd.DataFrame({
-        "y_true": y_true,
-        "y_pred": y_pred,
-        "confidence": confidence,
-        "donor": donor_ids,
-    })
+    df = pd.DataFrame(
+        {
+            "y_true": y_true,
+            "y_pred": y_pred,
+            "confidence": confidence,
+            "donor": donor_ids,
+        }
+    )
 
     donor_eces = []
     for d, group in df.groupby("donor"):
@@ -166,13 +168,15 @@ def donor_stability_assessment(
         cl_data = results_df[results_df[cluster_key] == cl]
 
         if annot_col not in cl_data.columns:
-            results.append({
-                "cluster": cl,
-                "annotation_stable": True,
-                "unstable_donors": [],
-                "max_score_delta": 0.0,
-                "n_donors": len(donors),
-            })
+            results.append(
+                {
+                    "cluster": cl,
+                    "annotation_stable": True,
+                    "unstable_donors": [],
+                    "max_score_delta": 0.0,
+                    "n_donors": len(donors),
+                }
+            )
             continue
 
         # Baseline annotation: most frequent cell type across all donors
@@ -180,7 +184,9 @@ def donor_stability_assessment(
         baseline_annot = baseline_annot.iloc[0] if len(baseline_annot) > 0 else "Unknown"
 
         # Baseline score
-        baseline_score = float(cl_data[score_col].mean()) if score_col and score_col in cl_data.columns else 0.0
+        baseline_score = (
+            float(cl_data[score_col].mean()) if score_col and score_col in cl_data.columns else 0.0
+        )
 
         unstable_donors = []
         max_delta = 0.0
@@ -205,13 +211,15 @@ def donor_stability_assessment(
                 delta = abs(loo_score - baseline_score)
                 max_delta = max(max_delta, delta)
 
-        results.append({
-            "cluster": cl,
-            "annotation_stable": len(unstable_donors) == 0,
-            "unstable_donors": unstable_donors,
-            "max_score_delta": float(max_delta),
-            "n_donors": int(len(donors)),
-        })
+        results.append(
+            {
+                "cluster": cl,
+                "annotation_stable": len(unstable_donors) == 0,
+                "unstable_donors": unstable_donors,
+                "max_score_delta": float(max_delta),
+                "n_donors": int(len(donors)),
+            }
+        )
 
     return pd.DataFrame(results)
 
@@ -232,7 +240,11 @@ def donor_uncertainty_summary(
         pct_stable = float(stability_df["annotation_stable"].mean())
 
     per_donor_ece = ece_result.get("per_donor_ece", pd.DataFrame())
-    mean_ece = float(per_donor_ece["ece"].mean()) if not per_donor_ece.empty and "ece" in per_donor_ece.columns else np.nan
+    mean_ece = (
+        float(per_donor_ece["ece"].mean())
+        if not per_donor_ece.empty and "ece" in per_donor_ece.columns
+        else np.nan
+    )
     ece_cv = ece_result.get("ece_cv", np.nan)
     n_outliers = len(ece_result.get("outlier_donors", []))
 

@@ -489,11 +489,13 @@ def validate_abstained_clusters(escalation_signals: list[dict]) -> list[dict]:
                     "positive_markers_supported": lit_results.get("positive_markers_supported", 0),
                 }
             except Exception:
-                signal["literature_validation"] = {"assessment": "network_unavailable", "total_refs": 0}
+                signal["literature_validation"] = {
+                    "assessment": "network_unavailable",
+                    "total_refs": 0,
+                }
         else:
             signal["literature_validation"] = {"assessment": "no_markers", "total_refs": 0}
 
         enriched_signals.append(signal)
 
     return enriched_signals
-

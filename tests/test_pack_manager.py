@@ -389,9 +389,7 @@ def test_merge_adds_new_tissue_and_shadows_collision(pack_env):
         "version": "builtin",
         "tissues": {
             "blood": {
-                "cell_types": {
-                    "T cell": {"cl_id": "CL:0000084", "positive_markers": ["CD3E"]}
-                }
+                "cell_types": {"T cell": {"cl_id": "CL:0000084", "positive_markers": ["CD3E"]}}
             }
         },
     }
@@ -470,7 +468,12 @@ def test_invalid_pack_state_atlas_fails_closed(pack_env):
             "human",
             "blood",
             pack_states=[
-                {"pack_name": "testpack", "pack_version": PACK_VERSION, "trust": "atlas", "atlas": broken}
+                {
+                    "pack_name": "testpack",
+                    "pack_version": PACK_VERSION,
+                    "trust": "atlas",
+                    "atlas": broken,
+                }
             ],
         )
 
@@ -519,9 +522,7 @@ def test_pipeline_records_pack_in_manifest(h5ad_path, tmp_output_dir, pack_env):
     assert pack_entries[0]["name"] == "testpack"
     assert pack_entries[0]["trust"] == "atlas"
 
-    written = json.loads(
-        (tmp_output_dir / "out" / "manifest.json").read_text(encoding="utf-8")
-    )
+    written = json.loads((tmp_output_dir / "out" / "manifest.json").read_text(encoding="utf-8"))
     assert written["parameters"]["extension_packs"][0]["name"] == "testpack"
 
 

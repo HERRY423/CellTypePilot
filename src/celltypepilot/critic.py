@@ -81,7 +81,6 @@ def run_critic(
     ambient_baseline = compute_ambient_baseline(adata, layer=layer)
     results = annotations.copy()
 
-
     # Build ensemble lookup if provided
     ensemble_lookup = {}
     if ensemble_info is not None and not ensemble_info.empty:
@@ -166,7 +165,6 @@ def run_critic(
         evidence_parts.append(neg_result["evidence"])
         if neg_result["note"]:
             notes.append(neg_result["note"])
-
 
         # 3. Doublet / mixed signal heuristic
         doublet_result = _check_doublet_signal(
@@ -850,10 +848,13 @@ def generate_escalation_signals(critic_results: pd.DataFrame) -> list[dict]:
                 "critic_confidence": str(row.get("critic_confidence", "needs_review")),
                 "abstain_reason": str(row.get("abstain_reason", "")),
                 "supporting_markers": supporting,
-                "suggested_pubmed_query": f'"{candidate}" AND ({" OR ".join(supporting[:4])})' if supporting else f'"{candidate}" single cell marker',
-                "recommended_action": FLAG_ACTIONS.get(flags.split("; ")[0], "Review cluster evidence and literature."),
+                "suggested_pubmed_query": f'"{candidate}" AND ({" OR ".join(supporting[:4])})'
+                if supporting
+                else f'"{candidate}" single cell marker',
+                "recommended_action": FLAG_ACTIONS.get(
+                    flags.split("; ")[0], "Review cluster evidence and literature."
+                ),
             }
             signals.append(signal)
 
     return signals
-

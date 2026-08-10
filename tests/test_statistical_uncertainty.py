@@ -4,18 +4,16 @@ from __future__ import annotations
 
 import numpy as np
 import pandas as pd
-import pytest
 
+from celltypepilot.benchmark import compare_methods_significance
 from celltypepilot.bootstrap import (
-    bootstrap_metric_ci,
-    bootstrap_cluster_stability,
-    bootstrap_evidence_score_ci,
     BootstrapResult,
+    bootstrap_cluster_stability,
+    bootstrap_metric_ci,
 )
-from celltypepilot.donor_uncertainty import (
-    donor_stratified_ece,
-    donor_stability_assessment,
-    donor_uncertainty_summary,
+from celltypepilot.calibration import (
+    calibration_diagnostics,
+    conformal_risk_bound,
 )
 from celltypepilot.calibration_transforms import (
     IsotonicCalibrator,
@@ -23,14 +21,10 @@ from celltypepilot.calibration_transforms import (
     TemperatureCalibrator,
     auto_select_calibrator,
 )
-from celltypepilot.calibration import (
-    calibration_diagnostics,
-    class_conditional_ece,
-    conformal_risk_bound,
-    fit_abstention_policy,
-    apply_policy_to_annotations,
+from celltypepilot.donor_uncertainty import (
+    donor_stability_assessment,
+    donor_stratified_ece,
 )
-from celltypepilot.benchmark import compare_methods_significance
 
 
 def test_bootstrap_metric_ci():
@@ -49,6 +43,7 @@ def test_bootstrap_metric_ci():
 
 def test_bootstrap_cluster_stability():
     import anndata as ad
+
     rng = np.random.default_rng(42)
     X = rng.normal(size=(100, 10))
     # Two clear clusters
@@ -76,12 +71,14 @@ def test_donor_stratified_ece():
 
 
 def test_donor_stability_assessment():
-    df = pd.DataFrame({
-        "cluster": ["0", "0", "0", "1", "1", "1"],
-        "donor": ["d1", "d2", "d3", "d1", "d2", "d3"],
-        "cell_type": ["T cell", "T cell", "T cell", "B cell", "B cell", "B cell"],
-        "combined_score": [0.8, 0.85, 0.79, 0.9, 0.92, 0.88],
-    })
+    df = pd.DataFrame(
+        {
+            "cluster": ["0", "0", "0", "1", "1", "1"],
+            "donor": ["d1", "d2", "d3", "d1", "d2", "d3"],
+            "cell_type": ["T cell", "T cell", "T cell", "B cell", "B cell", "B cell"],
+            "combined_score": [0.8, 0.85, 0.79, 0.9, 0.92, 0.88],
+        }
+    )
 
     stab = donor_stability_assessment(df, "cluster", "donor")
     assert isinstance(stab, pd.DataFrame)
@@ -128,11 +125,28 @@ def test_conformal_risk_bound():
 
 
 def test_compare_methods_significance():
-    per_fold_df = pd.DataFrame({
-        "fold": [0, 1, 2, 3, 4, 5, 6, 0, 1, 2, 3, 4, 5, 6],
-        "method": ["celltypepilot"] * 7 + ["celltypist"] * 7,
-        "macro_f1": [0.85, 0.88, 0.86, 0.89, 0.87, 0.88, 0.86, 0.70, 0.72, 0.71, 0.73, 0.69, 0.71, 0.70],
-    })
+    per_fold_df = pd.DataFrame(
+        {
+            "fold": [0, 1, 2, 3, 4, 5, 6, 0, 1, 2, 3, 4, 5, 6],
+            "method": ["celltypepilot"] * 7 + ["celltypist"] * 7,
+            "macro_f1": [
+                0.85,
+                0.88,
+                0.86,
+                0.89,
+                0.87,
+                0.88,
+                0.86,
+                0.70,
+                0.72,
+                0.71,
+                0.73,
+                0.69,
+                0.71,
+                0.70,
+            ],
+        }
+    )
 
     res = compare_methods_significance(per_fold_df, "celltypepilot", "celltypist", "macro_f1")
     assert "p_value" in res

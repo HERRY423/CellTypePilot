@@ -135,9 +135,7 @@ def load_state_definitions(
         review_status = "reviewed" if entry.get("trust") == "atlas" else "draft"
         source_prefix = f"pack:{entry.get('pack_name', 'unknown')}"
         definitions.extend(
-            _definitions_from_state_atlas(
-                pack_atlas, species, tissue, source_prefix, review_status
-            )
+            _definitions_from_state_atlas(pack_atlas, species, tissue, source_prefix, review_status)
         )
     for raw in (context_pack or {}).get("state_hypotheses", []):
         definitions.append(

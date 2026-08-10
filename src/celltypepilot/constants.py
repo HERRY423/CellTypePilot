@@ -47,12 +47,18 @@ CRITIC_DOUBLET_OVERLAP_JACCARD = 0.4  # marker Jaccard ≥0.4 → redundant sign
 CRITIC_LOW_COVERAGE_THRESHOLD = 0.2  # <20% of all expected markers expressed → low evidence
 
 # Ambient RNA Decontamination thresholds
-AMBIENT_FOLD_THRESHOLD = 2.5  # cluster expression fraction must be >= 2.5x dataset global background to be non-ambient
-AMBIENT_MIN_CLUSTER_PCT = 0.15  # expression in cluster below 15% is considered ambient background noise
+AMBIENT_FOLD_THRESHOLD = (
+    2.5  # cluster expression fraction must be >= 2.5x dataset global background to be non-ambient
+)
+AMBIENT_MIN_CLUSTER_PCT = (
+    0.15  # expression in cluster below 15% is considered ambient background noise
+)
 
 # Disease / Tumor Microenvironment (TME) Context Adaptation
 DISEASE_FC_RELAXATION = 0.7  # Multiply FC threshold by 0.7 under disease/TME context
-DISEASE_SPECIFICITY_RELAXATION = 0.7  # Multiply specificity threshold by 0.7 under disease/TME context
+DISEASE_SPECIFICITY_RELAXATION = (
+    0.7  # Multiply specificity threshold by 0.7 under disease/TME context
+)
 
 
 # Reference scoring thresholds

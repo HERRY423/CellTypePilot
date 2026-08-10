@@ -30,64 +30,62 @@ def class_conditional_ece(
     y_true = np.asarray(y_true).astype(str)
     y_pred = np.asarray(y_pred).astype(str)
     confidence = np.asarray(confidence, dtype=float)
-    
+
     classes = np.unique(y_pred)
     results = []
-    
+
     for cls in classes:
         if cls.lower() in ABSTAIN_LABELS:
             continue
         mask = y_pred == cls
         if not np.any(mask):
             continue
-            
+
         cls_y_true = y_true[mask]
         cls_y_pred = y_pred[mask]
         cls_conf = confidence[mask]
-        
+
         try:
             diag, _, _, _ = calibration_diagnostics(cls_y_true, cls_y_pred, cls_conf, n_bins=n_bins)
-            ece = diag['ece']
+            ece = diag["ece"]
         except Exception:
             ece = np.nan
-            
-        results.append({
-            'class': cls,
-            'ece': ece,
-            'n_cells': int(np.sum(mask))
-        })
-        
+
+        results.append({"class": cls, "ece": ece, "n_cells": int(np.sum(mask))})
+
     return pd.DataFrame(results)
+
 
 def conformal_risk_bound(
     risk_curve_df: pd.DataFrame,
     alpha: float = 0.1,
     delta: float = 0.05,
-    n_calibration: int | None = None
+    n_calibration: int | None = None,
 ) -> dict:
     """Compute Hoeffding-based finite-sample risk bound."""
     if n_calibration is None:
         if risk_curve_df.empty:
             return {}
-        n_calibration = int(risk_curve_df['n_retained'].max())
-        
+        n_calibration = int(risk_curve_df["n_retained"].max())
+
     bound_term = np.sqrt(np.log(1 / delta) / (2 * n_calibration))
-    
+
     # Find threshold where selective_risk + bound_term <= alpha
-    valid = risk_curve_df[(risk_curve_df['selective_risk'] + bound_term) <= alpha]
+    valid = risk_curve_df[(risk_curve_df["selective_risk"] + bound_term) <= alpha]
     if valid.empty:
         return {}
-        
+
     chosen = valid.sort_values(["coverage", "threshold"], ascending=[False, False]).iloc[0]
-    
+
     return {
-        "conformal_threshold": float(chosen['threshold']),
-        "guaranteed_risk_upper_bound": float(chosen['selective_risk'] + bound_term),
-        "coverage_at_threshold": float(chosen['coverage']),
+        "conformal_threshold": float(chosen["threshold"]),
+        "guaranteed_risk_upper_bound": float(chosen["selective_risk"] + bound_term),
+        "coverage_at_threshold": float(chosen["coverage"]),
         "n_calibration": n_calibration,
         "alpha": alpha,
-        "delta": delta
+        "delta": delta,
     }
+
 
 def calibration_diagnostics(
     y_true: np.ndarray,
@@ -111,14 +109,14 @@ def calibration_diagnostics(
     abstained = _is_abstained(y_pred)
     eligible = ~abstained
     correct = (y_true == y_pred).astype(float)
-    
+
     if quantile_binning and np.sum(eligible) > 0:
         edges = np.unique(np.quantile(confidence[eligible], np.linspace(0, 1, n_bins + 1)))
         # Adjust n_bins to actual unique edges
         n_bins = max(1, len(edges) - 1)
     else:
         edges = np.linspace(0.0, 1.0, n_bins + 1)
-        
+
     bin_rows = []
     ece = 0.0
     n_eligible = int(np.sum(eligible))
@@ -181,7 +179,7 @@ def calibration_diagnostics(
         "aurc": aurc,
         "confidence_semantics": "predicted_top_label_correctness",
     }
-    
+
     stratified_df = None
     if stratify_by is not None:
         stratify_by = np.asarray(stratify_by).astype(str)
@@ -189,12 +187,18 @@ def calibration_diagnostics(
         for stratum in np.unique(stratify_by):
             mask = stratify_by == stratum
             try:
-                diag, _, _, _ = calibration_diagnostics(y_true[mask], y_pred[mask], confidence[mask], n_bins=n_bins, quantile_binning=quantile_binning)
-                strat_rows.append({'stratum': stratum, **diag})
+                diag, _, _, _ = calibration_diagnostics(
+                    y_true[mask],
+                    y_pred[mask],
+                    confidence[mask],
+                    n_bins=n_bins,
+                    quantile_binning=quantile_binning,
+                )
+                strat_rows.append({"stratum": stratum, **diag})
             except Exception:
                 pass
         stratified_df = pd.DataFrame(strat_rows)
-        
+
     return diagnostics, pd.DataFrame(bin_rows), risk_curve, stratified_df
 
 
@@ -238,7 +242,7 @@ def fit_abstention_policy(
             "No confidence threshold satisfies the requested risk and coverage constraints"
         )
     chosen = candidates.sort_values(["coverage", "threshold"], ascending=[False, False]).iloc[0]
-    
+
     class_thresholds = {}
     if class_conditional:
         classes = np.unique(y_pred)
@@ -249,20 +253,20 @@ def fit_abstention_policy(
             if not np.any(mask):
                 continue
             _, _, cls_risk, _ = calibration_diagnostics(
-                y_true.astype(str).to_numpy()[mask], 
-                y_pred[mask], 
-                confidence[mask]
+                y_true.astype(str).to_numpy()[mask], y_pred[mask], confidence[mask]
             )
             cls_candidates = cls_risk[
                 (cls_risk["selective_risk"] <= max_selective_error)
                 & (cls_risk["coverage"] >= min_coverage)
             ]
             if not cls_candidates.empty:
-                cls_chosen = cls_candidates.sort_values(["coverage", "threshold"], ascending=[False, False]).iloc[0]
-                class_thresholds[cls] = float(cls_chosen['threshold'])
+                cls_chosen = cls_candidates.sort_values(
+                    ["coverage", "threshold"], ascending=[False, False]
+                ).iloc[0]
+                class_thresholds[cls] = float(cls_chosen["threshold"])
             else:
-                class_thresholds[cls] = 1.0 # default to strict if no threshold found
-                
+                class_thresholds[cls] = 1.0  # default to strict if no threshold found
+
     source_bytes = frame.sort_values("cell_id").to_csv(index=False).encode("utf-8")
     policy = {
         "schema_version": "celltypepilot.abstention-policy.v1",
@@ -279,7 +283,7 @@ def fit_abstention_policy(
     }
     if class_conditional:
         policy["class_thresholds"] = class_thresholds
-        
+
     return policy
 
 
@@ -309,23 +313,25 @@ def apply_policy_to_annotations(results: pd.DataFrame, policy: dict) -> pd.DataF
         raise CalibrationError("Unsupported abstention policy schema")
     if policy.get("method") != "celltypepilot":
         raise CalibrationError("Annotation pipeline accepts only a celltypepilot policy")
-    
+
     global_threshold = float(policy["threshold"])
     class_thresholds = policy.get("class_thresholds", {})
-    
+
     output = results.copy()
     if "combined_score" in output:
         scores = pd.to_numeric(output["combined_score"], errors="coerce").fillna(0.0)
     else:
         scores = pd.Series(0.0, index=output.index)
-        
+
     forced = pd.Series(False, index=output.index)
     for index in output.index:
         ct = str(output.at[index, "cell_type"])
-        threshold = class_thresholds.get(ct, global_threshold) if class_thresholds else global_threshold
+        threshold = (
+            class_thresholds.get(ct, global_threshold) if class_thresholds else global_threshold
+        )
         if scores.loc[index] < threshold:
             forced.loc[index] = True
-            
+
     for index in output.index[forced]:
         if output.at[index, "decision"] != "abstain":
             output.at[index, "candidate_cell_type"] = output.at[index, "cell_type"]
@@ -344,7 +350,7 @@ def apply_policy_to_annotations(results: pd.DataFrame, policy: dict) -> pd.DataF
             else flags + "; CALIBRATED_LOW_CONFIDENCE"
         )
         output.at[index, "critic_confidence"] = "needs_review"
-        
+
     output["calibration_threshold"] = global_threshold
     output["calibration_policy_applied"] = True
     return output

@@ -301,7 +301,6 @@ def run_annotation_pipeline(
     ambient_threshold: float | None = 0.2,
     progress: ProgressFn = None,
 ) -> dict:
-
     """Run marker, optional reference, ensemble, critic, and artifact generation.
 
     Returns a result dict with: adata, critic_results, critic_summary,
@@ -327,7 +326,6 @@ def run_annotation_pipeline(
 
     output_path = Path(output_dir)
     output_path.mkdir(parents=True, exist_ok=True)
-
 
     # Step 1: Load data
     _emit(1, "Loading data...")
@@ -576,7 +574,6 @@ def run_annotation_pipeline(
     escalation_file = output_path / "escalation_signals.json"
     escalation_file.write_text(json.dumps(enriched_escalations, indent=2), encoding="utf-8")
 
-
     # Step 6: State Lens. This is an independent output axis; the attach
     # function asserts that canonical identity columns are unchanged.
     _emit(6, "Scoring independent cell states...")
@@ -607,6 +604,24 @@ def run_annotation_pipeline(
         except StateScoringError as exc:
             raise PipelineError(f"State safety gate failed: {exc}") from exc
 
+    # Novelty/OOD is an independent review-priority axis. It may prioritize
+    # an atlas gap for review, but it must never rescue or rename identity.
+    from .novelty_detector import (
+        attach_novelty_results,
+        build_novelty_manifest,
+        score_novelty_candidates,
+    )
+
+    novelty_results = score_novelty_candidates(
+        adata,
+        cluster_key,
+        critic_results,
+        markers,
+        ref_scores=ref_scores if not ref_scores.empty else None,
+    )
+    critic_results = attach_novelty_results(critic_results, novelty_results)
+    novelty_manifest = build_novelty_manifest(novelty_results)
+
     # Step 7: Figures
     figure_paths = []
     if not no_figures and embedding_key:
@@ -633,9 +648,10 @@ def run_annotation_pipeline(
     )
 
     auxiliary_paths = dict(agent_evidence_paths)
-    auxiliary_paths["identity_contract"] = _write_identity_contract(
-        output_path, identity_contract
-    )
+    auxiliary_paths["identity_contract"] = _write_identity_contract(output_path, identity_contract)
+    novelty_path = output_path / "novelty_results.csv"
+    novelty_results.to_csv(novelty_path, index=False)
+    auxiliary_paths["novelty"] = novelty_path
     for name, frame in (
         ("reference_scores", ref_scores),
         ("ensemble_scores", ensemble_df),
@@ -679,6 +695,7 @@ def run_annotation_pipeline(
                 "ensemble" if uses_reference and not no_ensemble else "ensemble_skipped",
                 "critic",
                 "state" if enable_states else "state_skipped",
+                "novelty_ood",
                 "writeback",
                 "report",
                 "manifest",
@@ -695,6 +712,7 @@ def run_annotation_pipeline(
             "extension_packs": pack_manifest_parameters(extension_pack_records) or None,
             "state_lens_enabled": enable_states,
             "state_contract": "identity_invariant_independent_axis_v1",
+            "novelty_ood": novelty_manifest,
             "calibration_policy_path": str(calibration_policy_path)
             if calibration_policy_path is not None
             else None,
@@ -1184,6 +1202,22 @@ def annotate(
         except StateScoringError as exc:
             raise PipelineError(f"State safety gate failed: {exc}") from exc
 
+    from .novelty_detector import (
+        attach_novelty_results,
+        build_novelty_manifest,
+        score_novelty_candidates,
+    )
+
+    novelty_results = score_novelty_candidates(
+        adata,
+        cluster_key,
+        critic_results,
+        markers,
+        ref_scores=ref_scores if not ref_scores.empty else None,
+    )
+    critic_results = attach_novelty_results(critic_results, novelty_results)
+    novelty_manifest = build_novelty_manifest(novelty_results)
+
     # Write annotations to obs (in-place)
     _emit(7, "Writing annotations to obs...")
     _write_annotations_to_obs(adata, critic_results, cluster_key)
@@ -1192,6 +1226,7 @@ def annotate(
         calibration_policy=calibration_policy,
         uses_reference=uses_reference,
     )
+    adata.uns["celltypepilot_novelty_ood"] = novelty_manifest
 
     # Optional artifact generation
     _emit(8, "Saving optional artifacts...")
@@ -1219,6 +1254,7 @@ def annotate(
             actionable_evidence_gaps,
         )
         _write_identity_contract(output_path, identity_contract)
+        novelty_results.to_csv(output_path / "novelty_results.csv", index=False)
 
         manifest = create_manifest(
             input_path="in_memory_anndata",
@@ -1236,7 +1272,9 @@ def annotate(
                     "marker",
                     "critic",
                     "state" if enable_states else "state_skipped",
+                    "novelty_ood",
                 ],
+                "novelty_ood": novelty_manifest,
                 "validation_scope": validation_scope,
                 "uncertainty_language": build_uncertainty_language_manifest(
                     calibration_policy=calibration_policy,
@@ -1362,12 +1400,14 @@ def critic_review(
     cluster_scores = scores[scores["cluster"] == str(focus_cluster)].head(5)
     candidates = []
     for _, row in cluster_scores.iterrows():
-        candidates.append({
-            "cell_type": row["cell_type"],
-            "score": round(float(row["combined_score"]), 4),
-            "overlap": round(float(row["pct_overlap"]), 4),
-            "neg_conflict": round(float(row["neg_conflict"]), 4),
-        })
+        candidates.append(
+            {
+                "cell_type": row["cell_type"],
+                "score": round(float(row["combined_score"]), 4),
+                "overlap": round(float(row["pct_overlap"]), 4),
+                "neg_conflict": round(float(row["neg_conflict"]), 4),
+            }
+        )
 
     return {
         "cluster": str(focus_cluster),

@@ -171,8 +171,7 @@ def load_checkpoint_records(run_root: Path) -> list[dict[str, Any]]:
         failure_reason = None
         if status in {"failed_or_unavailable", "failed", "error"}:
             failure_reason = (
-                str(payload.get("error") or payload.get("detail") or status).strip()
-                or status
+                str(payload.get("error") or payload.get("detail") or status).strip() or status
             )
         elif status == "running" and not pred_present and started is not None:
             # Informational only — still running is not a failure.
@@ -235,9 +234,7 @@ def estimate_fold_eta(records: list[dict[str, Any]]) -> dict[str, Any]:
     n_total = len(records)
     n_completed = sum(1 for row in records if row.get("status") == "completed")
     n_failed = sum(
-        1
-        for row in records
-        if row.get("status") in {"failed_or_unavailable", "failed", "error"}
+        1 for row in records if row.get("status") in {"failed_or_unavailable", "failed", "error"}
     )
     n_running = len(running)
 
@@ -274,8 +271,12 @@ def estimate_fold_eta(records: list[dict[str, Any]]) -> dict[str, Any]:
         "mean_completed_duration_seconds": mean_overall,
         "mean_duration_by_method_seconds": mean_by_method,
         "running_eta": eta_components,
-        "estimated_remaining_seconds": remaining_seconds if running and mean_overall is not None else (
-            remaining_seconds if any(c.get("eta_remaining_seconds") is not None for c in eta_components) else None
+        "estimated_remaining_seconds": remaining_seconds
+        if running and mean_overall is not None
+        else (
+            remaining_seconds
+            if any(c.get("eta_remaining_seconds") is not None for c in eta_components)
+            else None
         ),
         "eta_basis": (
             "mean_completed_duration_minus_elapsed_for_running"
@@ -446,8 +447,7 @@ def load_stale_status(run_root: Path) -> dict[str, Any]:
                 or str(payload.get("review_state", "")).endswith("stale")
             ),
             "stale_reason": payload.get("stale_reason") or payload.get("message"),
-            "stale_artifacts": payload.get("stale_artifacts")
-            or payload.get("affected_artifacts"),
+            "stale_artifacts": payload.get("stale_artifacts") or payload.get("affected_artifacts"),
             "raw": payload,
         }
 

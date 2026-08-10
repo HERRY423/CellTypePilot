@@ -57,7 +57,6 @@ GENE_ALIAS_MAP: dict[str, str] = {
     "CD152": "CTLA4",
     "FOXP3": "FOXP3",
     "ROSA26": "Gt(ROSA)26Sor",
-
     # Brain / Neural markers
     "GFAP": "GFAP",
     "Gfap": "Gfap",
@@ -77,7 +76,6 @@ GENE_ALIAS_MAP: dict[str, str] = {
     "Olig2": "Olig2",
     "MBP": "MBP",
     "Mbp": "Mbp",
-
     # Mouse equivalent aliases (lowercase/titlecase)
     "Cd303": "Clec4c",
     "Bdca2": "Clec4c",
@@ -89,7 +87,6 @@ GENE_ALIAS_MAP: dict[str, str] = {
     "Cd11b": "Itgam",
     "Cd16": "Fcgr3a",
     "Cd56": "Ncam1",
-    "Iba1": "Aif1",
 }
 
 
@@ -123,7 +120,9 @@ def build_var_alias_index(var_names: list[str] | set[str]) -> dict[str, str]:
     return index
 
 
-def resolve_marker_list(markers: list[str], alias_index: dict[str, str]) -> tuple[list[str], list[str]]:
+def resolve_marker_list(
+    markers: list[str], alias_index: dict[str, str]
+) -> tuple[list[str], list[str]]:
     """Resolve a list of expected marker gene names against the AnnData var_names alias index.
 
     Args:
@@ -137,7 +136,9 @@ def resolve_marker_list(markers: list[str], alias_index: dict[str, str]) -> tupl
     missing = []
 
     for m in markers:
-        resolved = alias_index.get(m) or alias_index.get(m.upper()) or alias_index.get(m.capitalize())
+        resolved = (
+            alias_index.get(m) or alias_index.get(m.upper()) or alias_index.get(m.capitalize())
+        )
         if resolved and resolved not in present:
             present.append(resolved)
         elif not resolved:

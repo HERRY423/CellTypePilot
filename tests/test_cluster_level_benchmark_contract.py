@@ -75,4 +75,3 @@ def test_cluster_truth_tie_is_excluded_and_reported_not_silently_broken():
     assert assignments_out.empty
     assert predictions_out.empty
     assert diagnostics.iloc[0]["status"] == "ambiguous_truth_tie"
-

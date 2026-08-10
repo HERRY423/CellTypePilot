@@ -79,9 +79,7 @@ def _file_sha256(path: Path) -> str:
 
 
 def _is_git_url(source: str) -> bool:
-    return source.startswith(("http://", "https://", "git@", "ssh://")) or source.endswith(
-        ".git"
-    )
+    return source.startswith(("http://", "https://", "git@", "ssh://")) or source.endswith(".git")
 
 
 def _current_license_rank() -> int:
@@ -199,15 +197,11 @@ def validate_pack(pack_dir: str | Path) -> list[str]:
             issues.extend(validate_state_atlas(content))
         elif filename == ONTOLOGY_MAP_FILE:
             if content.get("schema_version") != "celltypepilot.ontology-map.v1":
-                issues.append(
-                    f"{filename} schema_version must be celltypepilot.ontology-map.v1"
-                )
+                issues.append(f"{filename} schema_version must be celltypepilot.ontology-map.v1")
             for field in ("aliases", "safe_parent_fallbacks"):
                 if field in content and not isinstance(content[field], dict):
                     issues.append(f"{filename} {field} must be an object")
-            if "include_tissues" in content and not isinstance(
-                content["include_tissues"], list
-            ):
+            if "include_tissues" in content and not isinstance(content["include_tissues"], list):
                 issues.append(f"{filename} include_tissues must be a list")
         elif filename == REFERENCE_MANIFEST_FILE:
             if not isinstance(content, dict) or not content.get("schema_version"):
@@ -294,9 +288,7 @@ def install_pack(
         destination = packs_dir() / name
         if destination.exists():
             if not force:
-                raise PackError(
-                    f"Pack {name!r} is already installed; use --force to reinstall"
-                )
+                raise PackError(f"Pack {name!r} is already installed; use --force to reinstall")
             shutil.rmtree(destination)
         destination.parent.mkdir(parents=True, exist_ok=True)
 
@@ -460,9 +452,7 @@ def _load_pack_content(pack_dir: Path, manifest: dict, trust: str) -> dict:
     return record
 
 
-def resolve_extension_packs(
-    names: list[str], species: str
-) -> tuple[list[dict], list[str]]:
+def resolve_extension_packs(names: list[str], species: str) -> tuple[list[dict], list[str]]:
     """Resolve requested pack names to loaded, license-checked records.
 
     Returns (records, warnings). Packs whose species scope does not include
@@ -565,7 +555,9 @@ def merge_marker_atlas(
     conflicts = detect_marker_conflicts(merged)
     for c in conflicts:
         if c.severity == "high":
-            warnings.append(f"High severity conflict introduced by pack: {c.conflict_type} on {c.gene} between {c.cell_type_a} and {c.cell_type_b}")
+            warnings.append(
+                f"High severity conflict introduced by pack: {c.conflict_type} on {c.gene} between {c.cell_type_a} and {c.cell_type_b}"
+            )
 
     return merged, warnings
 
@@ -579,10 +571,7 @@ def pack_conflict_report(pack_dir: str | Path, base_atlas: dict) -> dict:
     merged, _ = merge_marker_atlas(base_atlas, [record])
     conflicts = detect_marker_conflicts(merged)
 
-    return {
-        "pack_name": record["name"],
-        "conflicts": [vars(c) for c in conflicts]
-    }
+    return {"pack_name": record["name"], "conflicts": [vars(c) for c in conflicts]}
 
 
 def collect_pack_state_definitions_input(records: list[dict]) -> list[dict]:

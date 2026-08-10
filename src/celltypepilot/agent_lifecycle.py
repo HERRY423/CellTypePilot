@@ -18,8 +18,9 @@ This module is pure classification over JSON/files. It never mutates fold worksp
 from __future__ import annotations
 
 import json
+from collections.abc import Iterable
 from pathlib import Path
-from typing import Any, Iterable
+from typing import Any
 
 LIFECYCLE_SCHEMA = "celltypepilot.agent-lifecycle.v1"
 
@@ -93,7 +94,9 @@ def classify_checkpoint_status(payload: dict[str, Any]) -> dict[str, Any]:
     if raw == "running":
         agent_state = "running"
     elif raw == "completed":
-        agent_state = "resumed" if resumed and payload.get("resumed_from_checkpoint") else "completed"
+        agent_state = (
+            "resumed" if resumed and payload.get("resumed_from_checkpoint") else "completed"
+        )
     elif raw in {"failed", "error", "unreadable_checkpoint"}:
         agent_state = "failed"
     elif raw == "failed_or_unavailable":
@@ -111,9 +114,11 @@ def classify_checkpoint_status(payload: dict[str, Any]) -> dict[str, Any]:
         agent_state = "unknown"
 
     # Timeout failures are failed (not unavailable): the adapter was present but did not finish.
-    if any(m in error_l for m in ("timeout", "timed out", "execution limit")):
-        if agent_state == "unavailable":
-            agent_state = "failed"
+    if (
+        any(m in error_l for m in ("timeout", "timed out", "execution limit"))
+        and agent_state == "unavailable"
+    ):
+        agent_state = "failed"
 
     return {
         "schema_version": LIFECYCLE_SCHEMA,
@@ -180,8 +185,7 @@ def classify_release_status(payload: dict[str, Any]) -> dict[str, Any]:
         "raw_status": payload.get("status") or payload.get("release_status"),
         "claim_language": _claim_language(agent_state),
         "agent_must_not": _must_not(agent_state),
-        "blocking_findings": payload.get("blocking_findings")
-        or payload.get("n_blocking_findings"),
+        "blocking_findings": payload.get("blocking_findings") or payload.get("n_blocking_findings"),
     }
 
 
@@ -291,8 +295,7 @@ def build_agent_status_report(
             "species": inspect_report.get("species"),
             "annotation_supported": inspect_report.get("annotation_supported")
             or inspect_report.get("species_supported"),
-            "cluster_keys": inspect_report.get("cluster_keys")
-            or inspect_report.get("clusters"),
+            "cluster_keys": inspect_report.get("cluster_keys") or inspect_report.get("clusters"),
             "note": "Inspection is routing metadata, not claim-ready evidence.",
         }
     if checkpoint_dir is not None:

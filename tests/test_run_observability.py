@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import json
 import shutil
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timezone
 from pathlib import Path
 
 import pytest
@@ -13,7 +13,6 @@ from celltypepilot.run_observability import (
     ObservabilityError,
     build_observability_snapshot,
     estimate_fold_eta,
-    load_checkpoint_records,
 )
 
 REPO = Path(__file__).resolve().parents[1]
@@ -30,14 +29,10 @@ def test_snapshot_reads_live_run_without_mutation():
     if not (LIVE_RUN / "checkpoints").is_dir():
         pytest.skip("live smartseq2 run not present")
     before = {
-        p.name: p.stat().st_mtime_ns
-        for p in (LIVE_RUN / "checkpoints").glob("*.status.json")
+        p.name: p.stat().st_mtime_ns for p in (LIVE_RUN / "checkpoints").glob("*.status.json")
     }
     snapshot = build_observability_snapshot(LIVE_RUN, include_host=True)
-    after = {
-        p.name: p.stat().st_mtime_ns
-        for p in (LIVE_RUN / "checkpoints").glob("*.status.json")
-    }
+    after = {p.name: p.stat().st_mtime_ns for p in (LIVE_RUN / "checkpoints").glob("*.status.json")}
     assert before == after, "observability must not touch checkpoint mtimes"
     assert snapshot["read_only"] is True
     assert snapshot["prediction_mutation_allowed"] is False
@@ -48,7 +43,6 @@ def test_snapshot_reads_live_run_without_mutation():
 
 
 def test_eta_from_completed_and_running():
-    now = datetime.now(timezone.utc)
     records = [
         {
             "method": "celltypepilot",
@@ -115,9 +109,7 @@ def test_failure_reason_and_product_hash():
     )
     snapshot = build_observability_snapshot(run, include_host=False)
     assert any(f["failure_reason"] == "dependency_unavailable" for f in snapshot["failures"])
-    completed = [
-        r for r in snapshot["checkpoints"]["records"] if r["method"] == "celltypepilot"
-    ][0]
+    completed = [r for r in snapshot["checkpoints"]["records"] if r["method"] == "celltypepilot"][0]
     assert completed["prediction_csv_present"] is True
     assert completed["prediction_sha256"]
     assert snapshot["stale"]["derived_artifacts_stale"] is True

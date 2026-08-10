@@ -8,10 +8,10 @@ from pathlib import Path
 
 import pytest
 
-from celltypepilot.pack_manager import PackError, install_pack, validate_pack
+from celltypepilot.pack_manager import PackError, install_pack
 from celltypepilot.pack_signing import (
-    scan_pack_for_code,
     scaffold_pack,
+    scan_pack_for_code,
     sign_pack,
     validate_pack_ecosystem,
     verify_pack_signature,

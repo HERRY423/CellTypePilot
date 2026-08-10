@@ -7,7 +7,6 @@ not touch live fold workspaces under benchmarks/**/runs.
 from __future__ import annotations
 
 import json
-import os
 import shutil
 import subprocess
 import sys
@@ -245,9 +244,7 @@ def exercise_lifecycle_discrimination(fixture_root: Path) -> dict[str, Any]:
         observed[key] = classified["agent_state"]
         details.append(classified)
 
-    claim = classify_release_status(
-        json.loads(paths["claim_ready"].read_text(encoding="utf-8"))
-    )
+    claim = classify_release_status(json.loads(paths["claim_ready"].read_text(encoding="utf-8")))
     incomplete = classify_release_status(
         json.loads(paths["incomplete_not_claim_ready"].read_text(encoding="utf-8"))
     )
@@ -274,7 +271,6 @@ def exercise_lifecycle_discrimination(fixture_root: Path) -> dict[str, Any]:
 def exercise_doctor_inspect_json(repo: Path, fixture_root: Path) -> dict[str, Any]:
     """Run doctor --json and inspect --json on a tiny synthetic h5ad."""
     from .doctor import run_doctor
-    from .agent_lifecycle import doctor_report_to_dict
 
     doctor = doctor_report_to_dict(run_doctor())
 
@@ -318,15 +314,9 @@ def exercise_doctor_inspect_json(repo: Path, fixture_root: Path) -> dict[str, An
 def exercise_timeout_cancel_resume_semantics(fixture_root: Path) -> dict[str, Any]:
     """Semantic checks: timeout→failed, cancel→cancelled, resume→resumed/completed."""
     paths = write_lifecycle_fixtures(fixture_root / "tcr")
-    timeout = classify_checkpoint_status(
-        json.loads(paths["failed"].read_text(encoding="utf-8"))
-    )
-    cancel = classify_checkpoint_status(
-        json.loads(paths["cancelled"].read_text(encoding="utf-8"))
-    )
-    resumed = classify_checkpoint_status(
-        json.loads(paths["resumed"].read_text(encoding="utf-8"))
-    )
+    timeout = classify_checkpoint_status(json.loads(paths["failed"].read_text(encoding="utf-8")))
+    cancel = classify_checkpoint_status(json.loads(paths["cancelled"].read_text(encoding="utf-8")))
+    resumed = classify_checkpoint_status(json.loads(paths["resumed"].read_text(encoding="utf-8")))
     return {
         "passed": (
             timeout["agent_state"] == "failed"
@@ -385,8 +375,7 @@ def run_host_acceptance(
             _check(
                 "worktree",
                 bool(worktree_info.get("path")),
-                worktree_info.get("reason")
-                or ("using " + str(worktree_info.get("path"))),
+                worktree_info.get("reason") or ("using " + str(worktree_info.get("path"))),
                 worktree=worktree_info,
             )
         )
@@ -439,9 +428,7 @@ def run_host_acceptance(
         _check(
             "discovery.skill",
             surfaces["skill_md"],
-            "skills/celltypepilot/SKILL.md present"
-            if surfaces["skill_md"]
-            else "missing SKILL.md",
+            "skills/celltypepilot/SKILL.md present" if surfaces["skill_md"] else "missing SKILL.md",
         )
     )
     checks.append(

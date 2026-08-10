@@ -184,8 +184,7 @@ def test_study_holdout_evaluation_is_abstention_aware_and_reports_missing_method
 def test_every_bundled_marker_relationship_has_structured_provenance():
     assert validate_atlas_provenance(load_marker_atlas("human")) == []
     premium_path = (
-        Path(__file__).parents[1]
-        / "src/celltypepilot/data/packs/premium/marker_atlas.json"
+        Path(__file__).parents[1] / "src/celltypepilot/data/packs/premium/marker_atlas.json"
     )
     premium = json.loads(premium_path.read_text(encoding="utf-8"))
     assert validate_atlas_provenance(premium) == []
@@ -375,7 +374,10 @@ def test_reference_ensemble_critic_writeback_report_and_manifest_are_one_pipelin
     assert set(result["critic_results"]["decision"]) == {"accepted"}
     assert "reference_scores" in result["paths"]
     assert "ensemble_scores" in result["paths"]
+    assert result["paths"]["novelty"].name == "novelty_results.csv"
+    assert result["paths"]["novelty"].exists()
     assert "data.annotated.h5ad" in result["manifest"]["outputs"]
+    assert result["manifest"]["parameters"]["novelty_ood"]["identity_invariant"] is True
     assert result["manifest"]["parameters"]["pipeline_stages"] == [
         "context",
         "marker",

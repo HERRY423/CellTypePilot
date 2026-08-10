@@ -17,14 +17,13 @@ from pathlib import Path
 from typing import Any
 
 from .pack_manager import (
-    ALLOWED_PACK_FILES,
     ATLAS_FILE,
     PACK_SCHEMA_VERSION,
     STATE_FILE,
     PackError,
+    _file_sha256,
     read_pack_manifest,
     validate_pack,
-    _file_sha256,
 )
 
 # Data-only allowlist: no executables, no scripts.
@@ -94,9 +93,7 @@ def scan_pack_for_code(pack_dir: str | Path) -> list[str]:
             issues.append(f"nested files are not allowed in data-only packs: {rel}")
             continue
         if path.name not in ALLOWED_DATA_NAMES:
-            issues.append(
-                f"unknown data file {rel!r}; allowed: {sorted(ALLOWED_DATA_NAMES)}"
-            )
+            issues.append(f"unknown data file {rel!r}; allowed: {sorted(ALLOWED_DATA_NAMES)}")
     return issues
 
 
@@ -332,7 +329,11 @@ def verify_pack_signature(
             "signer": sig.get("signer"),
         }
     else:
-        return {"valid": False, "reason": f"unsupported algorithm {algorithm!r}", "status": "invalid"}
+        return {
+            "valid": False,
+            "reason": f"unsupported algorithm {algorithm!r}",
+            "status": "invalid",
+        }
 
     return {
         "valid": ok,

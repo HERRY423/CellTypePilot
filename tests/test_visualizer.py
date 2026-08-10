@@ -117,7 +117,12 @@ class TestGenerateAllFigures:
             {
                 "cluster": ["0", "1", "2", "3"],
                 "cell_type": ["T cell", "B cell", "NK cell", "Monocyte"],
-                "cell_state_candidate": ["exhausted", "cycling_s_phase", "Unknown", "m1_proinflammatory"],
+                "cell_state_candidate": [
+                    "exhausted",
+                    "cycling_s_phase",
+                    "Unknown",
+                    "m1_proinflammatory",
+                ],
                 "display_label": [
                     "T cell · exhausted",
                     "B cell · cycling_s_phase",
@@ -133,4 +138,3 @@ class TestGenerateAllFigures:
         filenames = [Path(p).name for p in paths]
         assert "umap_identity_state.png" in filenames
         assert "identity_state_distribution.png" in filenames
-

@@ -135,12 +135,13 @@ def grouped_bootstrap_metric_ci(
     if strata is None:
         group_values = frame["value"].to_numpy()
         for _ in range(n_boot):
-            boot_stats.append(float(rng.choice(group_values, len(group_values), replace=True).mean()))
+            boot_stats.append(
+                float(rng.choice(group_values, len(group_values), replace=True).mean())
+            )
     else:
         stratum_names = frame["stratum"].drop_duplicates().to_numpy()
         by_stratum = {
-            name: group["value"].to_numpy()
-            for name, group in frame.groupby("stratum", sort=False)
+            name: group["value"].to_numpy() for name, group in frame.groupby("stratum", sort=False)
         }
         for _ in range(n_boot):
             sampled_strata = rng.choice(stratum_names, len(stratum_names), replace=True)
@@ -198,8 +199,7 @@ def bootstrap_cluster_stability(
 
     if n_subsample < 50:
         logger.warning(
-            "Fewer than 50 cells after subsampling; "
-            "cluster stability analysis may be unreliable."
+            "Fewer than 50 cells after subsampling; cluster stability analysis may be unreliable."
         )
 
     for cl in clusters:
@@ -207,14 +207,16 @@ def bootstrap_cluster_stability(
         n_cluster_cells = int(mask.sum())
 
         if n_cluster_cells < 50:
-            results.append({
-                "cluster": cl,
-                "stability_score": np.nan,
-                "ci_lower": np.nan,
-                "ci_upper": np.nan,
-                "n_cells": n_cluster_cells,
-                "n_boot_successful": 0,
-            })
+            results.append(
+                {
+                    "cluster": cl,
+                    "stability_score": np.nan,
+                    "ci_lower": np.nan,
+                    "ci_upper": np.nan,
+                    "n_cells": n_cluster_cells,
+                    "n_boot_successful": 0,
+                }
+            )
             continue
 
         boot_scores = []
@@ -226,9 +228,13 @@ def bootstrap_cluster_stability(
                 # Require neighbors graph for leiden
                 if "neighbors" not in sub_adata.uns:
                     import scanpy as sc
-                    sc.pp.neighbors(sub_adata, use_rep="X_pca" if "X_pca" in sub_adata.obsm else None)
+
+                    sc.pp.neighbors(
+                        sub_adata, use_rep="X_pca" if "X_pca" in sub_adata.obsm else None
+                    )
 
                 import scanpy as sc
+
                 sc.tl.leiden(sub_adata, resolution=resolution, key_added="boot_cluster")
 
                 # Binary ARI: this-cluster vs rest in both original and boot labels
@@ -246,23 +252,27 @@ def bootstrap_cluster_stability(
 
         if boot_scores:
             scores = np.array(boot_scores)
-            results.append({
-                "cluster": cl,
-                "stability_score": float(np.mean(scores)),
-                "ci_lower": float(np.percentile(scores, 2.5)),
-                "ci_upper": float(np.percentile(scores, 97.5)),
-                "n_cells": n_cluster_cells,
-                "n_boot_successful": len(boot_scores),
-            })
+            results.append(
+                {
+                    "cluster": cl,
+                    "stability_score": float(np.mean(scores)),
+                    "ci_lower": float(np.percentile(scores, 2.5)),
+                    "ci_upper": float(np.percentile(scores, 97.5)),
+                    "n_cells": n_cluster_cells,
+                    "n_boot_successful": len(boot_scores),
+                }
+            )
         else:
-            results.append({
-                "cluster": cl,
-                "stability_score": np.nan,
-                "ci_lower": np.nan,
-                "ci_upper": np.nan,
-                "n_cells": n_cluster_cells,
-                "n_boot_successful": 0,
-            })
+            results.append(
+                {
+                    "cluster": cl,
+                    "stability_score": np.nan,
+                    "ci_lower": np.nan,
+                    "ci_upper": np.nan,
+                    "n_cells": n_cluster_cells,
+                    "n_boot_successful": 0,
+                }
+            )
 
     return pd.DataFrame(results)
 
@@ -311,6 +321,7 @@ def bootstrap_evidence_score_ci(
 
         # Get expression matrix for this cluster
         import scipy.sparse as sp
+
         X_cluster = adata[mask].X
         if sp.issparse(X_cluster):
             X_cluster = X_cluster.toarray()
@@ -338,14 +349,16 @@ def bootstrap_evidence_score_ci(
                 best_ct = ct_name
 
         if best_ct is None:
-            results.append({
-                "cluster": cl,
-                "cell_type": "Unknown",
-                "score_point": 0.0,
-                "score_ci_lower": 0.0,
-                "score_ci_upper": 0.0,
-                "score_se": 0.0,
-            })
+            results.append(
+                {
+                    "cluster": cl,
+                    "cell_type": "Unknown",
+                    "score_point": 0.0,
+                    "score_ci_lower": 0.0,
+                    "score_ci_upper": 0.0,
+                    "score_se": 0.0,
+                }
+            )
             continue
 
         # Bootstrap CI for the best cell type
@@ -362,15 +375,28 @@ def bootstrap_evidence_score_ci(
             boot_scores.append(pct_expressed)
 
         scores = np.array(boot_scores)
-        results.append({
-            "cluster": cl,
-            "cell_type": best_ct,
-            "score_point": float(np.mean(scores)),
-            "score_ci_lower": float(np.percentile(scores, 2.5)),
-            "score_ci_upper": float(np.percentile(scores, 97.5)),
-            "score_se": float(np.std(scores, ddof=1)),
-        })
+        results.append(
+            {
+                "cluster": cl,
+                "cell_type": best_ct,
+                "score_point": float(np.mean(scores)),
+                "score_ci_lower": float(np.percentile(scores, 2.5)),
+                "score_ci_upper": float(np.percentile(scores, 97.5)),
+                "score_se": float(np.std(scores, ddof=1)),
+            }
+        )
 
-    return pd.DataFrame(results) if results else pd.DataFrame(
-        columns=["cluster", "cell_type", "score_point", "score_ci_lower", "score_ci_upper", "score_se"]
+    return (
+        pd.DataFrame(results)
+        if results
+        else pd.DataFrame(
+            columns=[
+                "cluster",
+                "cell_type",
+                "score_point",
+                "score_ci_lower",
+                "score_ci_upper",
+                "score_se",
+            ]
+        )
     )

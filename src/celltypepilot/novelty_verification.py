@@ -19,20 +19,16 @@ from __future__ import annotations
 
 import json
 import logging
+from contextlib import suppress
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any, Mapping
+from typing import Any
 
 import anndata as ad
-import numpy as np
 import pandas as pd
 
 from .constants import (
     CRITIC_DOUBLET_ACTIVE_COVERAGE,
-    CRITIC_DOUBLET_COEXPR_THRESHOLD,
-    CRITIC_DOUBLET_OVERLAP_JACCARD,
-    MARKER_FC_THRESHOLD,
-    MARKER_FDR_THRESHOLD,
     STATE_ATLAS_PATH,
 )
 from .data_adapter import build_lineage_groups, find_metadata_columns
@@ -74,15 +70,24 @@ def _check_qc_and_batch_confounding(
 
     # 1. QC Audit
     cluster_obs = adata.obs[mask]
-    n_genes_col = next((c for c in ["n_genes_by_counts", "n_genes", "n_genes_detected"] if c in cluster_obs), None)
-    mito_col = next((c for c in ["pct_counts_mt", "percent_mito", "pct_mito", "mt_frac"] if c in cluster_obs), None)
-    ribo_col = next((c for c in ["pct_counts_ribo", "percent_ribo", "pct_ribo"] if c in cluster_obs), None)
+    n_genes_col = next(
+        (c for c in ["n_genes_by_counts", "n_genes", "n_genes_detected"] if c in cluster_obs), None
+    )
+    mito_col = next(
+        (c for c in ["pct_counts_mt", "percent_mito", "pct_mito", "mt_frac"] if c in cluster_obs),
+        None,
+    )
+    ribo_col = next(
+        (c for c in ["pct_counts_ribo", "percent_ribo", "pct_ribo"] if c in cluster_obs), None
+    )
 
     if n_genes_col and n_genes_col in adata.obs:
         cl_median_genes = float(cluster_obs[n_genes_col].median())
         all_median_genes = float(adata.obs[n_genes_col].median())
         if cl_median_genes < 0.5 * all_median_genes:
-            flags.append(f"LOW_GENE_COUNT_MEDIAN:{cl_median_genes:.0f}_vs_ALL:{all_median_genes:.0f}")
+            flags.append(
+                f"LOW_GENE_COUNT_MEDIAN:{cl_median_genes:.0f}_vs_ALL:{all_median_genes:.0f}"
+            )
 
     if mito_col and mito_col in adata.obs:
         cl_median_mito = float(cluster_obs[mito_col].median())
@@ -200,7 +205,11 @@ def verify_subclustering_homogeneity(
 
     try:
         sub_adata = adata[mask].copy()
-        sc.pp.neighbors(sub_adata, use_rep="X_pca" if "X_pca" in sub_adata.obsm else None, n_neighbors=min(15, n_cells - 1))
+        sc.pp.neighbors(
+            sub_adata,
+            use_rep="X_pca" if "X_pca" in sub_adata.obsm else None,
+            n_neighbors=min(15, n_cells - 1),
+        )
         sc.tl.leiden(sub_adata, resolution=resolution, key_added="subcluster")
 
         sub_counts = sub_adata.obs["subcluster"].value_counts().to_dict()
@@ -216,7 +225,9 @@ def verify_subclustering_homogeneity(
             "n_major_subclusters": len(major_subclusters),
             "subcluster_sizes": {str(k): int(v) for k, v in sub_counts.items()},
             "subcluster_score": round(1.0 / max(1, len(major_subclusters)), 4),
-            "note": "homogeneous_sublineage" if is_homogeneous else "heterogeneous_mixture_detected",
+            "note": "homogeneous_sublineage"
+            if is_homogeneous
+            else "heterogeneous_mixture_detected",
         }
     except Exception as exc:
         logger.debug("Subclustering failed for cluster %s: %s", cluster_id, exc)
@@ -299,7 +310,9 @@ def verify_novelty_candidate(
     gate1_qc = _check_qc_and_batch_confounding(adata, cluster_key, cluster_id)
 
     # Gate 1 (cont.): Doublet Co-expression
-    gate1_doublet = _check_doublet_signature(adata, cluster_key, cluster_id, atlas, tissue, layer=layer)
+    gate1_doublet = _check_doublet_signature(
+        adata, cluster_key, cluster_id, atlas, tissue, layer=layer
+    )
 
     # Gate 2: Local Subclustering Audit
     gate2_subcluster = verify_subclustering_homogeneity(adata, cluster_key, cluster_id)
@@ -336,8 +349,12 @@ def verify_novelty_candidate(
         "schema_version": VERIFICATION_SCHEMA,
         "timestamp": datetime.now(timezone.utc).isoformat(),
         "cluster": cluster_id,
-        "identity_best_match": str(critic_row.get("candidate_cell_type", critic_row.get("cell_type", "Unknown"))),
-        "identity_evidence_score": float(critic_row.get("evidence_score", critic_row.get("combined_score", 0.0)) or 0.0),
+        "identity_best_match": str(
+            critic_row.get("candidate_cell_type", critic_row.get("cell_type", "Unknown"))
+        ),
+        "identity_evidence_score": float(
+            critic_row.get("evidence_score", critic_row.get("combined_score", 0.0)) or 0.0
+        ),
         "unmapped_de_markers": markers_to_check,
         "gates": {
             "gate1_qc_batch": gate1_qc,
@@ -395,17 +412,17 @@ def log_novelty_adjudication(
     status_path = output_dir / "artifact_status.json"
     status_data = {}
     if status_path.exists():
-        try:
+        with suppress(Exception):
             status_data = json.loads(status_path.read_text(encoding="utf-8"))
-        except Exception:
-            pass
 
     status_data["novelty_review_status"] = "adjudicated"
     status_data["last_adjudication_at"] = entry["timestamp"]
     status_data["derived_artifacts_stale"] = True
     status_data["stale_reason"] = f"Novelty adjudication verdict logged for cluster {cluster}"
 
-    status_path.write_text(json.dumps(status_data, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
+    status_path.write_text(
+        json.dumps(status_data, indent=2, ensure_ascii=False) + "\n", encoding="utf-8"
+    )
 
     logger.info("Novelty adjudication logged for cluster %s: %s by %s", cluster, verdict, reviewer)
     return entry

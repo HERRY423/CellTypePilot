@@ -57,9 +57,7 @@ def _find_record(atlas: dict, tissue: str, cell_path: str, gene: str, polarity: 
             and str(record.get("polarity")) == polarity
         ):
             return record
-    raise EvidencePromotionError(
-        f"Marker edge not found: {tissue}/{cell_path}/{gene}/{polarity}"
-    )
+    raise EvidencePromotionError(f"Marker edge not found: {tissue}/{cell_path}/{gene}/{polarity}")
 
 
 def build_promotion_proposal(
@@ -88,7 +86,8 @@ def build_promotion_proposal(
         evidence["automated_candidate_only"] = True
     proposal = {
         "schema_version": PROMOTION_SCHEMA,
-        "proposal_id": "ep-" + _canonical_hash(
+        "proposal_id": "ep-"
+        + _canonical_hash(
             [atlas.get("version"), tissue, cell_path, gene, polarity, target_status, evidence]
         )[:16],
         "created_at": _utc_now(),

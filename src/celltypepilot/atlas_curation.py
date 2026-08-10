@@ -25,13 +25,14 @@ from copy import deepcopy
 from datetime import datetime, timezone
 from pathlib import Path
 
+import pandas as pd
+
+from .constants import CURATION_STALE_MONTHS
 from .data_adapter import (
+    EVIDENCE_STATUS_RANK,
     LITERATURE_COOCCURRENCE_STATUS,
     validate_atlas_provenance,
-    EVIDENCE_STATUS_RANK
 )
-from .constants import CURATION_STALE_MONTHS
-import pandas as pd
 
 AGGREGATE_STATUS = "aggregate_source_only_not_edge_verified"
 CURATOR_ID = "celltypepilot-pubmed-sweep-v1"
@@ -99,16 +100,17 @@ def sweep_edges(
     edges = [
         (t, path, info, record)
         for t, path, info, record in _all_records(atlas)
-        if record.get("verification_status") == AGGREGATE_STATUS
-        and (tissue is None or t == tissue)
+        if record.get("verification_status") == AGGREGATE_STATUS and (tissue is None or t == tissue)
     ]
     if limit is not None:
         edges = edges[:limit]
     total = len(edges)
-    for index, (edge_tissue, cell_path, info, record) in enumerate(edges, start=1):
+    for index, (edge_tissue, cell_path, _info, record) in enumerate(edges, start=1):
         if progress is not None:
             progress(index, total, f"{record.get('gene')} × {cell_path[-1]} ({edge_tissue})")
-        query = build_edge_query(str(record.get("gene", "")), str(record.get("polarity", "")), cell_path)
+        query = build_edge_query(
+            str(record.get("gene", "")), str(record.get("polarity", "")), cell_path
+        )
         row = {
             "tissue": edge_tissue,
             "cell_path": " > ".join(cell_path),
@@ -203,21 +205,23 @@ def write_sweep_report(sweep: dict, output_path: str | Path) -> Path:
         "min_hits_for_upgrade": MIN_HITS_FOR_UPGRADE,
         "results": sweep["results"],
     }
-    output_path.write_text(json.dumps(payload, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
+    output_path.write_text(
+        json.dumps(payload, indent=2, ensure_ascii=False) + "\n", encoding="utf-8"
+    )
     return output_path
 
 
 def build_curation_queue(atlas: dict) -> pd.DataFrame:
     """Build a prioritized queue of edges needing curation."""
     from datetime import datetime, timezone
-    
+
     rows = []
     now = datetime.now(timezone.utc)
-    
-    for edge_tissue, cell_path, info, record in _all_records(atlas):
+
+    for edge_tissue, cell_path, _info, record in _all_records(atlas):
         status = record.get("verification_status", AGGREGATE_STATUS)
         rank = EVIDENCE_STATUS_RANK.get(status, 0)
-        
+
         # Priority logic: unverified edges are highest priority, stale edges next
         priority = 0
         if rank == 0:
@@ -233,37 +237,41 @@ def build_curation_queue(atlas: dict) -> pd.DataFrame:
                 except Exception:
                     priority = 75  # Unparseable date
 
-        rows.append({
-            "tissue": edge_tissue,
-            "cell_type": " > ".join(cell_path),
-            "gene": record.get("gene"),
-            "polarity": record.get("polarity"),
-            "status": status,
-            "rank": rank,
-            "priority": priority,
-            "verified_at": record.get("verified_at")
-        })
-        
+        rows.append(
+            {
+                "tissue": edge_tissue,
+                "cell_type": " > ".join(cell_path),
+                "gene": record.get("gene"),
+                "polarity": record.get("polarity"),
+                "status": status,
+                "rank": rank,
+                "priority": priority,
+                "verified_at": record.get("verified_at"),
+            }
+        )
+
     df = pd.DataFrame(rows)
     if not df.empty:
         df = df.sort_values("priority", ascending=False)
     return df
 
 
-def promote_edge(atlas: dict, gene: str, cell_type: str, tissue: str, new_status: str, evidence: dict) -> dict:
+def promote_edge(
+    atlas: dict, gene: str, cell_type: str, tissue: str, new_status: str, evidence: dict
+) -> dict:
     """Upgrade an edge's status and add audit trails."""
     from datetime import datetime, timezone
-    
-    for edge_tissue, cell_path, info, record in _all_records(atlas):
+
+    for edge_tissue, cell_path, _info, record in _all_records(atlas):
         if edge_tissue == tissue and cell_path[-1] == cell_type and record.get("gene") == gene:
             old_status = record.get("verification_status", AGGREGATE_STATUS)
             if EVIDENCE_STATUS_RANK.get(new_status, 0) <= EVIDENCE_STATUS_RANK.get(old_status, 0):
                 raise CurationError("New status must be higher rank than old status")
-                
+
             record["verification_status"] = new_status
             record["curator"] = evidence.get("curator", "manual")
             record["verified_at"] = datetime.now(timezone.utc).isoformat()
-            
+
             if new_status == "primary_source_verified":
                 record["evidence_locator"] = evidence.get("evidence_locator", "")
                 if "sources" in evidence:
@@ -271,27 +279,29 @@ def promote_edge(atlas: dict, gene: str, cell_type: str, tissue: str, new_status
             elif new_status == "database_record_verified":
                 record["source_record_id"] = evidence.get("source_record_id", "")
                 record["source_record_url"] = evidence.get("source_record_url", "")
-                
+
             return record
-            
+
     raise CurationError(f"Edge not found: {gene} in {cell_type} ({tissue})")
 
 
-def demote_edge(atlas: dict, gene: str, cell_type: str, tissue: str, new_status: str, reason: str) -> dict:
+def demote_edge(
+    atlas: dict, gene: str, cell_type: str, tissue: str, new_status: str, reason: str
+) -> dict:
     """Downgrade an edge's status and add audit trails."""
     from datetime import datetime, timezone
-    
-    for edge_tissue, cell_path, info, record in _all_records(atlas):
+
+    for edge_tissue, cell_path, _info, record in _all_records(atlas):
         if edge_tissue == tissue and cell_path[-1] == cell_type and record.get("gene") == gene:
             old_status = record.get("verification_status", AGGREGATE_STATUS)
             if EVIDENCE_STATUS_RANK.get(new_status, 0) >= EVIDENCE_STATUS_RANK.get(old_status, 0):
                 raise CurationError("New status must be lower rank than old status")
-                
+
             record["verification_status"] = new_status
             record["curator"] = "manual_demotion"
             record["verified_at"] = datetime.now(timezone.utc).isoformat()
             record["demotion_reason"] = reason
-            
+
             return record
-            
+
     raise CurationError(f"Edge not found: {gene} in {cell_type} ({tissue})")

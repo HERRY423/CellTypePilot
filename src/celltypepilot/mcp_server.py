@@ -184,13 +184,9 @@ def tool_read_evidence(output_dir: str, cluster: str | None = None) -> dict[str,
     contrast_index, gap_index = load_agent_evidence_indexes(root)
     if cluster is not None:
         contrast_index = (
-            {str(cluster): contrast_index[str(cluster)]}
-            if str(cluster) in contrast_index
-            else {}
+            {str(cluster): contrast_index[str(cluster)]} if str(cluster) in contrast_index else {}
         )
-        gap_index = (
-            {str(cluster): gap_index[str(cluster)]} if str(cluster) in gap_index else {}
-        )
+        gap_index = {str(cluster): gap_index[str(cluster)]} if str(cluster) in gap_index else {}
     return {
         "schema_version": "celltypepilot.evidence.v1",
         "status": "available",

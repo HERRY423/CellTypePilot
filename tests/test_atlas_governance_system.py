@@ -2,34 +2,26 @@
 
 from __future__ import annotations
 
-import json
-from pathlib import Path
 import numpy as np
 import pandas as pd
 import pytest
 
-from celltypepilot.constants import ATLAS_PATH, EVIDENCE_WEIGHT_MAP
-from celltypepilot.data_adapter import load_marker_atlas, get_all_markers_for_tissue
-from celltypepilot.atlas_lifecycle import (
-    deprecate_cell_type,
-    deprecate_marker_edge,
-    sunset_check,
-    apply_deprecation_filter,
-    compute_marker_weights,
-    validate_lifecycle_fields,
-)
-from celltypepilot.atlas_diff import diff_atlases, format_diff_report, format_diff_json
 from celltypepilot.atlas_conflict import (
     detect_marker_conflicts,
-    validate_no_blocking_conflicts,
-    ConflictRecord,
 )
 from celltypepilot.atlas_curation import (
     build_curation_queue,
-    promote_edge,
-    demote_edge,
 )
+from celltypepilot.atlas_diff import diff_atlases, format_diff_json, format_diff_report
 from celltypepilot.atlas_governance import build_atlas_governance_report
+from celltypepilot.atlas_lifecycle import (
+    apply_deprecation_filter,
+    compute_marker_weights,
+    deprecate_cell_type,
+    deprecate_marker_edge,
+    sunset_check,
+)
+from celltypepilot.data_adapter import get_all_markers_for_tissue
 from celltypepilot.marker_scorer import compute_marker_scores
 
 
@@ -152,7 +144,7 @@ def test_sunset_check(sample_atlas):
         reason="Obsolete",
     )
     sample_atlas["tissues"]["blood"]["cell_types"]["B cell"]["sunset_version"] = 2.0
-    
+
     issues = sunset_check(sample_atlas, current_version=1.0)
     assert len(issues) == 0  # not sunsetted yet at 1.0
 
@@ -169,7 +161,7 @@ def test_apply_deprecation_filter(sample_atlas):
         reason="Obsolete",
     )
     markers = get_all_markers_for_tissue(sample_atlas, "blood", include_deprecated=True)
-    
+
     filtered = apply_deprecation_filter(markers, include_deprecated=False)
     assert "B cell" not in filtered
     assert "T cell" in filtered
@@ -180,24 +172,28 @@ def test_apply_deprecation_filter(sample_atlas):
 
 def test_atlas_diff(sample_atlas):
     import copy
+
     new_atlas = copy.deepcopy(sample_atlas)
     deprecate_cell_type(new_atlas, "B cell", "blood", "Obsolete")
-    
+
     diff = diff_atlases(sample_atlas, new_atlas)
     assert "blood/B cell" in diff.deprecated_cell_types
-    
+
     report_text = format_diff_report(diff)
     assert "Deprecated Cell Types" in report_text
-    
+
     json_data = format_diff_json(diff)
     assert "added_cell_types" in json_data
 
 
 def test_atlas_conflict_detection(sample_atlas):
     import copy
+
     bad_atlas = copy.deepcopy(sample_atlas)
     # Inject polarity conflict: CD3D positive in T cell and negative in CD4+ T cell
-    bad_atlas["tissues"]["blood"]["cell_types"]["T cell"]["subtypes"]["CD4+ T cell"]["negative_markers"].append("CD3D")
+    bad_atlas["tissues"]["blood"]["cell_types"]["T cell"]["subtypes"]["CD4+ T cell"][
+        "negative_markers"
+    ].append("CD3D")
 
     conflicts = detect_marker_conflicts(bad_atlas)
     assert len(conflicts) > 0
@@ -228,12 +224,15 @@ def test_governance_report_integration():
 def test_evidence_weighted_scoring():
     # Build synthetic AnnData for test
     import anndata as ad
-    X = np.array([
-        [10.0, 8.0, 0.0, 0.0],
-        [9.0,  7.0, 0.0, 0.0],
-        [0.0,  0.0, 9.0, 8.0],
-        [0.0,  0.0, 8.0, 7.0],
-    ])
+
+    X = np.array(
+        [
+            [10.0, 8.0, 0.0, 0.0],
+            [9.0, 7.0, 0.0, 0.0],
+            [0.0, 0.0, 9.0, 8.0],
+            [0.0, 0.0, 8.0, 7.0],
+        ]
+    )
     obs = pd.DataFrame({"cluster": ["0", "0", "1", "1"]})
     var = pd.DataFrame(index=["CD3D", "CD3E", "CD19", "MS4A1"])
     adata = ad.AnnData(X=X, obs=obs, var=var)

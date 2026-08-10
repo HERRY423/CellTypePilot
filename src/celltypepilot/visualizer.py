@@ -75,7 +75,6 @@ def generate_all_figures(
     return generated
 
 
-
 def plot_umap_clusters(adata, cluster_key: str, embedding_key: str, output_dir: Path) -> str | None:
     """UMAP colored by cluster ID."""
     if embedding_key not in adata.obsm:
@@ -366,7 +365,11 @@ def plot_umap_identity_state(
 
     coords = adata.obsm[embedding_key]
     cluster_to_label = dict(
-        zip(annotations["cluster"].astype(str), annotations["display_label"].astype(str), strict=True)
+        zip(
+            annotations["cluster"].astype(str),
+            annotations["display_label"].astype(str),
+            strict=True,
+        )
     )
     labels = [cluster_to_label.get(str(c), "Unknown") for c in adata.obs[cluster_key]]
 
@@ -376,7 +379,7 @@ def plot_umap_identity_state(
 
     fig, ax = plt.subplots(figsize=(8, 6))
     for lbl in unique_labels:
-        mask = np.array([l == lbl for l in labels])
+        mask = np.array([label == lbl for label in labels])
         ax.scatter(
             coords[mask, 0],
             coords[mask, 1],
@@ -451,4 +454,3 @@ def plot_identity_state_distribution(annotations: pd.DataFrame, output_dir: Path
     fig.savefig(path, dpi=150, bbox_inches="tight")
     plt.close(fig)
     return str(path)
-

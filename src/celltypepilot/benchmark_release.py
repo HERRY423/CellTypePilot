@@ -79,9 +79,7 @@ def validate_benchmark_registry(payload: dict[str, Any]) -> None:
     }
     missing_plan = required_plan - set(plan)
     if missing_plan:
-        raise BenchmarkValidationError(
-            f"Analysis plan missing fields: {sorted(missing_plan)}"
-        )
+        raise BenchmarkValidationError(f"Analysis plan missing fields: {sorted(missing_plan)}")
     if plan["independent_unit"] != "donor":
         raise BenchmarkValidationError("Public release independent_unit must be 'donor'")
     if len(payload["cohorts"]) < 2:
@@ -150,58 +148,58 @@ def public_cohort_inventory(payload: dict[str, Any], registry_path: Path) -> pd.
         comparator_status = _resolve(base, cohort.get("comparator_status_path"))
         label_map = _resolve(base, cohort.get("label_map_path"))
         row = {
-                "cohort_id": cohort["cohort_id"],
-                "title": cohort["title"],
-                "species": cohort["species"],
-                "tissue": cohort["tissue"],
-                "dataset_version_id": cohort["dataset_version_id"],
-                "expected_cells": cohort.get("expected_cells"),
-                "expected_bytes": cohort.get("expected_bytes"),
-                "expected_sha256": cohort.get("expected_sha256"),
-                "citation_doi": cohort["citation_doi"],
-                "collection_url": cohort["collection_url"],
-                "dataset_url": cohort["dataset_url"],
-                "truth_provenance": cohort["truth_provenance"],
-                "local_data_status": "present" if local_path and local_path.exists() else "missing",
-                "predictions_status": (
-                    "present" if predictions and predictions.exists() else "missing"
-                ),
-                "assignments_status": (
-                    "present" if assignments and assignments.exists() else "missing"
-                ),
-                "cluster_map_status": (
-                    "present" if cluster_map and cluster_map.exists() else "missing"
-                ),
-                "comparator_status": (
-                    "present" if comparator_status and comparator_status.exists() else "missing"
-                ),
-                "label_map_status": (
-                    "verified"
-                    if label_map
-                    and label_map.exists()
-                    and _sha256(label_map) == cohort.get("label_map_sha256")
-                    else "mismatch"
-                    if label_map and label_map.exists()
-                    else "missing"
-                ),
-                "expected_label_map_sha256": cohort.get("label_map_sha256"),
-                "actual_label_map_sha256": (
-                    _sha256(label_map) if label_map and label_map.exists() else None
-                ),
-                "assignments_sha256": (
-                    _sha256(assignments) if assignments and assignments.exists() else None
-                ),
-                "cluster_map_sha256": (
-                    _sha256(cluster_map) if cluster_map and cluster_map.exists() else None
-                ),
-                "predictions_sha256": (
-                    _sha256(predictions) if predictions and predictions.exists() else None
-                ),
-                "comparator_status_sha256": (
-                    _sha256(comparator_status)
-                    if comparator_status and comparator_status.exists()
-                    else None
-                ),
+            "cohort_id": cohort["cohort_id"],
+            "title": cohort["title"],
+            "species": cohort["species"],
+            "tissue": cohort["tissue"],
+            "dataset_version_id": cohort["dataset_version_id"],
+            "expected_cells": cohort.get("expected_cells"),
+            "expected_bytes": cohort.get("expected_bytes"),
+            "expected_sha256": cohort.get("expected_sha256"),
+            "citation_doi": cohort["citation_doi"],
+            "collection_url": cohort["collection_url"],
+            "dataset_url": cohort["dataset_url"],
+            "truth_provenance": cohort["truth_provenance"],
+            "local_data_status": "present" if local_path and local_path.exists() else "missing",
+            "predictions_status": (
+                "present" if predictions and predictions.exists() else "missing"
+            ),
+            "assignments_status": (
+                "present" if assignments and assignments.exists() else "missing"
+            ),
+            "cluster_map_status": (
+                "present" if cluster_map and cluster_map.exists() else "missing"
+            ),
+            "comparator_status": (
+                "present" if comparator_status and comparator_status.exists() else "missing"
+            ),
+            "label_map_status": (
+                "verified"
+                if label_map
+                and label_map.exists()
+                and _sha256(label_map) == cohort.get("label_map_sha256")
+                else "mismatch"
+                if label_map and label_map.exists()
+                else "missing"
+            ),
+            "expected_label_map_sha256": cohort.get("label_map_sha256"),
+            "actual_label_map_sha256": (
+                _sha256(label_map) if label_map and label_map.exists() else None
+            ),
+            "assignments_sha256": (
+                _sha256(assignments) if assignments and assignments.exists() else None
+            ),
+            "cluster_map_sha256": (
+                _sha256(cluster_map) if cluster_map and cluster_map.exists() else None
+            ),
+            "predictions_sha256": (
+                _sha256(predictions) if predictions and predictions.exists() else None
+            ),
+            "comparator_status_sha256": (
+                _sha256(comparator_status)
+                if comparator_status and comparator_status.exists()
+                else None
+            ),
         }
         if local_path and local_path.exists():
             obs = _read_obs(local_path)
@@ -228,7 +226,9 @@ def public_cohort_inventory(payload: dict[str, Any], registry_path: Path) -> pd.
                     "metadata_status": (
                         "verified"
                         if not missing_metadata
-                        and (not cohort.get("expected_cells") or len(obs) == cohort["expected_cells"])
+                        and (
+                            not cohort.get("expected_cells") or len(obs) == cohort["expected_cells"]
+                        )
                         and actual_sha256 == cohort["expected_sha256"]
                         else "mismatch"
                     ),
@@ -248,7 +248,9 @@ def _read_obs(path: Path) -> pd.DataFrame:
             dataset.file.close()
 
 
-def _normalise_metadata(obs: pd.DataFrame, cohort: dict[str, Any]) -> tuple[pd.DataFrame, pd.Series]:
+def _normalise_metadata(
+    obs: pd.DataFrame, cohort: dict[str, Any]
+) -> tuple[pd.DataFrame, pd.Series]:
     spec = cohort["metadata"]
     truth_key = spec["truth_key"]
     donor_key = spec["donor_key"]
@@ -310,9 +312,7 @@ def _markdown_table(frame: pd.DataFrame) -> str:
     header = "| " + " | ".join(display.columns) + " |"
     rule = "| " + " | ".join("---" for _ in display.columns) + " |"
     rows = [
-        "| "
-        + " | ".join(value.replace("|", "\\|").replace("\n", " ") for value in row)
-        + " |"
+        "| " + " | ".join(value.replace("|", "\\|").replace("\n", " ") for value in row) + " |"
         for row in display.to_numpy()
     ]
     return "\n".join([header, rule, *rows])
@@ -423,7 +423,9 @@ def build_public_benchmark_release(
                 }
             )
             continue
-        if cohort.get("expected_bytes") and data_path.stat().st_size != int(cohort["expected_bytes"]):
+        if cohort.get("expected_bytes") and data_path.stat().st_size != int(
+            cohort["expected_bytes"]
+        ):
             raise BenchmarkValidationError(
                 f"Cohort {cohort_id} byte size differs from immutable registry"
             )
@@ -433,9 +435,7 @@ def build_public_benchmark_release(
             )
         obs = _read_obs(data_path)
         normal, truth = _normalise_metadata(obs, cohort)
-        if "__cluster__" not in normal and (
-            not cluster_map_path or not cluster_map_path.exists()
-        ):
+        if "__cluster__" not in normal and (not cluster_map_path or not cluster_map_path.exists()):
             negative_rows.append(
                 {
                     "cohort_id": cohort_id,
@@ -487,8 +487,10 @@ def build_public_benchmark_release(
                         "detail": row.get("error", row.get("detail", "")),
                     }
                 )
-        if label_map_path and label_map_path.exists() and _sha256(label_map_path) != str(
-            cohort["label_map_sha256"]
+        if (
+            label_map_path
+            and label_map_path.exists()
+            and _sha256(label_map_path) != str(cohort["label_map_sha256"])
         ):
             raise BenchmarkValidationError(
                 f"Cohort {cohort_id} label-map SHA-256 differs from frozen registry"
@@ -581,9 +583,7 @@ def build_public_benchmark_release(
         qc_frames.append(qc)
 
     cohort_results = (
-        pd.concat(cohort_result_rows, ignore_index=True)
-        if cohort_result_rows
-        else pd.DataFrame()
+        pd.concat(cohort_result_rows, ignore_index=True) if cohort_result_rows else pd.DataFrame()
     )
     merged_all = pd.concat(merged_frames, ignore_index=True) if merged_frames else pd.DataFrame()
     donor_metrics = (
@@ -728,8 +728,7 @@ def build_public_benchmark_release(
         "random_seed": seed,
         "bootstrap_replicates": n_boot,
         "artifacts": {
-            name: {"path": str(path), "sha256": _sha256(path)}
-            for name, path in artifacts.items()
+            name: {"path": str(path), "sha256": _sha256(path)} for name, path in artifacts.items()
         },
         "validation_scope": {
             "run_role": "public_multi_cohort_independent_benchmark_release",

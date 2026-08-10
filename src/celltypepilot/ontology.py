@@ -70,9 +70,10 @@ def download_ontology(force: bool = False, timeout: int = 120) -> dict:
     temp_path = Path(temp_name)
     try:
         request = urllib.request.Request(CL_OBO_URL, headers={"User-Agent": USER_AGENT})
-        with urllib.request.urlopen(request, timeout=timeout) as response, temp_path.open(
-            "wb"
-        ) as handle:
+        with (
+            urllib.request.urlopen(request, timeout=timeout) as response,
+            temp_path.open("wb") as handle,
+        ):
             shutil.copyfileobj(response, handle)
         if temp_path.stat().st_size < 100_000:
             raise OntologyError("Downloaded cl.obo is suspiciously small; aborting")
@@ -190,9 +191,7 @@ def load_ontology() -> OntologyService:
     """Load the cached ontology. Fails closed when the cache is missing."""
     path = ontology_cache_path()
     if not path.is_file():
-        raise OntologyError(
-            "Cell Ontology cache not found. Run: celltypepilot ontology update"
-        )
+        raise OntologyError("Cell Ontology cache not found. Run: celltypepilot ontology update")
     try:
         terms = parse_obo(path)
     except (OSError, UnicodeDecodeError) as exc:
@@ -211,15 +210,11 @@ def _normalize_label(text: str) -> str:
 
 def _term_label_matches(term: OntologyTerm, cell_type_key: str) -> bool:
     expected = _normalize_label(cell_type_key)
-    candidates = [_normalize_label(term.name)] + [
-        _normalize_label(syn) for syn in term.synonyms
-    ]
-    if expected in candidates:
-        return True
+    candidates = [_normalize_label(term.name)] + [_normalize_label(syn) for syn in term.synonyms]
     # Allow the atlas key to be a refinement of the ontology label
     # (e.g. "CD4+ T cell" vs "CD4-positive, alpha-beta T cell" is NOT a
     # lexical match; such cases stay visible as warnings for curators).
-    return False
+    return expected in candidates
 
 
 def check_atlas_ontology(service: OntologyService, atlas: dict) -> list[dict]:

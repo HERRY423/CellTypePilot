@@ -16,14 +16,7 @@ from celltypepilot.identity_contract import (
 from celltypepilot.mcp_server import tool_evidence_coverage, tool_evidence_trace
 from celltypepilot.pack_manager import merge_marker_atlas, resolve_extension_packs, validate_pack
 
-PACK = (
-    Path(__file__).parents[1]
-    / "src"
-    / "celltypepilot"
-    / "data"
-    / "packs"
-    / "lung_evidence_v0_1"
-)
+PACK = Path(__file__).parents[1] / "src" / "celltypepilot" / "data" / "packs" / "lung_evidence_v0_1"
 
 
 def test_gene_identity_uses_unique_symbol_column_and_restores_input_ids():

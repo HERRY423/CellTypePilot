@@ -167,9 +167,9 @@ def build_cluster_level_track(
             f"cluster labels must be exhaustive: missing={len(missing)}, extra={len(extra)}"
         )
     assignment["cluster"] = clusters.reindex(assignment.index).astype(str)
-    assignment["cluster_unit"] = assignment["fold_id"].astype(str) + "::cluster=" + assignment[
-        "cluster"
-    ]
+    assignment["cluster_unit"] = (
+        assignment["fold_id"].astype(str) + "::cluster=" + assignment["cluster"]
+    )
 
     truth_map = truth.copy()
     truth_map.index = truth_map.index.astype(str)
@@ -203,7 +203,9 @@ def build_cluster_level_track(
                 "majority_truth": majority,
                 "truth_purity": float(purity),
                 "n_truth_labels": int(len(counts)),
-                "truth_distribution": ";".join(f"{label}:{count}" for label, count in counts.items()),
+                "truth_distribution": ";".join(
+                    f"{label}:{count}" for label, count in counts.items()
+                ),
                 "status": status,
             }
         )
@@ -279,17 +281,18 @@ def build_cluster_level_track(
         )
     cluster_predictions = pd.DataFrame(prediction_rows)
     if support_rows:
-        diagnostics = diagnostics.merge(
-            pd.DataFrame(support_rows), on="cluster_unit", how="left"
-        )
+        diagnostics = diagnostics.merge(pd.DataFrame(support_rows), on="cluster_unit", how="left")
     return cluster_truth_series, cluster_assignments, cluster_predictions, diagnostics
+
 
 def _calc_acc(y_true, y_pred):
     return float(np.mean(y_true == y_pred))
 
+
 def _calc_cov(y_true, y_pred):
     abstained = np.array([str(value).strip().lower() in ABSTAIN_LABELS for value in y_pred])
     return float(np.mean(~abstained))
+
 
 def evaluate_holdout_predictions(
     truth: pd.Series,
@@ -336,7 +339,11 @@ def evaluate_holdout_predictions(
 
         y_true = truth_map.reindex(method_predictions["cell_id"].astype(str)).astype(str).to_numpy()
         y_pred = method_predictions["predicted_label"].fillna("Unknown").astype(str).to_numpy()
-        conf = method_predictions["confidence"].to_numpy() if "confidence" in method_predictions else None
+        conf = (
+            method_predictions["confidence"].to_numpy()
+            if "confidence" in method_predictions
+            else None
+        )
 
         base_metrics = _classification_metrics(y_true, y_pred, conf)
 
@@ -344,14 +351,12 @@ def evaluate_holdout_predictions(
             "method": method,
             "status": "evaluated",
             "n_folds": int(method_predictions["fold_id"].nunique()),
-            **base_metrics
+            **base_metrics,
         }
 
         if bootstrap_ci:
             assignment_metadata = assignments.set_index(assignments["cell_id"].astype(str))
-            method_metadata = assignment_metadata.reindex(
-                method_predictions["cell_id"].astype(str)
-            )
+            method_metadata = assignment_metadata.reindex(method_predictions["cell_id"].astype(str))
             unit_rows = []
             for donor_unit, indices in method_metadata.groupby("held_out_donor").groups.items():
                 positions = method_metadata.index.get_indexer(indices)
@@ -366,11 +371,7 @@ def evaluate_holdout_predictions(
                     }
                 )
             unit_frame = pd.DataFrame(unit_rows)
-            strata = (
-                unit_frame["study"].to_numpy()
-                if unit_frame["study"].nunique() > 1
-                else None
-            )
+            strata = unit_frame["study"].to_numpy() if unit_frame["study"].nunique() > 1 else None
             acc_res = grouped_bootstrap_metric_ci(
                 unit_frame["accuracy"].to_numpy(),
                 unit_frame["donor_unit"].to_numpy(),
@@ -400,7 +401,10 @@ def evaluate_holdout_predictions(
 
     return pd.DataFrame(aggregate_rows), per_fold
 
-def compare_methods_significance(per_fold_df: pd.DataFrame, method_a: str, method_b: str, metric: str) -> dict:
+
+def compare_methods_significance(
+    per_fold_df: pd.DataFrame, method_a: str, method_b: str, metric: str
+) -> dict:
     """Compare two methods using paired Wilcoxon signed-rank test on fold-level metrics."""
     fold_col = None
     for candidate in ["fold_id", "fold", "test_fold"]:
@@ -410,8 +414,8 @@ def compare_methods_significance(per_fold_df: pd.DataFrame, method_a: str, metho
     if fold_col is None:
         return {"p_value": np.nan, "effect_size": np.nan, "significant_at_005": False}
 
-    a_df = per_fold_df[per_fold_df['method'] == method_a].set_index(fold_col)
-    b_df = per_fold_df[per_fold_df['method'] == method_b].set_index(fold_col)
+    a_df = per_fold_df[per_fold_df["method"] == method_a].set_index(fold_col)
+    b_df = per_fold_df[per_fold_df["method"] == method_b].set_index(fold_col)
 
     common_folds = a_df.index.intersection(b_df.index)
     if len(common_folds) < 3:
@@ -440,8 +444,9 @@ def compare_methods_significance(per_fold_df: pd.DataFrame, method_a: str, metho
         "method_b": method_b,
         "metric": metric,
         "mean_difference": float(mean_diff),
-        "n_folds": len(common_folds)
+        "n_folds": len(common_folds),
     }
+
 
 def _classification_metrics(
     y_true: np.ndarray,

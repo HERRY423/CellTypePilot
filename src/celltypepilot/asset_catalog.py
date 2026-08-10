@@ -18,8 +18,9 @@ from __future__ import annotations
 import hashlib
 import json
 import re
+from collections.abc import Iterable
 from pathlib import Path
-from typing import Any, Iterable
+from typing import Any
 from urllib.parse import urlparse
 
 CATALOG_SCHEMA = "celltypepilot.immutable-asset-catalog.v1"
@@ -73,9 +74,7 @@ def _require_str(record: dict[str, Any], field: str, asset_id: str) -> str:
 def _require_sha256(value: str, field: str, asset_id: str) -> str:
     digest = value.strip().lower()
     if not _SHA256_RE.match(digest):
-        raise AssetCatalogError(
-            f"Asset {asset_id!r} field {field!r} must be lowercase hex SHA-256"
-        )
+        raise AssetCatalogError(f"Asset {asset_id!r} field {field!r} must be lowercase hex SHA-256")
     return digest
 
 
@@ -113,14 +112,10 @@ def _validate_training_study_provenance(
         )
     for index, study in enumerate(studies):
         if not isinstance(study, dict):
-            raise AssetCatalogError(
-                f"Asset {asset_id!r} source_studies[{index}] must be an object"
-            )
+            raise AssetCatalogError(f"Asset {asset_id!r} source_studies[{index}] must be an object")
         for key in ("study_id", "role"):
             if not str(study.get(key, "")).strip():
-                raise AssetCatalogError(
-                    f"Asset {asset_id!r} source_studies[{index}] needs {key}"
-                )
+                raise AssetCatalogError(f"Asset {asset_id!r} source_studies[{index}] needs {key}")
     audit = str(mapping["overlap_audit_status"]).strip()
     allowed_audit = {
         "not_applicable",
@@ -139,10 +134,15 @@ def _validate_training_study_provenance(
             f"Asset {asset_id!r} eligible_for_primary_holdout_track must be bool"
         )
     # Reference assets that can leak evaluation studies must stay explicit.
-    if kind in {"azimuth_reference", "docker_image"} and eligible and audit not in {
-        "passed_no_eval_overlap",
-        "not_applicable",
-    }:
+    if (
+        kind in {"azimuth_reference", "docker_image"}
+        and eligible
+        and audit
+        not in {
+            "passed_no_eval_overlap",
+            "not_applicable",
+        }
+    ):
         raise AssetCatalogError(
             f"Asset {asset_id!r} cannot be primary-holdout-eligible without a passed "
             "or not_applicable overlap audit"
@@ -206,9 +206,7 @@ def validate_asset_record(record: dict[str, Any]) -> dict[str, Any]:
         try:
             byte_size = int(record["byte_size"])
         except (TypeError, ValueError) as exc:
-            raise AssetCatalogError(
-                f"Asset {asset_id!r} byte_size must be an integer"
-            ) from exc
+            raise AssetCatalogError(f"Asset {asset_id!r} byte_size must be an integer") from exc
         if byte_size < 0:
             raise AssetCatalogError(f"Asset {asset_id!r} byte_size must be >= 0")
         normalized["byte_size"] = byte_size
@@ -250,14 +248,10 @@ def validate_asset_record(record: dict[str, Any]) -> dict[str, Any]:
         normalized_components = []
         for index, component in enumerate(components):
             if not isinstance(component, dict):
-                raise AssetCatalogError(
-                    f"Asset {asset_id!r} components[{index}] must be an object"
-                )
+                raise AssetCatalogError(f"Asset {asset_id!r} components[{index}] must be an object")
             name = str(component.get("name", "")).strip()
             if not name:
-                raise AssetCatalogError(
-                    f"Asset {asset_id!r} components[{index}] needs name"
-                )
+                raise AssetCatalogError(f"Asset {asset_id!r} components[{index}] needs name")
             component_sha = _require_sha256(
                 str(component.get("sha256", "")),
                 f"components[{index}].sha256",
@@ -300,9 +294,7 @@ def validate_asset_catalog(payload: dict[str, Any]) -> dict[str, Any]:
         normalized = validate_asset_record(record)
         key = (normalized["asset_id"], normalized["version"])
         if key in seen:
-            raise AssetCatalogError(
-                f"Duplicate asset_id/version pair: {key[0]}@{key[1]}"
-            )
+            raise AssetCatalogError(f"Duplicate asset_id/version pair: {key[0]}@{key[1]}")
         seen.add(key)
         normalized_assets.append(normalized)
 
@@ -315,9 +307,7 @@ def validate_storage_policy(payload: dict[str, Any]) -> dict[str, Any]:
     """Validate object-storage / CDN path policy."""
     payload = _require_mapping(payload, "storage_policy")
     if payload.get("schema_version") != STORAGE_POLICY_SCHEMA:
-        raise AssetCatalogError(
-            f"Storage policy schema_version must be {STORAGE_POLICY_SCHEMA!r}"
-        )
+        raise AssetCatalogError(f"Storage policy schema_version must be {STORAGE_POLICY_SCHEMA!r}")
     for field in (
         "policy_id",
         "object_store_uri_template",
@@ -334,7 +324,7 @@ def validate_storage_policy(payload: dict[str, Any]) -> dict[str, Any]:
             raise AssetCatalogError(f"immutability missing field {field!r}")
     if immutability.get("overwrite_policy") != "deny":
         raise AssetCatalogError("immutability.overwrite_policy must be 'deny'")
-    if not immutability.get("content_addressed") is True:
+    if immutability.get("content_addressed") is not True:
         raise AssetCatalogError("immutability.content_addressed must be true")
     globs = payload["forbidden_write_globs"]
     if not isinstance(globs, list) or not globs:
@@ -342,9 +332,7 @@ def validate_storage_policy(payload: dict[str, Any]) -> dict[str, Any]:
     # Always protect active fold workspaces.
     required_forbidden = "benchmarks/**/runs/**"
     if required_forbidden not in globs:
-        raise AssetCatalogError(
-            f"forbidden_write_globs must include {required_forbidden!r}"
-        )
+        raise AssetCatalogError(f"forbidden_write_globs must include {required_forbidden!r}")
     return payload
 
 
@@ -411,10 +399,7 @@ def resolve_file_url(url: str, catalog_root: Path) -> Path | None:
         # Windows absolute path leaked as /C:/...
         raw = raw[1:]
     path = Path(raw)
-    if not path.is_absolute():
-        path = (catalog_root / path).resolve()
-    else:
-        path = path.resolve()
+    path = (catalog_root / path).resolve() if not path.is_absolute() else path.resolve()
     return path
 
 
@@ -449,9 +434,7 @@ def assert_path_not_fold_workspace(path: Path) -> None:
     for index, part in enumerate(parts):
         if part == "runs" and index + 1 < len(parts):
             # benchmarks/.../runs/<cohort>/... is forbidden
-            raise AssetCatalogError(
-                f"Refusing path under fold workspace runs/: {resolved}"
-            )
+            raise AssetCatalogError(f"Refusing path under fold workspace runs/: {resolved}")
 
 
 def materialize_source_to_object_cache(
@@ -503,7 +486,7 @@ def materialize_source_to_object_cache(
         result["status"] = "would_materialize"
         return result
     target.parent.mkdir(parents=True, exist_ok=True)
-    temporary = target.with_name(target.name + f".partial")
+    temporary = target.with_name(target.name + ".partial")
     temporary.write_bytes(source.read_bytes())
     if file_sha256(temporary) != asset["sha256"]:
         temporary.unlink(missing_ok=True)
@@ -620,10 +603,10 @@ def summarize_catalog(
                 "species": asset["species"],
                 "tissue": asset["tissue"],
                 "availability": asset["availability"],
-                "object_key": (
-                    object_key_for_asset(asset, policy) if policy is not None else None
-                ),
-                "cdn_url": cdn_url_for_asset(asset, policy) if policy is not None else asset.get("cdn_url"),
+                "object_key": (object_key_for_asset(asset, policy) if policy is not None else None),
+                "cdn_url": cdn_url_for_asset(asset, policy)
+                if policy is not None
+                else asset.get("cdn_url"),
                 "training_study_provenance": asset["training_study_provenance"],
             }
             for asset in assets
@@ -635,9 +618,7 @@ def summarize_catalog(
             1 for row in verifications if row["status"] == "verified"
         )
         summary["local_failure_count"] = sum(
-            1
-            for row in verifications
-            if row["status"] in {"sha256_mismatch", "byte_size_mismatch"}
+            1 for row in verifications if row["status"] in {"sha256_mismatch", "byte_size_mismatch"}
         )
     return summary
 

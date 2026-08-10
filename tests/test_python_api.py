@@ -95,9 +95,7 @@ class TestAnnotateAPI:
     def test_annotate_returns_anndata(self, pbmc_adata):
         from celltypepilot import annotate
 
-        result = annotate(
-            pbmc_adata, "leiden", species="human", tissue="blood"
-        )
+        result = annotate(pbmc_adata, "leiden", species="human", tissue="blood")
         assert isinstance(result, ad.AnnData)
 
     def test_annotate_modifies_obs_in_place(self, pbmc_adata):
@@ -223,18 +221,14 @@ class TestCriticReviewAPI:
 
         # Get a valid cluster ID
         cluster = str(pbmc_adata.obs["leiden"].iloc[0])
-        result = critic_review(
-            pbmc_adata, "leiden", cluster, species="human", tissue="blood"
-        )
+        result = critic_review(pbmc_adata, "leiden", cluster, species="human", tissue="blood")
         assert isinstance(result, dict)
 
     def test_critic_review_has_expected_keys(self, pbmc_adata):
         from celltypepilot import critic_review
 
         cluster = str(pbmc_adata.obs["leiden"].iloc[0])
-        result = critic_review(
-            pbmc_adata, "leiden", cluster, species="human", tissue="blood"
-        )
+        result = critic_review(pbmc_adata, "leiden", cluster, species="human", tissue="blood")
         assert "cluster" in result
         assert "candidates" in result
         assert "critic_results" in result
@@ -244,9 +238,7 @@ class TestCriticReviewAPI:
         from celltypepilot import critic_review
 
         cluster = str(pbmc_adata.obs["leiden"].iloc[0])
-        result = critic_review(
-            pbmc_adata, "leiden", cluster, species="human", tissue="blood"
-        )
+        result = critic_review(pbmc_adata, "leiden", cluster, species="human", tissue="blood")
         assert len(result["candidates"]) > 0
         for candidate in result["candidates"]:
             assert "cell_type" in candidate
@@ -259,8 +251,7 @@ class TestCriticReviewAPI:
 
         with pytest.raises(PipelineError, match="not found"):
             critic_review(
-                pbmc_adata, "leiden", "nonexistent_cluster",
-                species="human", tissue="blood"
+                pbmc_adata, "leiden", "nonexistent_cluster", species="human", tissue="blood"
             )
 
     def test_critic_review_invalid_cluster_key_raises(self, pbmc_adata):
@@ -268,10 +259,7 @@ class TestCriticReviewAPI:
         from celltypepilot.orchestrator import PipelineError
 
         with pytest.raises(PipelineError, match="cluster key"):
-            critic_review(
-                pbmc_adata, "nonexistent_key", "0",
-                species="human", tissue="blood"
-            )
+            critic_review(pbmc_adata, "nonexistent_key", "0", species="human", tissue="blood")
 
     def test_critic_review_auto_detects_species(self, pbmc_adata):
         from celltypepilot import critic_review
@@ -349,9 +337,7 @@ class TestScanpyWorkflowIntegration:
         flagged = adata.obs[adata.obs["ctp_confidence"] == "needs_review"]
         if not flagged.empty:
             cluster = str(flagged["leiden"].iloc[0])
-            review = ctp.critic_review(
-                adata, "leiden", cluster, species="human", tissue="blood"
-            )
+            review = ctp.critic_review(adata, "leiden", cluster, species="human", tissue="blood")
             assert review["cluster"] == cluster
 
     def test_annotate_then_visualize(self, pbmc_adata):

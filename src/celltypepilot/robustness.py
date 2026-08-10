@@ -57,7 +57,9 @@ def merge_prediction_metadata(
         raise BenchmarkValidationError(
             f"Predictions contain {len(unknown)} cells absent from benchmark metadata"
         )
-    frame = frame.merge(obs, left_on="cell_id", right_index=True, how="left", validate="many_to_one")
+    frame = frame.merge(
+        obs, left_on="cell_id", right_index=True, how="left", validate="many_to_one"
+    )
     frame["predicted_label"] = frame["predicted_label"].fillna("Unknown").astype(str)
     if "confidence" in frame:
         confidence = pd.to_numeric(frame["confidence"], errors="coerce")
@@ -234,8 +236,12 @@ def paired_method_comparisons(
                         "metric": metric,
                         "n_paired_donors": len(differences),
                         "mean_difference": np.nan if not len(differences) else differences.mean(),
-                        "median_difference": np.nan if not len(differences) else np.median(differences),
-                        "win_fraction": np.nan if not len(differences) else np.mean(differences > 0),
+                        "median_difference": np.nan
+                        if not len(differences)
+                        else np.median(differences),
+                        "win_fraction": np.nan
+                        if not len(differences)
+                        else np.mean(differences > 0),
                         "p_value": np.nan,
                         "status": "underpowered_lt3_paired_donors",
                     }
@@ -243,7 +249,10 @@ def paired_method_comparisons(
                 continue
             rng = np.random.default_rng(seed)
             boot = np.asarray(
-                [rng.choice(differences, len(differences), replace=True).mean() for _ in range(2000)]
+                [
+                    rng.choice(differences, len(differences), replace=True).mean()
+                    for _ in range(2000)
+                ]
             )
             rows.append(
                 {
@@ -309,9 +318,7 @@ def batch_sensitivity(
             )
         donor_level = pd.DataFrame(rows)
         if donor_level.empty:
-            summary_rows.append(
-                {"axis": axis_name, "status": "not_estimable", "metric": metric}
-            )
+            summary_rows.append({"axis": axis_name, "status": "not_estimable", "metric": metric})
             continue
         for (method, level), group in donor_level.groupby(
             ["method", "level"], sort=True, observed=True
@@ -386,7 +393,12 @@ def sample_enrichment_diagnostics(
         "flag",
         "status",
     ]
-    if not cluster_key or not sample_key or cluster_key not in metadata or sample_key not in metadata:
+    if (
+        not cluster_key
+        or not sample_key
+        or cluster_key not in metadata
+        or sample_key not in metadata
+    ):
         return pd.DataFrame(
             [
                 {
@@ -414,7 +426,9 @@ def sample_enrichment_diagnostics(
                 "dominant_sample": str(proportions.index[0]),
                 "dominant_sample_fraction": dominant_fraction,
                 "normalized_sample_entropy": normalized_entropy,
-                "flag": "SAMPLE_ENRICHED" if dominant_fraction >= dominant_fraction_threshold else "PASS",
+                "flag": "SAMPLE_ENRICHED"
+                if dominant_fraction >= dominant_fraction_threshold
+                else "PASS",
                 "status": "estimated_descriptive",
             }
         )

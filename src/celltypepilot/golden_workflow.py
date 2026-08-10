@@ -181,9 +181,7 @@ def prepare_annotation(
             "tissue": detected_tissue,
             "cluster_key": selected_cluster,
             "marker_overlap_after": (
-                coverage.get("gene_identity", {}).get("marker_overlap_after")
-                if coverage
-                else None
+                coverage.get("gene_identity", {}).get("marker_overlap_after") if coverage else None
             ),
         },
         allowed_next_actions=allowed,
@@ -347,7 +345,11 @@ def review_uncertain_clusters(output_dir: str) -> dict[str, Any]:
             "n_unknown_clusters_with_actionable_gaps": len(gap_index),
         },
         allowed_next_actions=(
-            ["inspect_actionable_evidence_gaps", "inspect_contrastive_evidence", "collect_human_decisions"]
+            [
+                "inspect_actionable_evidence_gaps",
+                "inspect_contrastive_evidence",
+                "collect_human_decisions",
+            ]
             if rows
             else ["finalize_reviewed_annotations"]
         ),

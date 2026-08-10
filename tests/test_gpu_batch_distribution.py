@@ -185,9 +185,7 @@ def test_gpu_batch_manifest_isolation_policy():
         ).read_text(encoding="utf-8")
     )
     assert manifest["device_track"] == "gpu"
-    assert "travaglini_lung_smartseq2_2020" in str(
-        manifest["isolation"]["must_not_write_into"]
-    )
+    assert "travaglini_lung_smartseq2_2020" in str(manifest["isolation"]["must_not_write_into"])
     assert len(manifest["required_folds"]) == 3
     assert manifest["methods"] == ["popv"]
 

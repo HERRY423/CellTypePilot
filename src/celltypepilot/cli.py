@@ -18,6 +18,11 @@ app = typer.Typer(
 )
 
 
+def _print_json(payload, **kwargs) -> None:
+    """Write machine-readable JSON without Rich line wrapping."""
+    typer.echo(json.dumps(payload, **kwargs))
+
+
 def version_callback(value: bool):
     if value:
         console.print(f"CellTypePilot v{__version__}")
@@ -44,7 +49,9 @@ def main(
 # ──────────────────────────────────────────────
 @app.command()
 def doctor(
-    json_output: bool = typer.Option(False, "--json", help="Structured doctor report for Agent hosts"),
+    json_output: bool = typer.Option(
+        False, "--json", help="Structured doctor report for Agent hosts"
+    ),
 ):
     """Check environment: Python version, dependencies, capability level."""
     from .agent_lifecycle import doctor_report_to_dict
@@ -79,7 +86,7 @@ def inspect(
     report = inspect_adata(input, cluster_key, embedding_key)
 
     if json_output:
-        console.print(json.dumps(report, indent=2))
+        _print_json(report, indent=2)
     else:
         console.print(format_inspect_report(report))
 
@@ -262,7 +269,7 @@ def annotate(
             "critic_summary": critic_summary,
             "manifest": result["manifest"],
         }
-        console.print(json.dumps(output_json, indent=2, default=str))
+        _print_json(output_json, indent=2, default=str)
 
     console.print("\n[bold green]Done![/bold green] CellTypePilot annotation complete.")
     console.print(f"Output directory: {result['output_path'].resolve()}")
@@ -437,6 +444,7 @@ def atlas_governance(
         from .atlas_conflict import detect_marker_conflicts
         from .constants import ATLAS_PATH
         from .data_adapter import load_marker_atlas
+
         atlas = load_marker_atlas(ATLAS_PATH)
         conflicts = detect_marker_conflicts(atlas)
         report["conflicts"] = [
@@ -453,8 +461,10 @@ def atlas_governance(
     if diff_previous:
         from .atlas_diff import diff_atlases, format_diff_json
         from .data_adapter import load_marker_atlas
+
         prev_atlas = load_marker_atlas(diff_previous)
         from .constants import ATLAS_PATH
+
         curr_atlas = load_marker_atlas(ATLAS_PATH)
         diff = diff_atlases(prev_atlas, curr_atlas)
         report["diff_from_previous"] = format_diff_json(diff)
@@ -473,8 +483,7 @@ def atlas_governance(
     if "governance_health_score" in report:
         console.print(f"  Governance health score: {report['governance_health_score']:.2f}")
     console.print(
-        "  Supported annotation species: "
-        + ", ".join(report["supported_annotation_species"])
+        "  Supported annotation species: " + ", ".join(report["supported_annotation_species"])
     )
     ontology = report.get("ontology", {})
     cache = ontology.get("cache", {})
@@ -531,9 +540,16 @@ def verify_novelty(
 
 @app.command("adjudicate-novelty")
 def adjudicate_novelty(
-    output_dir: str = typer.Option(..., "--output", "-o", help="Output directory containing run artifacts"),
+    output_dir: str = typer.Option(
+        ..., "--output", "-o", help="Output directory containing run artifacts"
+    ),
     cluster: str = typer.Option(..., "--cluster", "-c", help="Cluster ID being adjudicated"),
-    verdict: str = typer.Option(..., "--verdict", "-v", help="Verdict: validated_novel_cell_type, novel_cell_state, atlas_gap_resolved, rejected_technical_artifact, rejected_mixed_cluster"),
+    verdict: str = typer.Option(
+        ...,
+        "--verdict",
+        "-v",
+        help="Verdict: validated_novel_cell_type, novel_cell_state, atlas_gap_resolved, rejected_technical_artifact, rejected_mixed_cluster",
+    ),
     reviewer: str = typer.Option(..., "--reviewer", "-r", help="Name/ID of expert reviewer"),
     notes: str | None = typer.Option(None, "--notes", help="Optional adjudication notes"),
     pmid: str | None = typer.Option(None, "--pmid", help="Optional PMID or evidence link"),
@@ -637,7 +653,9 @@ def inspect_web(
 
     if not output_dir.exists() and (run_dir is None or not run_dir.exists()):
         console.print(f"[red]Output directory not found: {output_dir}[/red]")
-        console.print("Run 'celltypepilot annotate' first, or pass --run-dir for observability-only.")
+        console.print(
+            "Run 'celltypepilot annotate' first, or pass --run-dir for observability-only."
+        )
         raise typer.Exit(1)
 
     if run_dir is not None and not run_dir.exists():
@@ -720,8 +738,8 @@ def observe_run(
         f"  stale: {stale.get('derived_artifacts_stale')}  "
         f"({stale.get('review_state')}) — {stale.get('stale_reason')}"
     )
-    cpu = (host.get("cpu") or {})
-    gpu = (host.get("gpu") or {})
+    cpu = host.get("cpu") or {}
+    gpu = host.get("gpu") or {}
     console.print(
         f"  CPU%: {cpu.get('cpu_percent')}  cores={cpu.get('cpu_count_logical')}  "
         f"GPU: {'yes' if gpu.get('available') else 'no'}"
@@ -816,7 +834,7 @@ def qc_diagnostics_cmd(
     if json_output:
         print(json.dumps(report, indent=2))
     else:
-        console.print(f"[green]QC diagnostics written[/green] (can_rescue_identity=false)")
+        console.print("[green]QC diagnostics written[/green] (can_rescue_identity=false)")
         console.print(f"  rollup: {report['rollup_status']} / {report['rollup_flag']}")
         for axis, payload in report["axes"].items():
             console.print(
@@ -866,6 +884,7 @@ def host_acceptance(
             )
     if report["overall_status"] != "passed":
         raise typer.Exit(1)
+
 
 # ──────────────────────────────────────────────
 # convert-rds command (Seurat support)
@@ -1282,9 +1301,7 @@ def benchmark(
     cluster_key: str | None = typer.Option(
         None, "--cluster-key", help="Required for cluster or both evaluation units"
     ),
-    evaluation_unit: str = typer.Option(
-        "cell", "--evaluation-unit", help="cell, cluster, or both"
-    ),
+    evaluation_unit: str = typer.Option("cell", "--evaluation-unit", help="cell, cluster, or both"),
 ):
     """Lock study/donor holdouts and optionally evaluate comparator predictions."""
     import pandas as pd
@@ -1819,9 +1836,7 @@ def evidence_review_promotion(
 
     source = Path(proposal_path)
     proposal = json.loads(source.read_text(encoding="utf-8"))
-    reviewed = add_promotion_review(
-        proposal, reviewer=reviewer, decision=decision, notes=notes
-    )
+    reviewed = add_promotion_review(proposal, reviewer=reviewer, decision=decision, notes=notes)
     path = write_promotion_proposal(reviewed, output or source)
     console.print(f"Promotion review written: {path} (status={reviewed['status']})")
 
@@ -1844,9 +1859,7 @@ def evidence_apply_promotion(
     proposal = json.loads(Path(proposal_path).read_text(encoding="utf-8"))
     promoted = apply_approved_promotion(atlas, proposal, new_version=new_version)
     target.parent.mkdir(parents=True, exist_ok=True)
-    target.write_text(
-        json.dumps(promoted, indent=2, ensure_ascii=False) + "\n", encoding="utf-8"
-    )
+    target.write_text(json.dumps(promoted, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
     console.print(f"Promoted atlas written: {target}")
 
 
@@ -1935,7 +1948,9 @@ def curate(
         )
         console.print(f"Report: {report_path}")
         if apply:
-            console.print(f"Applied [green]{applied}[/green] upgrades → atlas version {new_version}")
+            console.print(
+                f"Applied [green]{applied}[/green] upgrades → atlas version {new_version}"
+            )
 
 
 # ──────────────────────────────────────────────
@@ -2030,7 +2045,9 @@ def ontology_check(
             )
             for finding in entry["findings"]:
                 if finding["severity"] == "error":
-                    console.print(f"  [red]- {finding['path']} [{finding['cl_id']}]: {finding['issue']}[/red]")
+                    console.print(
+                        f"  [red]- {finding['path']} [{finding['cl_id']}]: {finding['issue']}[/red]"
+                    )
     if exit_code:
         raise typer.Exit(exit_code)
 
@@ -2165,7 +2182,9 @@ def pack_scaffold(
         console.print(f"[red]{exc}[/red]")
         raise typer.Exit(1) from exc
     console.print(f"[green]Scaffolded data-only pack at {root}[/green]")
-    console.print("  Fill marker_atlas.json edges with provenance, then: celltypepilot pack sign <dir>")
+    console.print(
+        "  Fill marker_atlas.json edges with provenance, then: celltypepilot pack sign <dir>"
+    )
 
 
 @pack_app.command("sign")
@@ -2212,7 +2231,11 @@ def pack_verify(
 
     issues = validate_pack_ecosystem(pack_dir, require_signature=require_signature)
     sig = verify_pack_signature(pack_dir)
-    report = {"issues": issues, "signature": sig, "ok": not issues and (sig.get("valid") or not require_signature)}
+    report = {
+        "issues": issues,
+        "signature": sig,
+        "ok": not issues and (sig.get("valid") or not require_signature),
+    }
     if json_output:
         print(json.dumps(report, indent=2))
     else:
@@ -2243,9 +2266,7 @@ def review_resign_cmd(
     from .review_resign import ReviewResignError, resign_review_outputs
 
     try:
-        result = resign_review_outputs(
-            output_dir, signer=signer, regenerate=not no_regenerate
-        )
+        result = resign_review_outputs(output_dir, signer=signer, regenerate=not no_regenerate)
     except ReviewResignError as exc:
         console.print(f"[red]{exc}[/red]")
         raise typer.Exit(1) from exc
@@ -2328,8 +2349,7 @@ def assets_list(
         print(json.dumps(summary, indent=2))
         return
     console.print(
-        f"[bold]{payload.get('catalog_id')}[/bold]  "
-        f"({len(rows)} assets; never writes fold runs/)"
+        f"[bold]{payload.get('catalog_id')}[/bold]  ({len(rows)} assets; never writes fold runs/)"
     )
     for asset in summary["assets"]:
         console.print(
@@ -2379,14 +2399,14 @@ def assets_verify(
             f"hard failures: {summary.get('local_failure_count', 0)}"
         )
         for row in summary.get("local_verification", []):
-            colour = "green" if row["status"] == "verified" or row["status"].startswith(
-                "ok_"
-            ) else "yellow"
+            colour = (
+                "green"
+                if row["status"] == "verified" or row["status"].startswith("ok_")
+                else "yellow"
+            )
             if row["status"] in {"sha256_mismatch", "byte_size_mismatch"}:
                 colour = "red"
-            console.print(
-                f"  [{colour}]{row['asset_id']}[/{colour}]: {row['status']}"
-            )
+            console.print(f"  [{colour}]{row['asset_id']}[/{colour}]: {row['status']}")
 
     hard = summary.get("local_failure_count", 0)
     available_missing = sum(

@@ -3,21 +3,20 @@
 from __future__ import annotations
 
 import json
-from pathlib import Path
+
 import anndata as ad
 import numpy as np
 import pandas as pd
 import pytest
 
 from celltypepilot.novelty_verification import (
-    verify_novelty_candidate,
-    log_novelty_adjudication,
-    verify_subclustering_homogeneity,
-    _check_qc_and_batch_confounding,
-    _check_doublet_signature,
-    _evaluate_state_vs_identity,
-    VERIFICATION_SCHEMA,
     ADJUDICATION_SCHEMA,
+    VERIFICATION_SCHEMA,
+    _check_qc_and_batch_confounding,
+    _evaluate_state_vs_identity,
+    log_novelty_adjudication,
+    verify_novelty_candidate,
+    verify_subclustering_homogeneity,
 )
 
 
@@ -29,12 +28,14 @@ def synthetic_adata():
     # Cluster 0: normal
     # Cluster 1: high mito
     # Cluster 2: batch confounded
-    obs = pd.DataFrame({
-        "cluster": ["0"] * 20 + ["1"] * 20 + ["2"] * 20,
-        "n_genes_by_counts": [500] * 60,
-        "pct_counts_mt": [2.0] * 20 + [25.0] * 20 + [3.0] * 20,  # cluster 1 high mito
-        "batch": ["b1", "b2"] * 10 + ["b1", "b2"] * 10 + ["b1"] * 20,  # cluster 2 100% b1
-    })
+    obs = pd.DataFrame(
+        {
+            "cluster": ["0"] * 20 + ["1"] * 20 + ["2"] * 20,
+            "n_genes_by_counts": [500] * 60,
+            "pct_counts_mt": [2.0] * 20 + [25.0] * 20 + [3.0] * 20,  # cluster 1 high mito
+            "batch": ["b1", "b2"] * 10 + ["b1", "b2"] * 10 + ["b1"] * 20,  # cluster 2 100% b1
+        }
+    )
     var = pd.DataFrame(index=[f"g{i}" for i in range(10)])
     return ad.AnnData(X=X, obs=obs, var=var)
 

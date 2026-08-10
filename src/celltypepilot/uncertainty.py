@@ -13,8 +13,9 @@ facade, and downstream review tools can use the same language.
 from __future__ import annotations
 
 from typing import Any
-import pandas as pd
+
 import numpy as np
+import pandas as pd
 
 UNCERTAINTY_LANGUAGE_SCHEMA = "celltypepilot.uncertainty-language.v1"
 
@@ -40,11 +41,13 @@ CALIBRATED_RUN_CLAIM_BOUNDARY = (
     "or batch effects not present during calibration, these probabilities may be miscalibrated."
 )
 
+
 def _policy_applied(calibration_policy: dict[str, Any] | None) -> bool:
     return bool(
         calibration_policy
         and calibration_policy.get("schema_version") == "celltypepilot.abstention-policy.v1"
     )
+
 
 def attach_uncertainty_language(
     annotations: pd.DataFrame,
@@ -68,18 +71,18 @@ def attach_uncertainty_language(
     output["evidence_score_source"] = "combined_score"
     output["evidence_score_semantics"] = EVIDENCE_SCORE_SEMANTICS
     output["critic_confidence_semantics"] = CRITIC_CONFIDENCE_SEMANTICS
-    
+
     if calibration_transform is not None:
         scores = output["evidence_score"].fillna(0.0).values
         output["calibrated_probability"] = calibration_transform.transform(scores)
         method_name = calibration_transform.__class__.__name__
         output["calibrated_probability_semantics"] = f"{method_name}_calibrated_probability"
         output["calibration_method"] = method_name
-        output["calibration_ece"] = np.nan # Can be filled if ECE is known for transform
+        output["calibration_ece"] = np.nan  # Can be filled if ECE is known for transform
     else:
         output["calibrated_probability"] = pd.NA
         output["calibrated_probability_semantics"] = CALIBRATED_PROBABILITY_SEMANTICS
-        
+
     output["selective_risk_policy_applied"] = policy_applied
     output["selective_risk_policy_threshold"] = threshold
     output["selective_risk_policy_semantics"] = (
@@ -120,7 +123,7 @@ def build_uncertainty_language_manifest(
                 ),
             }
         )
-        
+
     boundary = CALIBRATED_RUN_CLAIM_BOUNDARY if is_calibrated else PRODUCT_CLAIM_BOUNDARY
 
     return {

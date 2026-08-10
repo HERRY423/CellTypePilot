@@ -49,7 +49,9 @@ def compute_ambient_baseline(
         expr_counts = np.asarray((matrix > threshold).sum(axis=0)).ravel()
 
     global_fractions = expr_counts / float(n_cells)
-    return {str(gene): float(frac) for gene, frac in zip(adata.var_names, global_fractions)}
+    return {
+        str(gene): float(frac) for gene, frac in zip(adata.var_names, global_fractions, strict=True)
+    }
 
 
 def is_ambient_contamination(
@@ -92,6 +94,8 @@ def is_ambient_contamination(
     # Adjust threshold for known contaminant genes in specific tissue
     tissue_key = (tissue or "").lower()
     known_contaminants = KNOWN_HIGH_AMBIENT_GENES.get(tissue_key, set())
-    effective_threshold = ambient_fold_threshold * 1.5 if gene in known_contaminants else ambient_fold_threshold
+    effective_threshold = (
+        ambient_fold_threshold * 1.5 if gene in known_contaminants else ambient_fold_threshold
+    )
 
     return fold_over_global < effective_threshold

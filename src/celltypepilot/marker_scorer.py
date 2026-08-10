@@ -18,13 +18,11 @@ from .constants import (
     CONFIDENCE_MEDIUM,
     CONFIDENCE_REVIEW,
     DISEASE_FC_RELAXATION,
-    DISEASE_SPECIFICITY_RELAXATION,
     MARKER_FC_THRESHOLD,
     MARKER_FDR_THRESHOLD,
     MARKER_PCT_THRESHOLD,
 )
 from .gene_aliases import build_var_alias_index, resolve_marker_list
-
 
 
 def compute_marker_scores(
@@ -50,12 +48,20 @@ def compute_marker_scores(
     """
     # Detect disease/tumor microenvironment context from adata
     is_disease_context = False
-    obs_text = " ".join([str(col) for col in adata.obs.columns]) + " " + " ".join([str(v) for v in adata.obs.iloc[0].values if isinstance(v, str)])
+    obs_text = (
+        " ".join([str(col) for col in adata.obs.columns])
+        + " "
+        + " ".join([str(v) for v in adata.obs.iloc[0].values if isinstance(v, str)])
+    )
     obs_text = obs_text.lower()
-    if any(k in obs_text for k in ["tumor", "gbm", "cancer", "glioma", "lesion", "inflamed", "disease"]):
+    if any(
+        k in obs_text for k in ["tumor", "gbm", "cancer", "glioma", "lesion", "inflamed", "disease"]
+    ):
         is_disease_context = True
 
-    effective_fc_threshold = MARKER_FC_THRESHOLD * DISEASE_FC_RELAXATION if is_disease_context else MARKER_FC_THRESHOLD
+    effective_fc_threshold = (
+        MARKER_FC_THRESHOLD * DISEASE_FC_RELAXATION if is_disease_context else MARKER_FC_THRESHOLD
+    )
 
     # Pre-build alias index
     alias_index = build_var_alias_index(adata.var_names)
@@ -86,7 +92,10 @@ def compute_marker_scores(
 
         significant_de = cluster_de[
             (pd.to_numeric(cluster_de["pval_adj"], errors="coerce") <= MARKER_FDR_THRESHOLD)
-            & (pd.to_numeric(cluster_de["logfoldchange"], errors="coerce") >= effective_fc_threshold)
+            & (
+                pd.to_numeric(cluster_de["logfoldchange"], errors="coerce")
+                >= effective_fc_threshold
+            )
         ].copy()
         de_genes = set(significant_de["gene"].astype(str))
         de_genes_fc = dict(
@@ -123,20 +132,22 @@ def compute_marker_scores(
             pos_de = [g for g in pos_expressed if g in de_genes]
             context_supporting = [g for g in pos_de if g in context_positive]
             atlas_supporting = [g for g in pos_de if g in atlas_positive]
-            
+
             gene_weights = compute_marker_weights(provenance_records)
 
             expected_denominator = max(len(pos_markers), 1)
-            
+
             if evidence_weighted:
                 weighted_numerator = sum(gene_weights.get(g, 0.5) for g in pos_de)
                 weighted_denominator = sum(gene_weights.get(g, 0.5) for g in pos_markers)
                 pct_overlap = weighted_numerator / max(weighted_denominator, 0.001)
-                evidence_weight_mean = np.mean([gene_weights.get(g, 0.5) for g in pos_de]) if pos_de else 0.0
+                evidence_weight_mean = (
+                    np.mean([gene_weights.get(g, 0.5) for g in pos_de]) if pos_de else 0.0
+                )
             else:
                 pct_overlap = len(pos_de) / expected_denominator
                 evidence_weight_mean = 0.0
-                
+
             mean_fc = np.mean([de_genes_fc.get(g, 0) for g in pos_de]) if pos_de else 0.0
             pct_expressed = len(pos_expressed) / expected_denominator
 
@@ -369,7 +380,6 @@ def generate_annotation_summary(
     return top1.drop(columns=["rank"], errors="ignore").reset_index(drop=True)
 
 
-
 def compute_profile_correlation_scores(
     adata: ad.AnnData,
     cluster_key: str,
@@ -394,7 +404,9 @@ def compute_profile_correlation_scores(
         mask = (adata.obs[cluster_key].astype(str) == str(c)).values
         sub = matrix[mask]
         mean_profile = sub.mean(axis=0)
-        mean_profile = mean_profile.A1 if sparse.issparse(mean_profile) else np.asarray(mean_profile).ravel()
+        mean_profile = (
+            mean_profile.A1 if sparse.issparse(mean_profile) else np.asarray(mean_profile).ravel()
+        )
         cluster_means[c] = mean_profile
 
     results = []
@@ -417,4 +429,3 @@ def compute_profile_correlation_scores(
             results.append({"cluster": c, "cell_type": ct_name, "ref_score": round(ref_score, 4)})
 
     return pd.DataFrame(results)
-

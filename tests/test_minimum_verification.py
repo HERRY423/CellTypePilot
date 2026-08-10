@@ -13,9 +13,7 @@ from celltypepilot.benchmark import BenchmarkValidationError
 
 
 def test_completed_fold_check_requires_exact_method_fold_sets() -> None:
-    assignments = pd.DataFrame(
-        {"cell_id": ["a", "b"], "fold_id": ["donor=1", "donor=2"]}
-    )
+    assignments = pd.DataFrame({"cell_id": ["a", "b"], "fold_id": ["donor=1", "donor=2"]})
     status = pd.DataFrame(
         [
             {"method": method, "fold_id": fold, "status": "completed"}

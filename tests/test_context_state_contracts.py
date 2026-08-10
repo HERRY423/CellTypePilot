@@ -366,8 +366,7 @@ def test_state_atlas_and_premium_ontology_are_structurally_valid():
     assert load_state_definitions("human", "kidney")
 
     premium_path = (
-        Path(__file__).parents[1]
-        / "src/celltypepilot/data/packs/premium/marker_atlas.json"
+        Path(__file__).parents[1] / "src/celltypepilot/data/packs/premium/marker_atlas.json"
     )
     premium = json.loads(premium_path.read_text(encoding="utf-8"))
     assert validate_atlas_provenance(premium) == []

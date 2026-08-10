@@ -77,9 +77,7 @@ def test_unknown_becomes_bounded_actionable_gap_not_a_replacement_label():
                 "candidate_cl_id": "CL:1",
                 "decision": "abstain",
                 "critic_confidence": "needs_review",
-                "critic_flags": (
-                    "LOW_DE_SUPPORT; NEG_MARKER_CONFLICT; AGGREGATE_PROVENANCE_ONLY"
-                ),
+                "critic_flags": ("LOW_DE_SUPPORT; NEG_MARKER_CONFLICT; AGGREGATE_PROVENANCE_ONLY"),
                 "abstain_reason": "LOW_DE_SUPPORT; NEG_MARKER_CONFLICT",
                 "n_expected_markers": 4,
                 "n_missing_markers": 1,

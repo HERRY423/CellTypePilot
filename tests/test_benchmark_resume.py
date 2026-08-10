@@ -95,9 +95,7 @@ def test_completed_fold_checkpoints_resume_without_reexecution(tmp_path, monkeyp
     assert resumed_status["resumed_from_checkpoint"].fillna(False).all()
 
 
-def test_running_checkpoint_is_machine_readable_before_comparator_returns(
-    tmp_path, monkeypatch
-):
+def test_running_checkpoint_is_machine_readable_before_comparator_returns(tmp_path, monkeypatch):
     dataset, assignments = _tiny_benchmark()
 
     def inspect_then_fail(paths, cluster_key, species, tissue):

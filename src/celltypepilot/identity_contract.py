@@ -75,10 +75,10 @@ def collect_pack_identity_contract(records: list[dict] | None) -> dict:
         if not mapping:
             continue
         if not isinstance(mapping, dict):
-            raise IdentityContractError(f"Pack {record.get('name')!r} ontology_map must be an object")
-        merged["sources"].append(
-            {"name": record.get("name"), "version": record.get("version")}
-        )
+            raise IdentityContractError(
+                f"Pack {record.get('name')!r} ontology_map must be an object"
+            )
+        merged["sources"].append({"name": record.get("name"), "version": record.get("version")})
         for tissue in mapping.get("include_tissues", []):
             tissue = str(tissue)
             if tissue not in merged["include_tissues"]:
@@ -130,9 +130,7 @@ def compose_marker_definitions(
     merged: dict[str, dict] = {}
     collisions: list[dict] = []
     for scope in scopes:
-        definitions = get_all_markers_for_tissue(
-            atlas, scope, evidence_policy=evidence_policy
-        )
+        definitions = get_all_markers_for_tissue(atlas, scope, evidence_policy=evidence_policy)
         if include_unverified_candidates:
             for info in definitions.values():
                 records = info.get("marker_evidence", [])

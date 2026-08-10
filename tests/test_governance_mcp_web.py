@@ -6,8 +6,8 @@ import pytest
 
 from celltypepilot.atlas_governance import build_atlas_governance_report
 from celltypepilot.mcp_server import (
-    MCPServerError,
     RESOURCE_NAMES,
+    MCPServerError,
     build_mcp_server,
     read_output_resource,
     tool_atlas_governance,
@@ -265,9 +265,7 @@ def test_review_add_requires_annotated_h5ad(tmp_path):
     assert "data.annotated.h5ad" in result["error"]
 
 
-def test_review_apply_requires_human_confirmation_and_marks_stale(
-    mcp_output_dir, monkeypatch
-):
+def test_review_apply_requires_human_confirmation_and_marks_stale(mcp_output_dir, monkeypatch):
     tool_review_add_override(
         str(mcp_output_dir),
         "0",

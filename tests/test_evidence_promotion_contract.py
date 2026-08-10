@@ -61,9 +61,7 @@ def test_promotion_requires_two_independent_humans_and_versions_output():
     )
     assert proposal["status"] == "approved_pending_apply"
 
-    promoted = apply_approved_promotion(
-        atlas, proposal, new_version="lung-evidence-0.1.1-reviewed"
-    )
+    promoted = apply_approved_promotion(atlas, proposal, new_version="lung-evidence-0.1.1-reviewed")
     assert atlas["version"] == "lung-evidence-0.1.0-beta"
     record = promoted["tissues"]["lung"]["cell_types"]["Capillary endothelial cell"][
         "marker_evidence"
@@ -82,9 +80,8 @@ def test_promotion_fails_if_locked_edge_changed_after_review():
     proposal = add_promotion_review(
         proposal, reviewer="reviewer-b", decision="approve", notes="checked"
     )
-    atlas["tissues"]["lung"]["cell_types"]["Capillary endothelial cell"][
-        "marker_evidence"
-    ][0]["evidence_scope"] = "tampered"
+    atlas["tissues"]["lung"]["cell_types"]["Capillary endothelial cell"]["marker_evidence"][0][
+        "evidence_scope"
+    ] = "tampered"
     with pytest.raises(EvidencePromotionError, match="changed after proposal"):
         apply_approved_promotion(atlas, proposal, new_version="tamper-must-fail")
-

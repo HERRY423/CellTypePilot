@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import json
 from pathlib import Path
 
 import pytest
@@ -61,11 +60,7 @@ def test_label_maps_verify_against_file_sources():
         catalog_root=catalog_path.parent,
         verify_local=True,
     )
-    label_rows = [
-        row
-        for row in summary["local_verification"]
-        if row["kind"] == "label_map"
-    ]
+    label_rows = [row for row in summary["local_verification"] if row["kind"] == "label_map"]
     assert label_rows
     assert all(row["status"] == "verified" for row in label_rows)
 
@@ -100,9 +95,7 @@ def test_materialize_does_not_target_runs():
     # Source relative to catalog root, never under runs/
     external = catalog_root / "incoming" / "src_label.csv"
     external.parent.mkdir(parents=True)
-    external.write_text(
-        "method,raw_label,canonical_label\n__truth__,A,a\n", encoding="utf-8"
-    )
+    external.write_text("method,raw_label,canonical_label\n__truth__,A,a\n", encoding="utf-8")
     digest = hashlib.sha256(external.read_bytes()).hexdigest()
 
     asset = validate_asset_record(

@@ -178,11 +178,16 @@ def score_novelty_candidates(
             or any(token in flags for token in ("LOW_EVIDENCE", "LOW_DE_SUPPORT", "PARTIAL"))
         )
         disagreement = any(token in flags for token in ("ENSEMBLE_DISAGREEMENT", "WEAK_REFERENCE"))
-        diffuse_reference = bool(ref_entropy >= 1.5 or (ref["reference_top_match"] and ref_margin < 0.15))
-        artifact_or_mixed = any(
-            token in flags
-            for token in ("POSSIBLE_DOUBLET", "NEG_MARKER_CONFLICT", "ONTOLOGY_MISMATCH")
-        ) or neg_conflict >= 0.2
+        diffuse_reference = bool(
+            ref_entropy >= 1.5 or (ref["reference_top_match"] and ref_margin < 0.15)
+        )
+        artifact_or_mixed = (
+            any(
+                token in flags
+                for token in ("POSSIBLE_DOUBLET", "NEG_MARKER_CONFLICT", "ONTOLOGY_MISMATCH")
+            )
+            or neg_conflict >= 0.2
+        )
         has_distinctive_unmapped_program = (
             program["n_unmapped_de_markers"] >= min_unmapped_markers
             and program["marker_program_strength"] >= 0.25

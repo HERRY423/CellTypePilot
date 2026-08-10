@@ -1,7 +1,6 @@
 import json
+
 import pandas as pd
-import pytest
-from pathlib import Path
 
 
 def test_web_inspector_cockpit_full_flow(tmp_path, monkeypatch):
@@ -41,14 +40,16 @@ def test_web_inspector_cockpit_full_flow(tmp_path, monkeypatch):
     # 1. Test Dashboard Landing Route
     dash_resp = client.get("/")
     assert dash_resp.status_code == 200
-    assert "Review Cockpit".encode("utf-8") in dash_resp.data or "判读驾驶舱".encode("utf-8") in dash_resp.data
+    assert b"Review Cockpit" in dash_resp.data or "判读驾驶舱".encode() in dash_resp.data
 
     # 2. Test Checklist API (GET & POST)
     chk_resp = client.get("/api/checklist")
     assert chk_resp.status_code == 200
     chk_data = chk_resp.get_json()["checklist"]
     assert "readiness_pct" in chk_data
-    assert chk_data["automated_items"]["critic_flags_reviewed"]["completed"] is False  # cluster 1 is LOW_EVIDENCE and unreviewed
+    assert (
+        chk_data["automated_items"]["critic_flags_reviewed"]["completed"] is False
+    )  # cluster 1 is LOW_EVIDENCE and unreviewed
 
     # Mark manual checklist item as completed
     update_chk = client.post(
@@ -56,7 +57,12 @@ def test_web_inspector_cockpit_full_flow(tmp_path, monkeypatch):
         json={"item_key": "marker_literature_alignment", "completed": True},
     )
     assert update_chk.status_code == 200
-    assert update_chk.get_json()["checklist"]["manual_items"]["marker_literature_alignment"]["completed"] is True
+    assert (
+        update_chk.get_json()["checklist"]["manual_items"]["marker_literature_alignment"][
+            "completed"
+        ]
+        is True
+    )
 
     # 3. Test Cluster History & Notes API
     hist_resp = client.get("/api/clusters/1/history")

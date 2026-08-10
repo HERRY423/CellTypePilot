@@ -53,9 +53,7 @@ def _neighbor_candidates(evidence: pd.DataFrame, cluster: str, limit: int = 5) -
                     {
                         "rank": rank,
                         "cell_type": str(row[name_key]),
-                        "score": float(row.get(score_key) or 0.0)
-                        if score_key in row
-                        else None,
+                        "score": float(row.get(score_key) or 0.0) if score_key in row else None,
                     }
                 )
     # Fallback: second-best fields
@@ -70,9 +68,7 @@ def _neighbor_candidates(evidence: pd.DataFrame, cluster: str, limit: int = 5) -
                     {
                         "rank": len(candidates) + 1,
                         "cell_type": str(row[key]),
-                        "score": float(row.get(score_key) or 0.0)
-                        if score_key in row
-                        else None,
+                        "score": float(row.get(score_key) or 0.0) if score_key in row else None,
                     }
                 )
     # De-dupe against primary identity
@@ -113,13 +109,20 @@ def _donor_batch_strata(adata, cluster: str, cluster_key: str) -> dict[str, Any]
                     ],
                     "n_levels": int(vc.shape[0]),
                 }
-        return {"status": "not_assessed_missing_metadata", "column": None, "levels": [], "n_levels": 0}
+        return {
+            "status": "not_assessed_missing_metadata",
+            "column": None,
+            "levels": [],
+            "n_levels": 0,
+        }
 
     return {
         "status": "assessed",
         "n_cells": int(len(sub)),
         "donors": _counts(("donor", "donor_id", "Donor", "subject_id", "patient")),
-        "batches": _counts(("batch", "batch_id", "assay", "platform", "channel", "ProcessingMethod")),
+        "batches": _counts(
+            ("batch", "batch_id", "assay", "platform", "channel", "ProcessingMethod")
+        ),
         "samples": _counts(("sample", "sample_id", "biosample_id", "library_id", "Source")),
     }
 
@@ -158,15 +161,17 @@ def build_cluster_review_panel(
     """Assemble Identity × State × Novelty panel for one cluster."""
     row = _row_for_cluster(evidence, cluster)
     state_row = _row_for_cluster(state_results, cluster) if state_results is not None else {}
-    novelty_row = (
-        _row_for_cluster(novelty_results, cluster) if novelty_results is not None else {}
-    )
+    novelty_row = _row_for_cluster(novelty_results, cluster) if novelty_results is not None else {}
 
     supporting = _split_markers(
-        row.get("pos_supporting_markers") or row.get("supporting_markers") or row.get("pos_present_markers")
+        row.get("pos_supporting_markers")
+        or row.get("supporting_markers")
+        or row.get("pos_present_markers")
     )
     opposing = _split_markers(
-        row.get("neg_expressed_markers") or row.get("neg_conflict_markers") or row.get("conflicting_markers")
+        row.get("neg_expressed_markers")
+        or row.get("neg_conflict_markers")
+        or row.get("conflicting_markers")
     )
     silent = _split_markers(row.get("pos_silent_markers"))
     missing = _split_markers(row.get("pos_missing_markers"))
@@ -195,7 +200,9 @@ def build_cluster_review_panel(
         "state_candidate": state_row.get("state_candidate")
         or row.get("cell_state_candidate")
         or "Unknown",
-        "state_decision": state_row.get("state_decision") or row.get("state_decision") or "not_assessed",
+        "state_decision": state_row.get("state_decision")
+        or row.get("state_decision")
+        or "not_assessed",
         "state_score": float(state_row.get("state_score") or row.get("state_score") or 0.0),
         "state_confidence": state_row.get("state_confidence")
         or row.get("state_confidence")
@@ -213,9 +220,7 @@ def build_cluster_review_panel(
         "novelty_decision": novelty_row.get("novelty_decision")
         or row.get("novelty_decision")
         or "not_assessed",
-        "novelty_score": float(
-            novelty_row.get("novelty_score") or row.get("novelty_score") or 0.0
-        ),
+        "novelty_score": float(novelty_row.get("novelty_score") or row.get("novelty_score") or 0.0),
         "top_unmapped_markers": _split_markers(
             novelty_row.get("top_unmapped_markers") or row.get("top_unmapped_markers")
         ),

@@ -33,7 +33,9 @@ def _source() -> dict:
     }
 
 
-def _record(gene: str, polarity: str, tissue: str = "blood", status: str = AGGREGATE_STATUS) -> dict:
+def _record(
+    gene: str, polarity: str, tissue: str = "blood", status: str = AGGREGATE_STATUS
+) -> dict:
     return {
         "gene": gene,
         "polarity": polarity,
@@ -170,7 +172,9 @@ def _sweep_rows(atlas: dict, searcher) -> list[dict]:
 def test_apply_upgrades_supported_edges():
     atlas = _atlas()
     rows = _sweep_rows(atlas, lambda q: ["11", "22"] if "CD3E" in q else [])
-    updated, applied = apply_sweep_results(atlas, rows, "mkg-test.1", verified_at="2026-01-01T00:00:00Z")
+    updated, applied = apply_sweep_results(
+        atlas, rows, "mkg-test.1", verified_at="2026-01-01T00:00:00Z"
+    )
 
     assert applied == 1
     assert validate_atlas_provenance(updated) == []

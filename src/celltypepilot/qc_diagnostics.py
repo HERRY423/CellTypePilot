@@ -13,9 +13,10 @@ rescue identity decisions produced by the annotation critic.
 from __future__ import annotations
 
 import json
+from collections.abc import Mapping
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, Mapping
+from typing import Any
 
 import numpy as np
 import pandas as pd
@@ -199,9 +200,7 @@ def load_external_tool_table(
         raise QCDiagnosticError(f"External {axis} table not found: {table_path}")
     frame = pd.read_csv(table_path, dtype={cell_id_column: str})
     if cell_id_column not in frame.columns:
-        raise QCDiagnosticError(
-            f"External {axis} table missing cell id column {cell_id_column!r}"
-        )
+        raise QCDiagnosticError(f"External {axis} table missing cell id column {cell_id_column!r}")
     out = pd.DataFrame({"cell_id": frame[cell_id_column].astype(str)})
     out["axis"] = axis
     out["source"] = f"external_file:{table_path.name}"
@@ -220,10 +219,7 @@ def load_external_tool_table(
         flagged = raw.astype(str).str.strip().str.lower().isin(positives)
         flagged = flagged.mask(raw.isna())
     elif score is not None and threshold is not None:
-        if higher_is_worse:
-            flagged = score.ge(threshold)
-        else:
-            flagged = score.le(threshold)
+        flagged = score.ge(threshold) if higher_is_worse else score.le(threshold)
         flagged = flagged.mask(score.isna())
     elif score is not None:
         # Score present but no threshold: assessed_descriptive only at cell level.
@@ -245,10 +241,7 @@ def _threshold_flag(
     direction: str,
 ) -> pd.Series:
     numeric = pd.to_numeric(values, errors="coerce")
-    if direction == "le":
-        flag = numeric.le(threshold)
-    else:
-        flag = numeric.ge(threshold)
+    flag = numeric.le(threshold) if direction == "le" else numeric.ge(threshold)
     return flag.mask(numeric.isna())
 
 
@@ -376,7 +369,7 @@ def assess_tool_axis(
     key = _first_present(obs.columns, obs_aliases)
     if key and flagged.isna().all():
         values = obs[key]
-        if values.dtype == bool or set(pd.Series(values).dropna().unique()) <= {0, 1, True, False}:
+        if values.dtype == bool or set(pd.Series(values).dropna().unique()) <= {0, 1}:
             f = values.astype("boolean")
         else:
             if threshold is None:
@@ -470,7 +463,9 @@ def assess_sample_enrichment(
             reason="missing_cluster_or_sample_metadata",
             source="obs",
         )
-    n_flagged = int((table["flag"].astype(str) == "SAMPLE_ENRICHED").sum()) if not table.empty else 0
+    n_flagged = (
+        int((table["flag"].astype(str) == "SAMPLE_ENRICHED").sum()) if not table.empty else 0
+    )
     status = "assessed_with_flags" if n_flagged else "assessed_descriptive"
     flag_label = "SAMPLE_ENRICHMENT_PRESENT" if n_flagged else "NO_CLUSTER_SAMPLE_ENRICHED"
     _validate_no_clean_claim(status, flag_label)
@@ -552,12 +547,13 @@ def assert_identity_invariant(
         "ctp_cl_id",
     )
     for key in keys:
-        if key in identity_before or key in identity_after:
-            if identity_before.get(key) != identity_after.get(key):
-                raise QCDiagnosticError(
-                    f"Identity invariant violated for {key!r}: QC diagnostics "
-                    "must not change identity labels or decisions."
-                )
+        if (key in identity_before or key in identity_after) and identity_before.get(
+            key
+        ) != identity_after.get(key):
+            raise QCDiagnosticError(
+                f"Identity invariant violated for {key!r}: QC diagnostics "
+                "must not change identity labels or decisions."
+            )
 
 
 def assemble_qc_diagnostics(
@@ -613,9 +609,7 @@ def assemble_qc_diagnostics(
         if axis not in axes:
             axes[axis] = _not_assessed(axis, reason="not_in_assembly").to_dict()
 
-    any_flagged = any(
-        c.n_cells_flagged > 0 or c.flag.endswith("_PRESENT") for c in contracts
-    )
+    any_flagged = any(c.n_cells_flagged > 0 or c.flag.endswith("_PRESENT") for c in contracts)
     any_assessed = any(not c.status.startswith("not_assessed") for c in contracts)
 
     if not any_assessed:
@@ -644,9 +638,7 @@ def assemble_qc_diagnostics(
         # Only compare non-obs snapshot keys (cluster-level summary strings).
         for key, value in identity_snapshot.items():
             if key not in obs.columns and after.get(key) != value:
-                raise QCDiagnosticError(
-                    f"Identity invariant violated for snapshot key {key!r}"
-                )
+                raise QCDiagnosticError(f"Identity invariant violated for snapshot key {key!r}")
 
     report = {
         "schema_version": QC_SCHEMA,

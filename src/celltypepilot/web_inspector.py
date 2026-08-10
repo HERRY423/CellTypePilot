@@ -278,10 +278,10 @@ def _compute_checklist_status() -> dict:
     reviews = _load_cluster_reviews().get("clusters", {})
 
     def _are_reviewed(cids: list[str]) -> bool:
-        for c in cids:
-            if reviews.get(c, {}).get("status", "unreviewed") == "unreviewed":
-                return False
-        return True
+        return all(
+            reviews.get(cluster_id, {}).get("status", "unreviewed") != "unreviewed"
+            for cluster_id in cids
+        )
 
     auto_items = {
         "critic_flags_reviewed": {
@@ -611,20 +611,32 @@ def dashboard():
         load_error = str(exc)
         cluster_reviews = {}
 
-    checklist_status = _compute_checklist_status() if annotation_mode else {
-        "readiness_pct": 0,
-        "is_ready_for_signoff": False,
-        "automated_items": {},
-        "manual_items": {},
-    }
-    diff_summary = _calculate_override_diff() if annotation_mode else {
-        "modified_clusters": 0,
-        "rows": [],
-    }
-    signoff = _load_signoff() if annotation_mode else {
-        "signed_off": False,
-        "decision": "NOT_SIGNED",
-    }
+    checklist_status = (
+        _compute_checklist_status()
+        if annotation_mode
+        else {
+            "readiness_pct": 0,
+            "is_ready_for_signoff": False,
+            "automated_items": {},
+            "manual_items": {},
+        }
+    )
+    diff_summary = (
+        _calculate_override_diff()
+        if annotation_mode
+        else {
+            "modified_clusters": 0,
+            "rows": [],
+        }
+    )
+    signoff = (
+        _load_signoff()
+        if annotation_mode
+        else {
+            "signed_off": False,
+            "decision": "NOT_SIGNED",
+        }
+    )
     observability = _build_observability_snapshot()
 
     return render_template(
@@ -633,7 +645,9 @@ def dashboard():
         stats=stats,
         annotations=annotations,
         evidence_json=json.dumps(evidence_dict),
-        artifact_status=_load_artifact_status() if annotation_mode else {
+        artifact_status=_load_artifact_status()
+        if annotation_mode
+        else {
             "review_state": "not_applicable",
             "message": load_error or "Annotation products not present; observability-only mode.",
             "stale_artifacts": [],
@@ -770,9 +784,7 @@ def api_review_resign():
     try:
         from .review_resign import ReviewResignError, resign_review_outputs
 
-        result = resign_review_outputs(
-            _output_dir, signer=signer, regenerate=regenerate
-        )
+        result = resign_review_outputs(_output_dir, signer=signer, regenerate=regenerate)
     except ReviewResignError as exc:
         return jsonify({"ok": False, "error": str(exc)}), 400
     except Exception as exc:  # pragma: no cover
@@ -865,9 +877,7 @@ def api_cluster_history(cluster_id):
 
     # Filter audit events for this cluster
     cluster_events = [
-        ev
-        for ev in all_audit_events
-        if str(ev.get("payload", {}).get("cluster", "")) == cluster_id
+        ev for ev in all_audit_events if str(ev.get("payload", {}).get("cluster", "")) == cluster_id
     ]
 
     return jsonify(
@@ -1212,16 +1222,14 @@ def api_artifact_status():
 def api_novelty_verify(cluster_id: str):
     """Run 5-gate audit protocol on a focus cluster for Web Cockpit."""
     try:
+        from .data_adapter import detect_species, load_marker_atlas
         from .novelty_verification import verify_novelty_candidate
-        from .constants import ATLAS_PATH
-        from .data_adapter import load_marker_atlas
 
-        adata = _ensure_adata_loaded()
-        evidence_df = _load_evidence_table()
+        adata, evidence_df = _load_data()
         focus_row = evidence_df[evidence_df["cluster"].astype(str) == str(cluster_id)]
         row_dict = focus_row.iloc[0].to_dict() if not focus_row.empty else {}
-        atlas = load_marker_atlas(ATLAS_PATH)
-        tissue = str(adata.obs.get("tissue", pd.Series(["general"])).iloc[0]) if "tissue" in adata.obs else "general"
+        atlas = load_marker_atlas(detect_species(adata))
+        tissue = str(adata.obs["tissue"].iloc[0]) if "tissue" in adata.obs else "general"
 
         packet = verify_novelty_candidate(adata, "cluster", cluster_id, row_dict, atlas, tissue)
         return jsonify({"ok": True, "packet": packet})
@@ -1255,6 +1263,7 @@ def api_novelty_adjudicate():
 
     try:
         from .novelty_verification import log_novelty_adjudication
+
         entry = log_novelty_adjudication(
             _output_dir, cluster, verdict, reviewer, notes=notes, pmid=pmid
         )

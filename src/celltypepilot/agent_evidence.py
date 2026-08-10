@@ -81,7 +81,11 @@ GAP_RULES: dict[str, dict[str, Any]] = {
     },
     "ontology_or_atlas_scope_gap": {
         "why": "The candidate identity or ontology mapping is not valid in the active Atlas scope.",
-        "actions": ["review_atlas_identity_mapping", "review_compatible_data_only_pack", "keep_unknown"],
+        "actions": [
+            "review_atlas_identity_mapping",
+            "review_compatible_data_only_pack",
+            "keep_unknown",
+        ],
     },
     "context_review_gap": {
         "why": "The candidate depends on unreviewed user-supplied context.",
@@ -212,9 +216,7 @@ def build_contrastive_evidence(
                 "alternative_missing_markers": _as_text(
                     alternative_marker.get("pos_missing_markers", "")
                 ),
-                "selected_silent_markers": _as_text(
-                    selected_marker.get("pos_silent_markers", "")
-                ),
+                "selected_silent_markers": _as_text(selected_marker.get("pos_silent_markers", "")),
                 "alternative_silent_markers": _as_text(
                     alternative_marker.get("pos_silent_markers", "")
                 ),
@@ -297,7 +299,9 @@ def build_actionable_evidence_gaps(critic_results: pd.DataFrame) -> dict[str, An
         if expected == 0 or "NO_MARKERS" in flags:
             gaps.append(_gap("atlas_marker_definition_missing", "no governed markers in scope"))
         if missing:
-            gaps.append(_gap("marker_not_measured", f"{missing}/{expected} expected markers absent"))
+            gaps.append(
+                _gap("marker_not_measured", f"{missing}/{expected} expected markers absent")
+            )
         if silent:
             gaps.append(
                 _gap("marker_present_but_silent", f"{silent}/{expected} expected markers silent")
@@ -397,13 +401,9 @@ def load_agent_evidence_indexes(output_dir: str | Path) -> tuple[dict[str, dict]
     contrast_path = root / CONTRAST_FILE
     if contrast_path.is_file():
         frame = pd.read_csv(contrast_path, dtype=str).fillna("")
-        contrast_index = {
-            str(row["cluster"]): row for row in frame.to_dict(orient="records")
-        }
+        contrast_index = {str(row["cluster"]): row for row in frame.to_dict(orient="records")}
     gap_path = root / GAP_FILE
     if gap_path.is_file():
         payload = json.loads(gap_path.read_text(encoding="utf-8"))
-        gap_index = {
-            str(row.get("cluster", "")): row for row in payload.get("clusters", [])
-        }
+        gap_index = {str(row.get("cluster", "")): row for row in payload.get("clusters", [])}
     return contrast_index, gap_index
