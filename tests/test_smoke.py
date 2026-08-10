@@ -211,6 +211,7 @@ class TestProvenance:
     """Tests for provenance tracking."""
 
     def test_create_and_save_manifest(self):
+        from celltypepilot import __version__
         from celltypepilot.provenance import create_manifest, load_manifest, save_manifest
 
         with tempfile.TemporaryDirectory() as tmpdir:
@@ -223,7 +224,7 @@ class TestProvenance:
                 parameters={"embedding_key": "X_umap"},
                 output_dir=tmpdir,
             )
-            assert manifest["celltypepilot_version"] == "0.3.0"
+            assert manifest["celltypepilot_version"] == __version__
             assert manifest["mkg_version"] == "mkg-2026.08.1"
 
             path = save_manifest(manifest, tmpdir)
@@ -246,12 +247,13 @@ class TestCLI:
     def test_version(self):
         from typer.testing import CliRunner
 
+        from celltypepilot import __version__
         from celltypepilot.cli import app
 
         runner = CliRunner()
         result = runner.invoke(app, ["--version"])
         assert result.exit_code == 0
-        assert "0.3.0" in result.output
+        assert __version__ in result.output
 
     def test_markers_command(self):
         from typer.testing import CliRunner

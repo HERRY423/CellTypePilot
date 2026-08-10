@@ -41,19 +41,15 @@ jobs:
             --tag "$GITHUB_REF_NAME" \
             --output-dir release-assets
           python -m twine check dist/*
-          (
-            cd dist
-            sha256sum *
-          ) > ../release-assets/SHA256SUMS
-          (
-            cd release-assets
-            sha256sum celltypepilot-plugin-*.zip
-          ) >> SHA256SUMS
+          python scripts/build_release_checksums.py \
+            --dist-dir dist \
+            --plugin-dir release-assets \
+            --output release-assets/SHA256SUMS
 
       - name: Run release verification suite
         run: |
-          ruff check src/ tests/ scripts/build_plugin_bundle.py
-          ruff format --check src/ tests/ scripts/build_plugin_bundle.py
+          ruff check src/ tests/ scripts/build_plugin_bundle.py scripts/build_release_checksums.py
+          ruff format --check src/ tests/ scripts/build_plugin_bundle.py scripts/build_release_checksums.py
           pytest --cov=celltypepilot --cov-report=term-missing
 
       - name: Smoke-test installed wheel and plugin bundle

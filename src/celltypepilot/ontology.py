@@ -32,11 +32,13 @@ from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from pathlib import Path
 
+from . import __version__
+
 ONTOLOGY_ENV_VAR = "CELLTYPEPILOT_ONTOLOGY_DIR"
 ONTOLOGY_FILENAME = "cl.obo"
 METADATA_FILENAME = "ontology_meta.json"
 CL_OBO_URL = "http://purl.obolibrary.org/obo/cl.obo"
-USER_AGENT = "CellTypePilot/0.3.0 (https://github.com/HERRY423/CellTypePilot)"
+USER_AGENT = f"CellTypePilot/{__version__} (https://github.com/HERRY423/CellTypePilot)"
 
 
 class OntologyError(ValueError):
