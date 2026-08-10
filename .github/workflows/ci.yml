@@ -79,9 +79,14 @@ jobs:
     name: Coverage Report
     runs-on: ubuntu-latest
     needs: test
-    if: github.event.pull_request.head.repo.full_name == github.repository
+    if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository
     steps:
       - uses: actions/checkout@v6
+
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.11"
 
       - name: Download coverage artifact
         uses: actions/download-artifact@v8
@@ -89,6 +94,29 @@ jobs:
           name: coverage-report
 
       - name: Coverage summary
+        shell: bash
         run: |
-          pip install coverage
-          coverage report --format=markdown >> $GITHUB_STEP_SUMMARY || true
+          python - <<'PY'
+          import os
+          from pathlib import Path
+          import xml.etree.ElementTree as ET
+
+          root = ET.parse("coverage.xml").getroot()
+          lines_covered = int(root.attrib["lines-covered"])
+          lines_valid = int(root.attrib["lines-valid"])
+          line_rate = float(root.attrib["line-rate"]) * 100
+          branches_covered = int(root.attrib["branches-covered"])
+          branches_valid = int(root.attrib["branches-valid"])
+          branch_rate = float(root.attrib["branch-rate"]) * 100
+          branch_coverage = f"{branch_rate:.2f}%" if branches_valid else "not measured"
+          summary = (
+              "## Coverage summary\n\n"
+              "| Metric | Covered | Valid | Coverage |\n"
+              "| --- | ---: | ---: | ---: |\n"
+              f"| Lines | {lines_covered} | {lines_valid} | {line_rate:.2f}% |\n"
+              f"| Branches | {branches_covered} | {branches_valid} | {branch_coverage} |\n"
+          )
+          with Path(os.environ["GITHUB_STEP_SUMMARY"]).open("a", encoding="utf-8") as stream:
+              stream.write(summary)
+          print(summary)
+          PY
