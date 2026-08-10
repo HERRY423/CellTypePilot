@@ -2,7 +2,6 @@
 
 import json
 
-from click import unstyle
 from typer.testing import CliRunner
 
 from celltypepilot.cli import app
@@ -26,7 +25,7 @@ class TestCLIBasic:
     def test_annotate_help_exposes_governed_context_and_state_controls(self):
         result = runner.invoke(app, ["annotate", "--help"])
         assert result.exit_code == 0
-        output = unstyle(result.output)
+        output = result.output
         for option in ("--context", "--context-file", "--custom-markers", "--no-states"):
             assert option in output
 
