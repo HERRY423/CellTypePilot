@@ -5,11 +5,31 @@ build-backend = "hatchling.build"
 [project]
 name = "celltypepilot"
 version = "0.3.0"
-description = "Local-first single-cell annotation review plugin"
+description = "Deterministic single-cell annotation backend for Agent plugins"
 readme = "README.md"
 license = "MIT"
 requires-python = ">=3.10"
-authors = [{ name = "CellTypePilot Contributors" }]
+authors = [{ name = "HERRY423" }]
+maintainers = [{ name = "HERRY423" }]
+keywords = [
+    "single-cell",
+    "scrna-seq",
+    "cell-type-annotation",
+    "bioinformatics",
+    "agent-plugin",
+    "mcp",
+]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Science/Research",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Scientific/Engineering :: Bio-Informatics",
+]
 
 dependencies = [
     "typer>=0.9.0",
@@ -36,6 +56,7 @@ benchmark = [
     "celltypist>=1.6.0",
     "scikit-learn>=1.4.0",
 ]
+
 all = [
     "python-docx>=1.0.0",
     "flask>=3.0.0",
@@ -55,12 +76,27 @@ dev = [
     "fastmcp>=2.0.0",
 ]
 
+[project.urls]
+Homepage = "https://github.com/HERRY423/CellTypePilot"
+Repository = "https://github.com/HERRY423/CellTypePilot"
+Issues = "https://github.com/HERRY423/CellTypePilot/issues"
+Changelog = "https://github.com/HERRY423/CellTypePilot/blob/main/CHANGELOG.md"
+
 [project.scripts]
 celltypepilot = "celltypepilot.cli:app"
 celltypepilot-mcp = "celltypepilot.mcp_server:main"
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/celltypepilot"]
+
+[tool.hatch.build.targets.sdist]
+include = [
+    "/src/celltypepilot",
+    "/pyproject.toml",
+    "/README.md",
+    "/CHANGELOG.md",
+    "/LICENSE",
+]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

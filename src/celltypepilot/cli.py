@@ -1725,6 +1725,7 @@ def license(
         ACADEMIC_FEATURES,
         COMMERCIAL_FEATURES,
         FREE_FEATURES,
+        TRIAL_FEATURES,
         LicenseTier,
         activate_license,
         load_license,
@@ -1739,22 +1740,32 @@ def license(
             data["tier"] = lic.tier.value
             console.print(json.dumps(data, indent=2))
         else:
+            available_features = {
+                LicenseTier.FREE: FREE_FEATURES,
+                LicenseTier.ACADEMIC: ACADEMIC_FEATURES,
+                LicenseTier.COMMERCIAL: COMMERCIAL_FEATURES,
+                LicenseTier.TRIAL: TRIAL_FEATURES,
+            }[lic.tier]
             console.print("[bold]CellTypePilot License[/bold]")
             console.print(f"  Tier:      {lic.tier.value}")
             console.print(f"  Holder:    {lic.holder or 'N/A'}")
             console.print(f"  Email:     {lic.email or 'N/A'}")
             console.print(f"  Expires:   {lic.expires_at or 'Never'}")
-            console.print(f"  Features:  {len(lic.features)} enabled")
+            console.print(f"  Features:  {len(available_features)} available")
             if lic.is_expired():
                 console.print("  [red]EXPIRED[/red]")
             console.print()
             console.print("[bold]Tier comparison:[/bold]")
-            console.print(f"  Free:      {len(FREE_FEATURES)} features (basic atlas, 11 tissues)")
             console.print(
-                f"  Academic:  {len(ACADEMIC_FEATURES)} features (extended atlas, disease states)"
+                f"  Free:      {len(FREE_FEATURES)} features (all bundled MIT-licensed atlases)"
             )
             console.print(
-                f"  Commercial:{len(COMMERCIAL_FEATURES)} features (full atlas, custom panels, API)"
+                f"  Academic:  {len(ACADEMIC_FEATURES)} features "
+                "(literature and review workflow services)"
+            )
+            console.print(
+                f"  Commercial:{len(COMMERCIAL_FEATURES)} features "
+                "(custom-panel services, team sharing, API)"
             )
 
     elif action == "activate":

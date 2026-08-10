@@ -6,7 +6,7 @@
 
 ```bash
 # Install
-pip install -e .
+pip install celltypepilot
 
 # Run everything in one step
 celltypepilot annotate --input data.h5ad --cluster-key leiden --tissue blood --output ./results
@@ -163,8 +163,8 @@ celltypepilot markers --tissue blood --json
 
 | Problem | Solution |
 |---|---|
-| `celltypepilot: command not found` | Run `pip install -e .` from the project root |
+| `celltypepilot: command not found` | Run `pip install celltypepilot`, or `pip install -e .` from a development checkout |
 | `No cluster key found` | Check `celltypepilot inspect` output for available keys |
 | `No annotations generated` | Marker gene overlap too low — check species/tissue match |
-| `GBK/Unicode encoding error` | Fixed in v0.1.0; update with `pip install -e .` |
+| `GBK/Unicode encoding error` | Fixed in v0.1.0; update with `pip install --upgrade celltypepilot` |
 | `leidenalg not found` | Use louvain clusters or assign cluster labels manually |

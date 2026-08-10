@@ -40,6 +40,8 @@ class TestLicenseInfo:
         info = LicenseInfo()
         assert info.tier == LicenseTier.FREE
         assert info.valid is True
+        assert info.max_tissues == 0
+        assert info.max_cell_types == 0
 
     def test_is_expired_no_expiry(self):
         info = LicenseInfo(expires_at="")
@@ -63,7 +65,9 @@ class TestLicenseInfo:
         info = LicenseInfo(tier=LicenseTier.FREE)
         assert info.has_feature("basic_atlas")
         assert info.has_feature("marker_scoring")
-        assert not info.has_feature("extended_atlas")
+        assert info.has_feature("extended_atlas")
+        assert info.has_feature("developmental_atlas")
+        assert info.has_feature("disease_atlas")
         assert not info.has_feature("custom_tissue_panels")
 
     def test_has_feature_academic(self):
@@ -104,9 +108,9 @@ class TestFeatureSets:
         core = {"basic_atlas", "marker_scoring", "critic_review", "html_report"}
         assert core.issubset(FREE_FEATURES)
 
-    def test_academic_adds_extended(self):
+    def test_academic_adds_workflow_features(self):
         extra = ACADEMIC_FEATURES - FREE_FEATURES
-        assert "extended_atlas" in extra
+        assert "extended_atlas" not in extra
         assert "literature_validation" in extra
 
     def test_commercial_adds_exclusive(self):
@@ -214,13 +218,14 @@ class TestAtlasAccess:
             ok, msg = get_atlas_access("blood")
             assert ok
 
-    def test_extended_tissue_free_tier_denied(self):
+    def test_extended_tissue_free_tier_allowed(self):
         with patch(
             "celltypepilot.license_manager.load_license",
             return_value=LicenseInfo(tier=LicenseTier.FREE),
         ):
             ok, msg = get_atlas_access("tumor_microenvironment")
-            assert not ok
+            assert ok
+            assert "MIT-licensed" in msg
 
     def test_extended_tissue_academic_allowed(self):
         with patch(
@@ -229,6 +234,15 @@ class TestAtlasAccess:
         ):
             ok, msg = get_atlas_access("tumor_microenvironment")
             assert ok
+
+    def test_unknown_tissue_is_not_unlocked_by_license(self):
+        with patch(
+            "celltypepilot.license_manager.load_license",
+            return_value=LicenseInfo(tier=LicenseTier.COMMERCIAL),
+        ):
+            ok, msg = get_atlas_access("unsupported_tissue")
+            assert not ok
+            assert "extension pack" in msg
 
 
 class TestCheckFeatureAccess:
@@ -240,14 +254,14 @@ class TestCheckFeatureAccess:
             ok, msg = check_feature_access("basic_atlas")
             assert ok
 
-    def test_academic_feature_blocked_free(self):
+    def test_extended_atlas_is_available_to_free_tier(self):
         with patch(
             "celltypepilot.license_manager.load_license",
             return_value=LicenseInfo(tier=LicenseTier.FREE),
         ):
             ok, msg = check_feature_access("extended_atlas")
-            assert not ok
-            assert "Academic" in msg
+            assert ok
+            assert "free" in msg
 
     def test_expired_license_blocked(self):
         past = (datetime.now() - timedelta(days=1)).isoformat()

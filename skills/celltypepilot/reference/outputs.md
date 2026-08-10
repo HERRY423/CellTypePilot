@@ -84,7 +84,7 @@ does not contribute marker evidence.
 ```json
 {
   "celltypepilot_version": "0.3.0",
-  "mkg_version": "mkg-2026.08",
+  "mkg_version": "mkg-2026.08.1",
   "timestamp": "2026-08-06T12:00:00+00:00",
   "input": {
     "path": "/path/to/data.h5ad",
@@ -128,7 +128,7 @@ A plain-text paragraph suitable for adaptation into a paper's Methods section. E
 
 > Cell type annotation was performed using CellTypePilot (v0.3.0), an evidence-driven
 > annotation pipeline with built-in critic review. Marker gene evidence was sourced from
-> the CellTypePilot Marker Knowledge Graph (MKG mkg-2026.08), a curated atlas integrating
+> the CellTypePilot Marker Knowledge Graph (MKG mkg-2026.08.1), a curated atlas integrating
 > PanglaoDB, CellMarker, and Cell Ontology resources. For each of the N clusters identified
 > by leiden clustering, marker gene overlap, expression specificity, fold-change magnitude,
 > and negative marker conflict were scored to generate candidate annotations with confidence
