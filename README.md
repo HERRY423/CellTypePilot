@@ -22,7 +22,7 @@ coding workspace you already use. A qualified human owns the final biological de
 
 ## Current validation boundary
 
-| Available in v0.3.0 | Not yet claimed |
+| Available in v0.3.1 | Not yet claimed |
 |---|---|
 | Direction-, log2FC-, FDR-, and expression-fraction-gated DE evidence | Biological superiority over CellTypist, SingleR, Azimuth, or popV |
 | Complete expected-marker denominators, with missing genes separated from present-but-silent genes | A completed public multi-study/donor benchmark |
@@ -80,7 +80,7 @@ output/
 ├── transitional_states.csv      # Clusters flagged as differentiation intermediates
 ├── disagreements.csv            # Marker vs reference disagreement analysis
 ├── report_draft.html            # Self-contained HTML report with all figures embedded
-├── methodology_draft.txt        # "We annotated N clusters using CellTypePilot v0.3.0..."
+├── methodology_draft.txt        # "We annotated N clusters using CellTypePilot v0.3.1..."
 ├── manifest.json                # Provenance: versions, params, data hash, output hashes
 └── figures/
     ├── umap_cluster.png         # UMAP by cluster (colorblind-friendly Wong palette)
@@ -321,9 +321,9 @@ reference, evidence, and provenance gates apply as the CLI.
 ```
 CellTypePilot/
 ├── .claude-plugin/
-│   └── plugin.json              ← Claude Code plugin manifest (v0.3.0)
+│   └── plugin.json              ← Claude Code plugin manifest (v0.3.1)
 ├── .codex-plugin/
-│   └── plugin.json              ← Codex plugin manifest (v0.3.0, with interface block)
+│   └── plugin.json              ← Codex plugin manifest (v0.3.1, with interface block)
 ├── skills/
 │   └── celltypepilot/
 │       ├── SKILL.md              ← Shared skill instructions (4-stage workflow)
