@@ -179,6 +179,7 @@ def build_identity_resolver(
     """Build an ambiguity-aware label/CL resolver for the active scope."""
     by_label: dict[str, str | None] = {}
     by_cl: dict[str, str | None] = {}
+    cl_by_name: dict[str, str] = {}
     parent_by_name: dict[str, str] = {}
 
     def add(index: dict[str, str | None], key: str, canonical: str) -> None:
@@ -202,6 +203,12 @@ def build_identity_resolver(
             cl_id = str(info.get("cl_id", "")).strip()
             if cl_id:
                 add(by_cl, cl_id, canonical)
+                prior_cl = cl_by_name.get(canonical)
+                if prior_cl is not None and prior_cl != cl_id:
+                    raise IdentityContractError(
+                        f"Canonical label {canonical!r} has conflicting CL IDs in active scope"
+                    )
+                cl_by_name[canonical] = cl_id
             if len(path) > 1:
                 parent_by_name[canonical] = path[-2]
 
@@ -212,6 +219,7 @@ def build_identity_resolver(
         "schema_version": "celltypepilot.identity-resolver.v1",
         "by_label": by_label,
         "by_cl": by_cl,
+        "cl_by_name": cl_by_name,
         "parent_by_name": parent_by_name,
         "safe_parent_fallbacks": (pack_contract or {}).get("safe_parent_fallbacks", {}),
     }

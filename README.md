@@ -13,8 +13,10 @@ Claude Code. Installing the backend alone does not install the host plugin manif
 
 **CellTypePilot** is a **plugin** for Claude Code / OpenAI Codex. It turns pre-clustered
 single-cell data into auditable draft cell-type annotations — with a governed context interface,
-**dual-engine** identity scoring (marker overlap + reference embedding), an independent cell-state
-lens, conservative critic review, and a draft methodology paragraph for your paper.
+a **backend-neutral hierarchical selective decision layer**, an independent cell-state lens,
+conservative critic review, and a draft methodology paragraph for your paper. CellTypist, popV,
+SingleR, scANVI, custom references, and optional LLM hypotheses are candidate generators; the
+in-house marker scorer compiles evidence and may downgrade a call, but is not the primary classifier.
 
 It is **not an autonomous analysis agent**. It is a deterministic, artifact-producing plugin
 that adds evidence review, conservative abstention, benchmark hooks, and provenance to the
@@ -22,7 +24,7 @@ coding workspace you already use. A qualified human owns the final biological de
 
 ## Current validation boundary
 
-| Available in v0.3.1 | Not yet claimed |
+| Available in v0.4.0 | Not yet claimed |
 |---|---|
 | Direction-, log2FC-, FDR-, and expression-fraction-gated DE evidence | Biological superiority over CellTypist, SingleR, Azimuth, or popV |
 | Complete expected-marker denominators, with missing genes separated from present-but-silent genes | A completed public multi-study/donor benchmark |
@@ -31,6 +33,8 @@ coding workspace you already use. A qualified human owns the final biological de
 | Locked study/donor holdout runner and comparator adapters | Clinical-grade or fully automated biological decisions |
 | Governed Context Pack: structured custom markers share the normal evidence gates; free text is provenance-only | That free-text biological context is validated evidence |
 | Separate identity and state outputs; state scoring cannot overwrite identity or rescue an abstained identity | Calibrated cell-state accuracy or comprehensive state coverage |
+| Backend-neutral candidate contract, ontology-aware parent fallback, and explicit candidate sets | That backend agreement is a calibrated probability or selective-risk guarantee |
+| Three depth-validation domains: lung, gut/IBD, and tumor microenvironment, all currently fail-closed as `evidence_required` | Claim readiness before locked multi-study evidence, separate calibration, and expert adjudication are complete |
 
 For `mkg-2026.08.1`, 280 of 599 bundled marker relationships have been upgraded to
 `literature_cooccurrence_supported` via an auditable PubMed co-occurrence sweep
@@ -40,6 +44,30 @@ exploratory `database` evidence policy; the `literature` policy requires at leas
 co-occurrence support; `edge_verified` and `primary` policies exclude literature-only
 edges. The sweep report and curation queue are published in
 [`docs/curate/`](docs/curate/) and [`docs/atlas_curation_queue.csv`](docs/atlas_curation_queue.csv).
+
+### Core decision architecture
+
+The runtime now separates candidate generation from evidence review. Candidate CSV/JSON artifacts
+from `celltypist`, `popv`, `singler`, `scanvi`, or `custom_reference` enter
+`celltypepilot.backend-candidates.v1`. An optional `llm` backend is hypothesis-only by default.
+Marker rankings enter the same audit table with `decision_role=evidence_only` and never count as
+an independent vote.
+
+The default `celltypepilot.hierarchical-selective-decision.v1` policy requires two independent
+backend families for a leaf call. Sibling disagreement may collapse only to a governed Atlas
+ancestor within two hops; cross-lineage or unresolved disagreement writes a candidate set and
+`Unknown`. Backend scores are retained with their native semantics and are never arithmetically
+blended or described as calibrated probabilities. The marker critic runs after selection and can
+only downgrade the result.
+
+Product validation is concentrated on exactly three depth domains: **lung**, **gut/IBD**, and
+**tumor microenvironment**. `validation_domains.json` records multi-study, platform-transport,
+calibration, hierarchy-error, abstention-audit, and expert-adjudication gates. All three currently
+remain `evidence_required`; the broader bundled Atlas remains available only as exploratory scope.
+See [`docs/hierarchical_selective_decision.md`](docs/hierarchical_selective_decision.md) for the
+candidate schema, independence groups, cell-to-cluster aggregation, and claim boundaries.
+See [`docs/native_backend_execution.md`](docs/native_backend_execution.md) for native runner
+configuration, checkpoint semantics, LLM boundaries, and the three-domain evidence workflow.
 
 Cell Ontology identifiers are validated against the live Cell Ontology
 (`celltypepilot ontology update` then `celltypepilot ontology check`). Unknown or
@@ -80,7 +108,7 @@ output/
 ├── transitional_states.csv      # Clusters flagged as differentiation intermediates
 ├── disagreements.csv            # Marker vs reference disagreement analysis
 ├── report_draft.html            # Self-contained HTML report with all figures embedded
-├── methodology_draft.txt        # "We annotated N clusters using CellTypePilot v0.3.1..."
+├── methodology_draft.txt        # "We annotated N clusters using CellTypePilot v0.4.0..."
 ├── manifest.json                # Provenance: versions, params, data hash, output hashes
 └── figures/
     ├── umap_cluster.png         # UMAP by cluster (colorblind-friendly Wong palette)
@@ -113,6 +141,17 @@ celltypepilot annotate --input data.h5ad --cluster-key leiden --species human --
 celltypepilot annotate --input data.h5ad --cluster-key leiden \
     --reference atlas.h5ad --tissue blood
 
+# 5b. Import independently produced backend candidates. Each artifact declares
+# cluster, backend, cell_type (preferably cl_id), optional score, semantics, and rank.
+celltypepilot annotate --input data.h5ad --cluster-key leiden --tissue blood \
+    --candidate-table celltypist.csv --candidate-table popv.csv \
+    --candidate-table singler.csv
+
+# 5c. Execute governed native backends inside ordinary annotate. Failed runtimes
+# remain explicit and contribute no vote; optional LLM output is hypothesis-only.
+celltypepilot annotate --input data.h5ad --cluster-key leiden --tissue lung \
+    --native-backends native_backends.json
+
 # 6. Check available reference scoring backends
 celltypepilot backends
 
@@ -135,13 +174,35 @@ celltypepilot convert-rds --input data.rds --output data.h5ad
 celltypepilot benchmark -i benchmark.h5ad --truth-key truth \
     --study-key study --donor-key donor --output benchmark/
 
-# 12. Actually execute CellTypePilot/CellTypist on every isolated fold.
-# SingleR/Azimuth/popV use explicit JSON argv adapters under the same protocol.
+# 12. Execute the hierarchical product and native comparators on isolated folds.
 celltypepilot benchmark-run -i benchmark.h5ad --truth-key truth \
     --study-key study --donor-key donor --cluster-key leiden \
-    --species human --tissue blood --methods celltypepilot,celltypist
+    --species human --tissue blood \
+    --methods celltypepilot,celltypist,popv,singler,scanvi,custom_reference
 
-# 12b. Assemble a public multi-cohort release. Inference is donor-level;
+# 12a. Lock and execute the three depth-domain evidence workflow.
+celltypepilot domain-validation-plan --registry benchmarks/public_v1/registry.json \
+    --output benchmarks/domain_depth_v1
+celltypepilot domain-validation-run \
+    --plan benchmarks/domain_depth_v1/domain_validation_plan.json --domain lung
+
+# 12b. Lock donor-disjoint calibration/evaluation roles before outcome scoring,
+# then audit that fold-isolated candidates address multiple lineages without reading truth.
+celltypepilot calibration-split --registry benchmarks/public_v1/registry.json \
+    --output benchmarks/calibration_v1
+celltypepilot lineage-coverage-audit \
+    --predictions benchmarks/public_v1/runs/travaglini_lung_smartseq2_2020/out_of_fold_predictions.csv \
+    --cluster-map benchmarks/public_v1/runs/travaglini_lung_smartseq2_2020/cluster_map.csv \
+    --domain lung --output benchmarks/acceptance/lung_lineage_coverage_v1
+celltypepilot calibrate-locked-donors \
+    --registry benchmarks/public_v1/registry.json \
+    --assignments benchmarks/calibration_v1/donor_role_assignments.csv \
+    --cohort travaglini_lung_smartseq2_2020 \
+    --predictions benchmarks/acceptance/lung_lineage_coverage_v1/selector_cell_predictions.csv \
+    --label-map benchmarks/public_v1/label_maps/travaglini_lung_smartseq2_2020.csv \
+    --output benchmarks/calibration_v1/travaglini_lung_smartseq2_selector_policy.json
+
+# 12c. Assemble a public multi-cohort release. Inference is donor-level;
 # missing data, comparators, label maps, and diagnostics block claim-ready status.
 celltypepilot benchmark-release \
     --registry benchmarks/public_v1/registry.json \
@@ -152,6 +213,9 @@ celltypepilot calibrate -i calibration.h5ad --truth-key truth \
     --predictions calibration_predictions.csv -o abstention_policy.json
 celltypepilot annotate -i query.h5ad -k leiden -t blood \
     --calibration-policy abstention_policy.json
+
+# 13b. Verify the immutable software-governance freeze shipped with the release.
+celltypepilot governance-freeze-verify
 
 # 14. Add disease context without turning prose into evidence. Structured markers
 # are accepted only through a versioned JSON Context Pack and/or marker CSV.
@@ -321,9 +385,9 @@ reference, evidence, and provenance gates apply as the CLI.
 ```
 CellTypePilot/
 ├── .claude-plugin/
-│   └── plugin.json              ← Claude Code plugin manifest (v0.3.1)
+│   └── plugin.json              ← Claude Code plugin manifest (v0.4.0)
 ├── .codex-plugin/
-│   └── plugin.json              ← Codex plugin manifest (v0.3.1, with interface block)
+│   └── plugin.json              ← Codex plugin manifest (v0.4.0, with interface block)
 ├── skills/
 │   └── celltypepilot/
 │       ├── SKILL.md              ← Shared skill instructions (4-stage workflow)
@@ -401,11 +465,13 @@ identity is not. It never permits a state to rescue or overwrite an abstained id
 state modules currently have aggregate source-level provenance and are exploratory, not a claim
 of calibrated state accuracy. See [`docs/state_lens.md`](docs/state_lens.md).
 
-## Reference Embedding + Ensemble Fusion
+## Backend-neutral candidate generation and hierarchical selection
 
 For continuous differentiation trajectories (stem → progenitor → mature) and rare
 transitional states, pure marker overlap scoring can fail. CellTypePilot addresses this
-with a **dual-engine** architecture:
+with a backend-neutral candidate contract and a separate selective decision layer. Marker scoring
+is evidence-only; the legacy ensemble described below is retained only as a diagnostic artifact
+and never drives final identity:
 
 **Engine 1 — Marker Scorer** (deterministic):
 Wilcoxon DE against the built-in marker knowledge graph. A supporting positive marker
@@ -423,7 +489,8 @@ Projects query cells into a reference embedding space and transfers labels. Four
 | **KNN** | PCA + inverse-distance KNN label transfer | Quick mapping, no model needed | `sklearn` (always available) |
 | **Correlation** | Pearson correlation with reference mean profiles | Lightweight fallback | None (always available) |
 
-**Ensemble Fusion** — Adaptive weighting combines both engines:
+**Legacy diagnostic ensemble** — these historical weights may be emitted for comparison, but
+the hierarchical selector never uses the blended score:
 
 | Marker confidence | Marker weight | Reference weight | Rationale |
 |---|---|---|---|

@@ -8,7 +8,7 @@ from __future__ import annotations
 
 from importlib import import_module
 
-__version__ = "0.3.1"
+__version__ = "0.4.0"
 MKG_VERSION = "mkg-2026.08.1"  # Marker Knowledge Graph version
 
 __all__ = [

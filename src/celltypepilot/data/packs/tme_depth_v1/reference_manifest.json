@@ -1,0 +1,8 @@
+{
+  "schema_version": "celltypepilot.reference-manifest.v1",
+  "reference_included": false,
+  "status": "governed_scope_only",
+  "required_external_references": ["fold_isolated_custom_reference", "fold_isolated_scanvi_reference"],
+  "disallowed_claims": ["malignancy_detection", "treatment_response", "multi_indication_robustness"],
+  "overlap_policy": "Reference-training studies, calibration donors, and evaluation donors must be disclosed and disjoint by role."
+}

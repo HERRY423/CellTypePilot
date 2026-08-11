@@ -135,6 +135,27 @@ def _write_annotations_to_obs(
             strict=True,
         )
     )
+    cluster_to_selective_decision = dict(
+        zip(
+            critic_results["cluster"],
+            critic_results.get("selective_decision", ["abstain"] * len(critic_results)),
+            strict=True,
+        )
+    )
+    cluster_to_backend_count = dict(
+        zip(
+            critic_results["cluster"],
+            critic_results.get("n_independent_backends", [0] * len(critic_results)),
+            strict=True,
+        )
+    )
+    cluster_to_backend_agreement = dict(
+        zip(
+            critic_results["cluster"],
+            critic_results.get("backend_agreement_fraction", [0.0] * len(critic_results)),
+            strict=True,
+        )
+    )
     cluster_to_state_candidate = dict(
         zip(
             critic_results["cluster"],
@@ -191,6 +212,18 @@ def _write_annotations_to_obs(
     adata.obs["ctp_decision"] = cluster_series.map(cluster_to_decision).fillna("abstain")
     adata.obs["ctp_abstain_reason"] = cluster_series.map(cluster_to_reason).fillna(
         "cluster_not_scored"
+    )
+    adata.obs["ctp_selective_decision"] = cluster_series.map(cluster_to_selective_decision).fillna(
+        "abstain"
+    )
+    adata.obs["ctp_independent_backend_count"] = cluster_series.map(
+        cluster_to_backend_count
+    ).fillna(0)
+    adata.obs["ctp_backend_agreement"] = cluster_series.map(cluster_to_backend_agreement).fillna(
+        0.0
+    )
+    adata.obs["ctp_backend_agreement_semantics"] = (
+        "descriptive_top1_agreement_not_calibrated_probability"
     )
     adata.obs["ctp_cell_state_candidate"] = cluster_series.map(cluster_to_state_candidate).fillna(
         "Unknown"
@@ -299,9 +332,12 @@ def run_annotation_pipeline(
     ambient_flag_column: str | None = None,
     doublet_threshold: float | None = 0.25,
     ambient_threshold: float | None = 0.2,
+    candidate_artifact_paths: list[str | Path] | None = None,
+    native_backend_config_path: str | Path | None = None,
+    decision_policy_path: str | Path | None = None,
     progress: ProgressFn = None,
 ) -> dict:
-    """Run marker, optional reference, ensemble, critic, and artifact generation.
+    """Run backend-neutral candidate generation, selective decision, and review.
 
     Returns a result dict with: adata, critic_results, critic_summary,
     manifest, figure_paths, output_path, species, tissue, embedding_key,
@@ -378,7 +414,8 @@ def run_annotation_pipeline(
         raise PipelineError(f"Context safety gate failed: {exc}") from exc
     context_enabled = bool(context_text or context_file_path or custom_markers_path)
 
-    # Step 3: Marker scoring
+    # Step 3: Marker evidence compilation. Marker scores are no longer a
+    # classification backend and cannot independently publish an identity.
     from .critic import generate_critic_summary, run_critic
     from .data_adapter import (
         get_all_markers_for_tissue,
@@ -389,11 +426,9 @@ def run_annotation_pipeline(
     from .ensemble_scorer import (
         analyze_disagreements,
         ensemble_scores,
-        generate_ensemble_summary,
     )
     from .marker_scorer import (
         compute_marker_scores,
-        compute_profile_correlation_scores,
         generate_annotation_summary,
     )
     from .pack_manager import (
@@ -435,6 +470,23 @@ def run_annotation_pipeline(
         active_tissue=atlas_tissue,
         extension_pack_records=extension_pack_records,
     )
+    from .identity_contract import build_identity_resolver
+
+    active_tissues = [atlas_tissue]
+    if atlas_tissue != "general" and "general" in atlas.get("tissues", {}):
+        active_tissues.append("general")
+    active_tissues.extend(
+        tissue_name
+        for tissue_name in identity_contract["pack_identity_contract"].get("include_tissues", [])
+        if tissue_name not in active_tissues
+    )
+    identity_resolver = build_identity_resolver(
+        atlas,
+        active_tissues,
+        identity_contract["pack_identity_contract"],
+    )
+    identity_contract["identity_scope"]["active_tissues"] = active_tissues
+    identity_contract["identity_resolver"] = identity_resolver
     atlas_evidence_summary = summarize_atlas_evidence(atlas, atlas_tissue)
     n_marker_relationships = sum(
         len(info.get("positive_markers", [])) + len(info.get("negative_markers", []))
@@ -444,12 +496,18 @@ def run_annotation_pipeline(
     scores = compute_marker_scores(adata, cluster_key, markers, layer=layer)
     summary = generate_annotation_summary(scores, cluster_key)
 
-    if summary.empty and reference_path is None and model_path is None:
+    if (
+        summary.empty
+        and reference_path is None
+        and model_path is None
+        and not candidate_artifact_paths
+        and native_backend_config_path is None
+    ):
         raise PipelineError("No annotations generated. Check marker gene overlap with your data.")
 
-    # Step 4: Optional reference scoring and ensemble fusion. This is part of
-    # the same artifact-producing pipeline, not a side command.
-    _emit(4, "Computing optional reference and ensemble scores...")
+    # Step 4: Candidate generation. Legacy marker/reference ensembles may be
+    # retained as diagnostics, but never drive the final selective decision.
+    _emit(4, "Normalizing candidate backends and selecting hierarchically...")
     ref_scores = pd.DataFrame()
     ensemble_df = pd.DataFrame()
     transitions = pd.DataFrame()
@@ -488,24 +546,82 @@ def run_annotation_pipeline(
             marker_weight=marker_weight,
             adaptive=True,
         )
-        ensemble_summary = generate_ensemble_summary(ensemble_df)
-        summary = _merge_ensemble_annotation_evidence(ensemble_summary, scores, markers)
         transitions = detect_transitional_states(ref_scores, scores)
         disagreements = analyze_disagreements(ensemble_df)
-    elif not no_ensemble and not scores.empty:
-        # Internal multi-method consensus voting (zero external reference required)
-        internal_ref_scores = compute_profile_correlation_scores(
-            adata, cluster_key, markers, layer=layer
+
+    from .candidate_backends import (
+        CandidateContractError,
+        concatenate_candidates,
+        load_candidate_artifacts,
+        marker_scores_as_evidence,
+        reference_scores_as_candidates,
+    )
+    from .hierarchical_selector import (
+        SelectiveDecisionError,
+        attach_marker_evidence,
+        build_selector_manifest,
+        select_hierarchical_identities,
+    )
+
+    decision_policy = None
+    decision_policy_hash = None
+    native_backend_config = None
+    native_backend_run = None
+    native_backend_candidates = pd.DataFrame()
+    if native_backend_config_path is not None:
+        from .native_backend_config import NativeBackendConfigError, load_native_backend_config
+        from .native_backends import NativeBackendRunError, run_native_backends
+
+        try:
+            native_backend_config = load_native_backend_config(native_backend_config_path)
+            native_backend_run = run_native_backends(
+                adata,
+                cluster_key,
+                scores,
+                identity_resolver,
+                output_path,
+                native_backend_config,
+                species=species,
+                tissue=tissue,
+                input_sha256=data_hash,
+            )
+            native_backend_candidates = native_backend_run["candidates"]
+        except (NativeBackendConfigError, NativeBackendRunError) as exc:
+            raise PipelineError(f"Native backend safety gate failed: {exc}") from exc
+    if decision_policy_path is not None:
+        policy_path = Path(decision_policy_path)
+        if not policy_path.exists():
+            raise PipelineError(f"Selective decision policy not found: {policy_path}")
+        try:
+            decision_policy = json.loads(policy_path.read_text(encoding="utf-8"))
+        except json.JSONDecodeError as exc:
+            raise PipelineError(f"Invalid selective decision policy JSON: {exc}") from exc
+        decision_policy_hash = compute_data_hash(policy_path)
+
+    try:
+        imported_candidates = load_candidate_artifacts(
+            candidate_artifact_paths or [],
+            identity_resolver,
+            adata.obs[cluster_key],
         )
-        ensemble_df = ensemble_scores(
-            scores,
-            internal_ref_scores,
-            marker_weight=marker_weight,
-            adaptive=True,
+        backend_candidates = concatenate_candidates(
+            [
+                marker_scores_as_evidence(scores, identity_resolver),
+                reference_scores_as_candidates(ref_scores, identity_resolver),
+                native_backend_candidates,
+                imported_candidates,
+            ]
         )
-        ensemble_summary = generate_ensemble_summary(ensemble_df)
-        summary = _merge_ensemble_annotation_evidence(ensemble_summary, scores, markers)
-        disagreements = analyze_disagreements(ensemble_df)
+        hierarchical_decisions = select_hierarchical_identities(
+            backend_candidates,
+            identity_resolver,
+            adata.obs[cluster_key].astype(str).unique(),
+            decision_policy,
+        )
+        summary = attach_marker_evidence(hierarchical_decisions, scores, identity_resolver)
+        selector_manifest = build_selector_manifest(hierarchical_decisions, decision_policy)
+    except (CandidateContractError, SelectiveDecisionError) as exc:
+        raise PipelineError(f"Backend candidate safety gate failed: {exc}") from exc
 
     # Step 5: Critic
     _emit(5, "Running Annotation Critic...")
@@ -515,11 +631,14 @@ def run_annotation_pipeline(
         summary,
         atlas,
         atlas_tissue,
-        ensemble_info=ensemble_df if not ensemble_df.empty else None,
+        ensemble_info=None,
         layer=layer,
         evidence_policy=marker_evidence_policy,
         marker_definitions=markers,
     )
+    from .hierarchical_selector import enforce_selective_decisions
+
+    critic_results = enforce_selective_decisions(critic_results, hierarchical_decisions)
     calibration_policy = None
     calibration_policy_hash = None
     if calibration_policy_path is not None:
@@ -635,6 +754,7 @@ def run_annotation_pipeline(
     # Step 8: Save all outputs and hash them into one manifest.
     from .provenance import create_manifest, save_manifest, update_manifest_outputs
     from .reporter import generate_html_report, generate_methodology_text, save_evidence_table
+    from .validation_domains import assess_validation_domain
 
     _emit(8, "Saving outputs...")
 
@@ -649,6 +769,14 @@ def run_annotation_pipeline(
 
     auxiliary_paths = dict(agent_evidence_paths)
     auxiliary_paths["identity_contract"] = _write_identity_contract(output_path, identity_contract)
+    candidate_path = output_path / "backend_candidates.csv"
+    backend_candidates.to_csv(candidate_path, index=False)
+    auxiliary_paths["backend_candidates"] = candidate_path
+    decisions_path = output_path / "hierarchical_decisions.csv"
+    hierarchical_decisions.to_csv(decisions_path, index=False)
+    auxiliary_paths["hierarchical_decisions"] = decisions_path
+    if native_backend_run is not None:
+        auxiliary_paths["native_backend_status"] = native_backend_run["status_path"]
     novelty_path = output_path / "novelty_results.csv"
     novelty_results.to_csv(novelty_path, index=False)
     auxiliary_paths["novelty"] = novelty_path
@@ -678,6 +806,11 @@ def run_annotation_pipeline(
             "model_path": model_path,
             "reference_backend": reference_backend if uses_reference else None,
             "marker_weight": marker_weight if uses_reference and not no_ensemble else None,
+            "legacy_ensemble_role": (
+                "diagnostic_only_not_identity_decision"
+                if uses_reference and not no_ensemble
+                else "not_generated"
+            ),
             "no_ensemble": no_ensemble if uses_reference else None,
             "reference_sha256": reference_hash,
             "model_sha256": model_hash,
@@ -690,9 +823,9 @@ def run_annotation_pipeline(
             "marker_expression_fraction_min": MARKER_PCT_THRESHOLD,
             "pipeline_stages": [
                 "context",
-                "marker",
-                "reference" if uses_reference else "reference_skipped",
-                "ensemble" if uses_reference and not no_ensemble else "ensemble_skipped",
+                "marker_evidence_compilation",
+                "candidate_backends",
+                "hierarchical_selective_decision",
                 "critic",
                 "state" if enable_states else "state_skipped",
                 "novelty_ood",
@@ -706,6 +839,32 @@ def run_annotation_pipeline(
             "marker_provenance_validation": "passed",
             "marker_evidence_policy": marker_evidence_policy,
             "marker_evidence_summary": atlas_evidence_summary,
+            "candidate_artifacts": [str(Path(path)) for path in candidate_artifact_paths or []],
+            "candidate_artifact_sha256": {
+                str(Path(path)): compute_data_hash(path) for path in candidate_artifact_paths or []
+            },
+            "native_backend_config_path": (
+                str(native_backend_config_path) if native_backend_config_path is not None else None
+            ),
+            "native_backend_config_sha256": (
+                native_backend_run["config_sha256"] if native_backend_run is not None else None
+            ),
+            "native_backend_dependency_sha256": (
+                native_backend_run["dependency_sha256"] if native_backend_run is not None else None
+            ),
+            "native_backend_status": (
+                native_backend_run["status"].to_dict(orient="records")
+                if native_backend_run is not None
+                else None
+            ),
+            "native_backend_metadata": (
+                native_backend_run["backend_metadata"] if native_backend_run is not None else None
+            ),
+            "hierarchical_selector": selector_manifest,
+            "decision_policy_path": (
+                str(decision_policy_path) if decision_policy_path is not None else None
+            ),
+            "decision_policy_sha256": decision_policy_hash,
             "gene_identity_contract": identity_contract["gene_identity"],
             "atlas_tissue": atlas_tissue,
             **context_manifest_parameters(context_pack, context_enabled),
@@ -723,6 +882,7 @@ def run_annotation_pipeline(
                 uses_reference=uses_reference,
             ),
             "validation_scope": validation_scope,
+            "validation_domain": assess_validation_domain(atlas_tissue, packs),
         },
         output_dir=output_path,
     )

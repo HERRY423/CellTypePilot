@@ -1,0 +1,121 @@
+{
+  "schema_version": "celltypepilot.validation-domains.v1",
+  "strategy": "three_depth_validated_domains_not_broad_atlas_claims",
+  "domains": {
+    "lung": {
+      "display_name": "Lung homeostasis and injury",
+      "atlas_contract": {
+        "status": "scope_complete_evidence_not_claim_ready",
+        "required_packs": ["lung_evidence_v0_1"],
+        "required_lineages": ["epithelial", "vascular", "stromal", "immune"],
+        "minimum_observed_lineages": 4
+      },
+      "status": "evidence_required",
+      "claim_ready": false,
+      "required_candidate_backends": ["celltypist", "popv", "singler", "scanvi", "custom_reference"],
+      "optional_hypothesis_backends": ["llm"],
+      "minimum_evidence": {
+        "independent_public_cohorts": 3,
+        "independent_studies": 3,
+        "donors": 12,
+        "platform_families": 2,
+        "external_heldout_cohort": true,
+        "expert_adjudication": true,
+        "separate_calibration_cohort": true
+      },
+      "required_validation_axes": [
+        "study_and_donor_holdout",
+        "platform_transport",
+        "healthy_to_injury_shift",
+        "ontology_hierarchy_error",
+        "coverage_selective_risk_curve",
+        "abstention_reason_audit",
+        "rare_cell_and_doublet_sensitivity"
+      ],
+      "current_blockers": [
+        "MULTI_STUDY_RELEASE_NOT_COMPLETE",
+        "SEPARATE_CALIBRATION_NOT_COMPLETE",
+        "EXPERT_ADJUDICATION_NOT_COMPLETE"
+      ],
+      "claim_boundary": "Current lung outputs are draft evidence artifacts, not validated clinical or biological labels."
+    },
+    "gut_ibd": {
+      "display_name": "Gut and inflammatory bowel disease",
+      "atlas_contract": {
+        "status": "scope_complete_evidence_not_claim_ready",
+        "required_packs": ["premium", "gut_ibd_depth_v1"],
+        "required_lineages": ["epithelial", "stromal", "myeloid", "lymphoid"],
+        "minimum_observed_lineages": 4
+      },
+      "status": "evidence_required",
+      "claim_ready": false,
+      "required_candidate_backends": ["celltypist", "popv", "singler", "scanvi", "custom_reference"],
+      "optional_hypothesis_backends": ["llm"],
+      "minimum_evidence": {
+        "independent_public_cohorts": 3,
+        "independent_studies": 3,
+        "donors": 15,
+        "platform_families": 2,
+        "external_heldout_cohort": true,
+        "expert_adjudication": true,
+        "separate_calibration_cohort": true
+      },
+      "required_validation_axes": [
+        "study_and_donor_holdout",
+        "anatomic_region_transport",
+        "healthy_to_ibd_shift",
+        "epithelial_and_immune_hierarchy_error",
+        "coverage_selective_risk_curve",
+        "abstention_reason_audit",
+        "treatment_and_inflammation_state_separation"
+      ],
+      "current_blockers": [
+        "EDGE_LEVEL_EVIDENCE_REVIEW_NOT_COMPLETE",
+        "LOCKED_MULTI_STUDY_BENCHMARK_NOT_COMPLETE",
+        "SEPARATE_CALIBRATION_NOT_COMPLETE",
+        "EXPERT_ADJUDICATION_NOT_COMPLETE"
+      ],
+      "claim_boundary": "Gut/IBD is a validation focus, not a claim of disease-state annotation accuracy."
+    },
+    "tumor_microenvironment": {
+      "display_name": "Tumor microenvironment",
+      "atlas_contract": {
+        "status": "scope_complete_evidence_not_claim_ready",
+        "required_packs": ["premium", "tme_depth_v1"],
+        "required_lineages": ["malignant_or_epithelial", "vascular", "stromal", "immune"],
+        "minimum_observed_lineages": 4
+      },
+      "status": "evidence_required",
+      "claim_ready": false,
+      "required_candidate_backends": ["celltypist", "popv", "singler", "scanvi", "custom_reference"],
+      "optional_hypothesis_backends": ["llm"],
+      "minimum_evidence": {
+        "independent_public_cohorts": 4,
+        "independent_studies": 4,
+        "donors": 20,
+        "cancer_indications": 2,
+        "platform_families": 2,
+        "external_heldout_cohort": true,
+        "expert_adjudication": true,
+        "separate_calibration_cohort": true
+      },
+      "required_validation_axes": [
+        "study_donor_and_indication_holdout",
+        "malignant_vs_nonmalignant_boundary",
+        "immune_myeloid_stromal_hierarchy_error",
+        "coverage_selective_risk_curve",
+        "abstention_reason_audit",
+        "doublet_ambient_and_low_quality_stress_tests",
+        "identity_state_novelty_axis_invariance"
+      ],
+      "current_blockers": [
+        "DOMAIN_REFERENCE_VALIDATION_NOT_COMPLETE",
+        "LOCKED_MULTI_INDICATION_BENCHMARK_NOT_COMPLETE",
+        "MALIGNANCY_VALIDATION_NOT_COMPLETE",
+        "SEPARATE_CALIBRATION_NOT_COMPLETE",
+        "EXPERT_ADJUDICATION_NOT_COMPLETE"
+      ],
+      "claim_boundary": "TME candidates cannot establish malignancy, treatment response, or novel biology without orthogonal validation and human sign-off."
+    }
+  }
+}

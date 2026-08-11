@@ -1,0 +1,29 @@
+{
+  "schema_version": "celltypepilot.pack.v1",
+  "name": "tme_depth_v1",
+  "version": "tme-depth-1.0.0",
+  "description": "Governed identity scope for the tumor-microenvironment depth-validation domain",
+  "species": ["human"],
+  "tissues": ["tumor_microenvironment"],
+  "diseases": ["cancer"],
+  "pack_kind": "scope",
+  "license": "MIT",
+  "license_tier": "community",
+  "trust": "atlas",
+  "release_status": "scope_complete_evidence_not_claim_ready",
+  "files": ["ontology_map.json", "reference_manifest.json"],
+  "runtime_gates": [
+    "gene_identity_contract",
+    "backend_candidate_contract",
+    "hierarchical_selection",
+    "marker_evidence",
+    "critic",
+    "abstention",
+    "novelty_review",
+    "human_review"
+  ],
+  "provenance": {
+    "curation_policy": "composition of bundled TME, blood, general, inflamed, and immune-activation scopes without duplicating marker edges",
+    "benchmark_leakage_policy": "ontology mappings are frozen before outcome scoring"
+  }
+}

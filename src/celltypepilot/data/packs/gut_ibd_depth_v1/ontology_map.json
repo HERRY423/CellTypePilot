@@ -1,0 +1,22 @@
+{
+  "schema_version": "celltypepilot.ontology-map.v1",
+  "include_tissues": ["general", "blood", "inflamed_tissue", "immune_activation"],
+  "aliases": {
+    "colon epithelial cell": "Epithelial cell",
+    "T cell of anorectum": "T cell",
+    "myeloid cell": "Myeloid cell",
+    "stromal cell of lamina propria of colon": "Fibroblast",
+    "CD8-alpha-beta-positive, alpha-beta intraepithelial T cell": "CD8+ T cell",
+    "CD4-positive, alpha-beta memory T cell": "Memory CD4+ T cell",
+    "activated CD4-positive, alpha-beta T cell": "Activated CD4+ T cell",
+    "follicular B cell": "B cell",
+    "intestinal crypt stem cell": "Stem cell"
+  },
+  "safe_parent_fallbacks": {
+    "transit amplifying cell of colon": "Stem cell",
+    "intestinal tuft cell": "Epithelial cell",
+    "M cell of gut": "Epithelial cell",
+    "innate lymphoid cell": "Lymphocyte"
+  },
+  "claim_boundary": "Mappings only harmonize identity resolution. They do not validate disease-state accuracy or permit state labels to overwrite identity."
+}

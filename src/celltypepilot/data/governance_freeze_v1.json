@@ -1,0 +1,158 @@
+{
+  "schema_version": "celltypepilot.governance-freeze.v1",
+  "release_id": "celltypepilot-v0.4.0",
+  "files": [
+    {
+      "path": "src/celltypepilot/calibration.py",
+      "size": 13337,
+      "sha256": "1cfa08da58c6b03ff1e6028c1b5d702b97b88578051519fb6b40b4ebfb2ef338"
+    },
+    {
+      "path": "src/celltypepilot/calibration_split.py",
+      "size": 13601,
+      "sha256": "3270edbb49f3660202a446f145bf2d4d51344c711be0e66ae1bdf1b8b526f5dc"
+    },
+    {
+      "path": "src/celltypepilot/candidate_backends.py",
+      "size": 13127,
+      "sha256": "5b6120dd9803dbe36ea28da0685253b11d0deb1d5151f864e992932b1db20233"
+    },
+    {
+      "path": "src/celltypepilot/critic.py",
+      "size": 33266,
+      "sha256": "13faf74d8d8c0373d4d845f2eb47fd9e3d4b23417b2b00a8b08c8e4991daca78"
+    },
+    {
+      "path": "src/celltypepilot/data/marker_atlas.json",
+      "size": 834184,
+      "sha256": "2aaaab14fc15b5811332baf697a575ac41122d7fb9a4e6f32ea1ed12875449b3"
+    },
+    {
+      "path": "src/celltypepilot/data/packs/gut_ibd_depth_v1/ontology_map.json",
+      "size": 1018,
+      "sha256": "0eb6c9762285f0f4f607953cb3c154d8b5e223c5cb1dff338d57f9dc285a80b5"
+    },
+    {
+      "path": "src/celltypepilot/data/packs/gut_ibd_depth_v1/pack.json",
+      "size": 986,
+      "sha256": "89d712fbedb47cb3f141c319907811e3f5d758e83ed7d6c43ad1ab257a639858"
+    },
+    {
+      "path": "src/celltypepilot/data/packs/gut_ibd_depth_v1/reference_manifest.json",
+      "size": 445,
+      "sha256": "e79bba8098ec1a9c6c86f72f97ac207007396d63e312596c050985e762d6a6fe"
+    },
+    {
+      "path": "src/celltypepilot/data/packs/lung_evidence_v0_1/marker_atlas.json",
+      "size": 9852,
+      "sha256": "f6539e227987d1faf10823e561bff10f290fa7c7e3ace4a21704df7558a212e6"
+    },
+    {
+      "path": "src/celltypepilot/data/packs/lung_evidence_v0_1/ontology_map.json",
+      "size": 1131,
+      "sha256": "233c8bf42f8611191ffc2ae67cc41a9ed86ee1eacad7b3a3480602eb243c8285"
+    },
+    {
+      "path": "src/celltypepilot/data/packs/lung_evidence_v0_1/pack.json",
+      "size": 897,
+      "sha256": "64245fcc47560c6f0a88cb7512b37ecc40a01f49f93783e055ea40f06d11e75e"
+    },
+    {
+      "path": "src/celltypepilot/data/packs/lung_evidence_v0_1/reference_manifest.json",
+      "size": 453,
+      "sha256": "b2c90292b4e984f0b322e20514afee72bc21c4250d78d27fbb0c9728e2c5cc11"
+    },
+    {
+      "path": "src/celltypepilot/data/packs/premium/marker_atlas.json",
+      "size": 170227,
+      "sha256": "dc62461805dcc99aab257ba256e68e2b6034e5642d23bc7f12b4f124acadb81a"
+    },
+    {
+      "path": "src/celltypepilot/data/packs/premium/pack.json",
+      "size": 473,
+      "sha256": "f310fd5439297cbc033db72059d35e462e9c813d7bbfde3141eef6a001bad797"
+    },
+    {
+      "path": "src/celltypepilot/data/packs/tme_depth_v1/ontology_map.json",
+      "size": 793,
+      "sha256": "cd5cf521863ecae69d6af12edb166cf6be92b0212c2a67f5d847fb26cc2130d2"
+    },
+    {
+      "path": "src/celltypepilot/data/packs/tme_depth_v1/pack.json",
+      "size": 982,
+      "sha256": "357b3d94e321eba2125aa7486111b90950c1f25b0903f8232aaf792bfa130884"
+    },
+    {
+      "path": "src/celltypepilot/data/packs/tme_depth_v1/reference_manifest.json",
+      "size": 467,
+      "sha256": "97b99bb3966956c39b9ec57b9c11d07a89fbebee63f6cd5d5b20b4b4ae7810da"
+    },
+    {
+      "path": "src/celltypepilot/data/state_atlas.json",
+      "size": 43503,
+      "sha256": "f3af1ae5a92dcb2e54bd09c0c50122dd16ad4959e8bcfd55cf8962428fd0c42d"
+    },
+    {
+      "path": "src/celltypepilot/data/validation_domains.json",
+      "size": 4814,
+      "sha256": "b5efb42cfc1d11b90f66614824027704da0587d61fdc35093a38b21d7cd8da79"
+    },
+    {
+      "path": "src/celltypepilot/hierarchical_selector.py",
+      "size": 12051,
+      "sha256": "5d14cead0f72769b2cf18cf208e922897c6c030c2cb11634e15392eae1b9e8fe"
+    },
+    {
+      "path": "src/celltypepilot/identity_contract.py",
+      "size": 15979,
+      "sha256": "53b252b12333ac82e85b0d425dead71eb90c2cd5b9cdff1737227b833846df5a"
+    },
+    {
+      "path": "src/celltypepilot/lineage_coverage.py",
+      "size": 9756,
+      "sha256": "c35fe5efccd4b9378c25f5e0dea29807be64e359b5bba711ca6260d9037348ae"
+    },
+    {
+      "path": "src/celltypepilot/novelty_detector.py",
+      "size": 13038,
+      "sha256": "a25856085ea7b5074160c36a2427dc6253ca769912e16eea5a77746fa6af2d6e"
+    },
+    {
+      "path": "src/celltypepilot/pack_manager.py",
+      "size": 25322,
+      "sha256": "67eb877aa4a64b601f4332c6c0f75c9b47861c9ba699612f283f7522d65c8cf6"
+    },
+    {
+      "path": "src/celltypepilot/state_scorer.py",
+      "size": 16032,
+      "sha256": "aef926461e52dfa43aa6117ebf75165f116bab55c84cde733bcbb614999987e4"
+    },
+    {
+      "path": "src/celltypepilot/validation_domains.py",
+      "size": 4582,
+      "sha256": "f1bc0a888328b9f4bb8a9567a82f5c3e6a4e6d9c45d91c5ad1b8f6585313cf7f"
+    }
+  ],
+  "frozen_invariants": {
+    "marker_scorer_role": "evidence_only_not_candidate_vote",
+    "candidate_decision_backends": [
+      "celltypist",
+      "popv",
+      "singler",
+      "scanvi",
+      "custom_reference"
+    ],
+    "llm_role": "hypothesis_only_by_default",
+    "minimum_independent_backend_groups": 2,
+    "selector_outputs": [
+      "accepted_leaf",
+      "accepted_ancestor",
+      "abstain"
+    ],
+    "calibration_effect": "downgrade_only",
+    "identity_state_novelty": "independent_axes",
+    "human_signoff": "required"
+  },
+  "claim_boundary": "This freezes software governance and content hashes. It does not freeze or establish biological accuracy, selective-risk calibration, or domain validation.",
+  "freeze_sha256": "398f5144ff66741595001b6ed265bef5726f1b93c81c442460f855a3f0813b24"
+}

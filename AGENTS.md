@@ -104,10 +104,20 @@ celltypepilot annotate \
   --embedding-key <key> \
   [--context <text>] \
   [--context-file <context.json>] \
-  [--custom-markers <markers.csv>]
+  [--custom-markers <markers.csv>] \
+  [--candidate-table <celltypist.csv>] \
+  [--candidate-table <popv.csv>] \
+  [--native-backends <celltypepilot.native-backends.v1.json>]
 ```
 
+`--native-backends` executes governed CellTypist, popV, SingleR, scANVI,
+custom-reference, and optional LLM candidate runners inside ordinary annotation.
+Backend failures remain explicit and contribute no vote. popV/scANVI require raw
+counts; LLM requires explicit network opt-in and remains `hypothesis_only`.
+
 This produces:
+- `backend_candidates.csv` — normalized CellTypist/popV/SingleR/scANVI/custom-reference/LLM candidates plus evidence-only marker rows
+- `hierarchical_decisions.csv` — accepted leaf/ancestor or fail-closed candidate-set/abstain decisions
 - `data.annotated.h5ad` — AnnData with separate identity and state fields, candidate, decision, abstain reason, CL ID, and confidence in obs
 - `evidence_table.csv` — per-cluster evidence: scores, score semantics, markers, critic flags, confidence, uncertainty-language fields
 - `contrastive_evidence.csv` — top-two candidate contrast using the existing ranking; shared/unique support, gaps, conflicts, and provenance without reranking
@@ -163,6 +173,7 @@ Useful when the critic flags a cluster and you want additional validation.
 | `celltypepilot annotate -i <path> -k <key>` | Full annotation pipeline |
 | `celltypepilot benchmark ... --evaluation-unit cell\|cluster\|both` | Lock/evaluate independent holdouts with separate cell and cluster endpoints |
 | `celltypepilot benchmark-run ... --evaluation-unit cell\|cluster\|both` | Execute fold-isolated comparators without blending evaluation units |
+| `celltypepilot domain-validation-plan/run` | Lock and execute resumable lung, gut/IBD, and TME evidence workflows |
 | `celltypepilot calibrate ...` | Fit a downgrade-only abstention policy on a separate calibration dataset |
 | `celltypepilot critic -i <path> -k <key> -f <cluster>` | Deep-review a specific cluster |
 | `celltypepilot markers -t <tissue>` | List available cell types and markers |
@@ -232,6 +243,9 @@ Bundled extended atlas (historical directory name `premium`, MIT-licensed and op
 12. **Detection ≠ support** — detecting a species, tissue, or batch axis helps the Agent host route the workflow; it does not authorize unsupported atlas scoring or robustness claims
 13. **Agent-native but deterministic** — MCP tools expose bounded CellTypePilot operations; do not add autonomous planning or self-directed biological claims
 14. **Review auditability** — manual Web Review edits must leave an append-only audit trail and mark derived artifacts stale after write-back
+15. **Backend-neutral identity** — CellTypist, popV, SingleR, scANVI, custom references, and optional LLMs generate candidates under one contract; marker scoring is evidence-only and cannot independently accept identity
+16. **Hierarchical selective decision** — default leaf acceptance requires two independent backend groups; sibling disagreement may collapse only to a governed ancestor, otherwise write `Unknown`; backend agreement is not a calibrated probability
+17. **Three depth-validation domains** — concentrate claim-building on lung, gut/IBD, and tumor microenvironment; broader Atlas coverage is exploratory until domain-specific locked evidence gates pass
 
 ## Project layout
 
@@ -264,6 +278,9 @@ celltypepilot/
 │   │   └── state_atlas.json     # Versioned exploratory cell-state modules
 │   ├── templates/               # Jinja2 templates (HTML report, web dashboard)
 │   ├── marker_scorer.py         # DE + marker overlap scoring
+│   ├── candidate_backends.py    # Backend-neutral candidate normalization and role policy
+│   ├── hierarchical_selector.py # Ontology-aware selective identity decisions
+│   ├── validation_domains.py    # Three-domain focus and claim-readiness boundary
 │   ├── reference_scorer.py      # Reference embedding scoring (4 backends)
 │   ├── ensemble_scorer.py       # Adaptive ensemble fusion
 │   ├── pack_manager.py          # Extension pack install/validate/merge (data-only)

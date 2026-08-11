@@ -41,18 +41,21 @@ def check_python() -> tuple[bool, str]:
     return ok, version_str
 
 
-def check_dependency(name: str, required: bool = True, import_name: str | None = None) -> DependencyStatus:
+def check_dependency(
+    name: str, required: bool = True, import_name: str | None = None
+) -> DependencyStatus:
     """Check if a Python package is installed."""
     mod_name = import_name or name.replace("-", "_")
     # Common mappings where PyPI / package metadata differs from import module name
     pkg_meta_name = name.replace("_", "-")
     meta_names_to_try = [name, pkg_meta_name]
-    
+
     version = ""
     installed = False
-    
+
     # 1. Try importlib.metadata
     from importlib.metadata import version as pkg_version
+
     for mname in meta_names_to_try:
         try:
             version = pkg_version(mname)
@@ -60,7 +63,7 @@ def check_dependency(name: str, required: bool = True, import_name: str | None =
             break
         except Exception:
             pass
-            
+
     # 2. Try importing module if metadata failed or import module differs (e.g. scvi)
     if not installed or import_name:
         try:
