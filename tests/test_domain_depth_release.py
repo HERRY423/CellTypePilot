@@ -138,3 +138,24 @@ def test_governance_freeze_detects_tampering(tmp_path):
     target.write_text(target.read_text(encoding="utf-8") + "\n", encoding="utf-8")
     with pytest.raises(GovernanceFreezeError, match="changed after freeze"):
         verify_governance_freeze(freeze, root=copied_root)
+
+
+def test_governance_freeze_is_cross_platform_line_ending_stable(tmp_path):
+    source_root = REPO_ROOT
+    copied_root = tmp_path / "repo"
+    for source in governed_paths(source_root):
+        destination = copied_root / source.relative_to(source_root)
+        destination.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copy2(source, destination)
+
+    target = copied_root / "src/celltypepilot/pack_manager.py"
+    lf_content = target.read_bytes().replace(b"\r\n", b"\n").replace(b"\r", b"\n")
+    target.write_bytes(lf_content)
+    freeze = copied_root / "freeze.json"
+    payload = build_governance_freeze(freeze, root=copied_root, release_id="cross-platform-test")
+
+    target.write_bytes(lf_content.replace(b"\n", b"\r\n"))
+    verified = verify_governance_freeze(freeze, root=copied_root)
+
+    assert payload["hash_semantics"] == "utf8_text_lf_v1"
+    assert verified["status"] == "verified"

@@ -1,6 +1,6 @@
 {
   "name": "celltypepilot",
-  "version": "0.4.0",
+  "version": "0.4.1",
   "description": "Single-cell annotation review plugin — governed context, independent state evidence, conservative abstention, and critic checks.",
   "author": {
     "name": "HERRY423"

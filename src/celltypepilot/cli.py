@@ -1420,7 +1420,7 @@ def calibration_split(
 @app.command("governance-freeze-verify")
 def governance_freeze_verify(
     freeze: Path = typer.Option(
-        Path(__file__).parent / "data" / "governance_freeze_v1.json",
+        Path(__file__).parent / "data" / "governance_freeze_v2.json",
         "--freeze",
         help="Frozen governance manifest",
     ),

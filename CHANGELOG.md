@@ -4,6 +4,20 @@ All notable changes to CellTypePilot are documented here. The project follows
 [Semantic Versioning](https://semver.org/). Release claims remain bounded by the
 validation scope recorded in the repository and generated manifests.
 
+## [0.4.1] - 2026-08-11
+
+### Fixed
+
+- Governance-freeze schema v2 hashes governed UTF-8 text after LF normalization, so the same
+  semantic release verifies across Windows source trees and Linux-built wheels.
+- Release smoke tests now assert that imports resolve inside the fresh release virtual environment
+  and run governance verification from outside the repository checkout.
+
+### Validation boundary
+
+- This patch changes cross-platform integrity verification only. It does not change candidate
+  selection, Atlas content, calibration evidence, benchmark results, or biological claims.
+
 ## [0.4.0] - 2026-08-11
 
 ### Added
@@ -79,6 +93,7 @@ validation scope recorded in the repository and generated manifests.
 - It does not establish biological superiority over CellTypist, SingleR, Azimuth, popV, or expert review.
 - A qualified human remains responsible for final annotations and biological claims.
 
+[0.4.1]: https://github.com/HERRY423/CellTypePilot/releases/tag/v0.4.1
 [0.4.0]: https://github.com/HERRY423/CellTypePilot/releases/tag/v0.4.0
 [0.3.1]: https://github.com/HERRY423/CellTypePilot/releases/tag/v0.3.1
 [0.3.0]: https://github.com/HERRY423/CellTypePilot/releases/tag/v0.3.0
