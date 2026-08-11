@@ -4,6 +4,35 @@ All notable changes to CellTypePilot are documented here. The project follows
 [Semantic Versioning](https://semver.org/). Release claims remain bounded by the
 validation scope recorded in the repository and generated manifests.
 
+## [0.4.0] - 2026-08-11
+
+### Added
+
+- Backend-neutral candidate artifacts and an ontology-aware selective decision layer for
+  CellTypist, popV, SingleR, scANVI, custom references, and optional hypothesis-only LLM review.
+- Native, resumable runners for those backends in ordinary `annotate`, with truth stripping and
+  fold-local reuse in public benchmarks.
+- Three depth-domain Atlas contracts for lung, gut/IBD, and tumor microenvironment, including
+  governed scope packs and explicit evidence/claim boundaries.
+- Outcome-blind donor-role locking for downgrade-only calibration and truth-free multi-lineage
+  coverage audits.
+- A hash-verified governance freeze spanning decision code, Atlas content, state/novelty policy,
+  calibration policy, and domain contracts.
+
+### Changed
+
+- The marker scorer is evidence-only and no longer serves as the primary identity classifier when
+  backend-neutral candidates are configured.
+- Domain validation uses fold-isolated native backends, separate cell/cluster endpoints, atomic
+  checkpoints, and retained unavailable/failed method statuses.
+
+### Validation boundary
+
+- The software release and lung multi-lineage addressability audit do not establish annotation
+  accuracy, calibrated selective risk, independent-cohort calibration, or domain validation.
+- Three-domain and five-cohort evidence claims remain fail-closed until their locked minimum cohort,
+  runtime, calibration, expert-adjudication, and robustness requirements are satisfied.
+
 ## [0.3.1] - 2026-08-10
 
 ### Fixed
@@ -50,5 +79,6 @@ validation scope recorded in the repository and generated manifests.
 - It does not establish biological superiority over CellTypist, SingleR, Azimuth, popV, or expert review.
 - A qualified human remains responsible for final annotations and biological claims.
 
+[0.4.0]: https://github.com/HERRY423/CellTypePilot/releases/tag/v0.4.0
 [0.3.1]: https://github.com/HERRY423/CellTypePilot/releases/tag/v0.3.1
 [0.3.0]: https://github.com/HERRY423/CellTypePilot/releases/tag/v0.3.0

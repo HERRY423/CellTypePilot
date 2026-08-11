@@ -125,8 +125,12 @@ def annotate(
     backend: str = typer.Option(
         "auto", "--backend", "-b", help="Reference backend: auto/celltypist/scanvi/knn/correlation"
     ),
-    marker_weight: float = typer.Option(0.5, "--marker-weight", help="Marker ensemble weight"),
-    no_ensemble: bool = typer.Option(False, "--no-ensemble", help="Use reference scores only"),
+    marker_weight: float = typer.Option(
+        0.5, "--marker-weight", help="Legacy diagnostic ensemble weight; never drives identity"
+    ),
+    no_ensemble: bool = typer.Option(
+        False, "--no-ensemble", help="Skip the legacy diagnostic marker/reference ensemble"
+    ),
     allow_unverified_reference: bool = typer.Option(
         False,
         "--allow-unverified-reference",
@@ -189,8 +193,29 @@ def annotate(
     ambient_flag_column: str | None = typer.Option(
         None, "--ambient-flag-column", help="Optional boolean/class column in --ambient-table"
     ),
+    candidate_table: list[Path] = typer.Option(
+        [],
+        "--candidate-table",
+        help=(
+            "Repeatable CSV/JSON from CellTypist, popV, SingleR, scANVI, "
+            "custom_reference, or optional LLM"
+        ),
+    ),
+    native_backends: Path | None = typer.Option(
+        None,
+        "--native-backends",
+        help=(
+            "celltypepilot.native-backends.v1 JSON; executes configured CellTypist, "
+            "popV, SingleR, scANVI, custom-reference, and opt-in LLM runners"
+        ),
+    ),
+    decision_policy: Path | None = typer.Option(
+        None,
+        "--decision-policy",
+        help="Optional hierarchical selective-decision policy JSON; not a calibration artifact",
+    ),
 ):
-    """Run the full annotation pipeline: marker scoring → critic → report."""
+    """Run candidate backends -> hierarchical selection -> critic -> report."""
     from .orchestrator import PipelineError, run_annotation_pipeline
 
     def _progress(step: int, total: int, message: str):
@@ -226,6 +251,9 @@ def annotate(
             ambient_score_column=ambient_score_column,
             doublet_flag_column=doublet_flag_column,
             ambient_flag_column=ambient_flag_column,
+            candidate_artifact_paths=[str(path) for path in candidate_table] or None,
+            native_backend_config_path=native_backends,
+            decision_policy_path=decision_policy,
             progress=_progress,
         )
     except PipelineError as e:
@@ -1075,11 +1103,11 @@ def annotate_embedding(
     ),
     json_output: bool = typer.Option(False, "--json", help="Output as JSON"),
 ):
-    """Annotate using reference embedding + marker ensemble.
+    """Compatibility wrapper for one in-process reference candidate backend.
 
-    Combines marker-based scoring with deep learning reference mapping
-    (CellTypist / scANVI / correlation) to resolve continuous
-    differentiation trajectories and rare transitional states.
+    CellTypist/scANVI/KNN/correlation generates candidates; marker evidence and
+    the critic may downgrade them. The default selector still requires an
+    additional independent backend before publishing an accepted identity.
 
     Examples:
         # Auto-detect backend with reference atlas
@@ -1128,7 +1156,7 @@ def annotate_embedding(
                 default=str,
             )
         )
-    console.print("[bold green]Done![/bold green] Unified reference/ensemble annotation complete.")
+    console.print("[bold green]Done![/bold green] Reference candidates reviewed selectively.")
     console.print(f"Output directory: {result['output_path'].resolve()}")
     return
 
@@ -1267,6 +1295,7 @@ def annotate_embedding(
 @app.command()
 def backends():
     """Show available reference scoring backends."""
+    from .native_backends import check_native_backend_runtimes
     from .reference_scorer import check_reference_backends
 
     status = check_reference_backends()
@@ -1280,11 +1309,198 @@ def backends():
     console.print("  pip install celltypist       # Pre-trained models (recommended)")
     console.print("  pip install scvi-tools        # Custom reference atlas (scANVI)")
     console.print("  Or provide --reference .h5ad  # KNN/correlation (no extra deps)")
+    console.print("\n[bold]Native annotate runners (static preflight):[/bold]")
+    for name, details in check_native_backend_runtimes().items():
+        icon = "[green]available[/green]" if details["available"] else "[yellow]missing[/yellow]"
+        console.print(f"  {name}: {icon} ({details['check']})")
+    console.print("  Static availability is not a successful biological or end-to-end run.")
 
 
 # ──────────────────────────────────────────────
 # license command
 # ──────────────────────────────────────────────
+@app.command("domain-validation-plan")
+def domain_validation_plan(
+    registry: Path = typer.Option(
+        Path("benchmarks/public_v1/registry.json"),
+        "--registry",
+        help="Frozen public cohort registry JSON",
+    ),
+    output_dir: Path = typer.Option(
+        Path("benchmarks/domain_depth_v1"), "--output", "-o", help="Plan/output root"
+    ),
+):
+    """Inventory the three depth domains and lock an executable evidence plan."""
+    from .domain_validation_pipeline import (
+        DomainValidationPipelineError,
+        build_domain_validation_plan,
+    )
+
+    try:
+        result = build_domain_validation_plan(registry, output_dir)
+    except DomainValidationPipelineError as exc:
+        console.print(f"[red]Domain plan failed: {exc}[/red]")
+        raise typer.Exit(1) from exc
+    console.print(f"Domain validation plan: {result['plan_path']}")
+    for domain_id, summary in result["plan"]["domains"].items():
+        console.print(
+            f"  {domain_id}: cohorts={summary['registered_cohorts']} "
+            f"ready={summary['ready_cohorts']} claim_ready=false"
+        )
+
+
+@app.command("lineage-coverage-audit")
+def lineage_coverage_audit(
+    predictions: Path = typer.Option(..., "--predictions", help="OOF predictions CSV"),
+    cluster_map: Path = typer.Option(..., "--cluster-map", help="Truth-free cluster map CSV"),
+    domain: str = typer.Option(..., "--domain", help="lung, gut_ibd, or tumor_microenvironment"),
+    output_dir: Path = typer.Option(
+        Path("lineage_coverage_audit"), "--output", "-o", help="Audit artifact directory"
+    ),
+    methods: str = typer.Option(
+        "celltypist,popv,singler", "--methods", help="Comma-separated candidate backends"
+    ),
+):
+    """Audit multi-lineage addressability without reading benchmark truth."""
+    from .lineage_coverage import LineageCoverageError, build_selector_lineage_audit
+
+    selected_methods = tuple(value.strip() for value in methods.split(",") if value.strip())
+    try:
+        result = build_selector_lineage_audit(
+            predictions,
+            cluster_map,
+            output_dir,
+            domain_id=domain,
+            methods=selected_methods,
+        )
+    except LineageCoverageError as exc:
+        console.print(f"[red]Lineage coverage audit failed: {exc}[/red]")
+        raise typer.Exit(1) from exc
+    manifest = result["manifest"]
+    console.print(f"Lineage coverage audit: {result['manifest_path']}")
+    console.print(
+        f"  status={manifest['status']} observed={','.join(manifest['observed_lineages'])} "
+        f"accepted_clusters={manifest['n_accepted_clusters']}"
+    )
+
+
+@app.command("calibration-split")
+def calibration_split(
+    registry: Path = typer.Option(
+        Path("benchmarks/public_v1/registry.json"),
+        "--registry",
+        help="Frozen cohort registry JSON",
+    ),
+    output_dir: Path = typer.Option(
+        Path("benchmarks/calibration_v1"), "--output", "-o", help="Locked role directory"
+    ),
+    fraction: float = typer.Option(0.2, "--fraction", help="Calibration donor fraction"),
+    seed: str = typer.Option(
+        "celltypepilot-calibration-v1", "--seed", help="Predeclared deterministic seed"
+    ),
+):
+    """Lock donor-disjoint calibration and evaluation roles without reading truth."""
+    from .calibration_split import CalibrationSplitError, build_calibration_split
+
+    try:
+        result = build_calibration_split(
+            registry, output_dir, calibration_fraction=fraction, seed=seed
+        )
+    except (CalibrationSplitError, OSError, json.JSONDecodeError) as exc:
+        console.print(f"[red]Calibration split failed: {exc}[/red]")
+        raise typer.Exit(1) from exc
+    manifest = result["manifest"]
+    console.print(f"Calibration split: {result['manifest_path']}")
+    console.print(
+        f"  calibration_donors={manifest['n_calibration_donors']} "
+        f"evaluation_donors={manifest['n_evaluation_donors']}"
+    )
+
+
+@app.command("governance-freeze-verify")
+def governance_freeze_verify(
+    freeze: Path = typer.Option(
+        Path(__file__).parent / "data" / "governance_freeze_v1.json",
+        "--freeze",
+        help="Frozen governance manifest",
+    ),
+):
+    """Verify that release-governed code and data still match the freeze."""
+    from .governance_freeze import GovernanceFreezeError, verify_governance_freeze
+
+    try:
+        result = verify_governance_freeze(freeze)
+    except (GovernanceFreezeError, OSError, json.JSONDecodeError) as exc:
+        console.print(f"[red]Governance freeze verification failed: {exc}[/red]")
+        raise typer.Exit(1) from exc
+    console.print(
+        f"Governance freeze verified: {result['release_id']} "
+        f"({result['n_files']} files, {result['freeze_sha256']})"
+    )
+
+
+@app.command("calibrate-locked-donors")
+def calibrate_locked_donors(
+    registry: Path = typer.Option(..., "--registry", help="Frozen cohort registry"),
+    assignments: Path = typer.Option(..., "--assignments", help="Locked donor roles CSV"),
+    cohort: str = typer.Option(..., "--cohort", help="Calibration cohort ID"),
+    predictions: Path = typer.Option(..., "--predictions", help="Selector cell predictions"),
+    label_map: Path = typer.Option(..., "--label-map", help="Predeclared label map"),
+    output: Path = typer.Option(..., "--output", "-o", help="Abstention policy JSON"),
+    max_error: float = typer.Option(0.25, "--max-error"),
+    min_coverage: float = typer.Option(0.2, "--min-coverage"),
+):
+    """Fit a downgrade-only policy on donors locked to the calibration role."""
+    from .calibration import CalibrationError
+    from .calibration_split import CalibrationSplitError, fit_policy_from_locked_donors
+
+    try:
+        result = fit_policy_from_locked_donors(
+            registry,
+            assignments,
+            cohort,
+            predictions,
+            label_map,
+            output,
+            max_selective_error=max_error,
+            min_coverage=min_coverage,
+        )
+    except (CalibrationSplitError, CalibrationError, OSError, json.JSONDecodeError) as exc:
+        console.print(f"[red]Locked-donor calibration failed: {exc}[/red]")
+        raise typer.Exit(1) from exc
+    policy = result["policy"]
+    console.print(f"Locked-donor calibration policy: {result['policy_path']}")
+    console.print(
+        f"  threshold={policy['threshold']:.6g} donors={policy['n_calibration_donors']} "
+        f"cells={policy['n_calibration_cells']}"
+    )
+
+
+@app.command("domain-validation-run")
+def domain_validation_run(
+    plan: Path = typer.Option(..., "--plan", help="Locked domain_validation_plan.json"),
+    domain: list[str] = typer.Option([], "--domain", help="Optional domain filter; repeatable"),
+    cohort: list[str] = typer.Option([], "--cohort", help="Optional cohort_id filter; repeatable"),
+):
+    """Execute ready depth-domain cohorts with resumable method/fold checkpoints."""
+    from .domain_validation_pipeline import (
+        DomainValidationPipelineError,
+        execute_domain_validation_plan,
+    )
+
+    try:
+        result = execute_domain_validation_plan(
+            plan,
+            domain_ids=set(domain) or None,
+            cohort_ids=set(cohort) or None,
+        )
+    except DomainValidationPipelineError as exc:
+        console.print(f"[red]Domain execution failed: {exc}[/red]")
+        raise typer.Exit(1) from exc
+    console.print(f"Domain run status: {result['status_path']}")
+    console.print(f"Domain run manifest: {result['manifest_path']}")
+
+
 @app.command()
 def benchmark(
     input: str = typer.Option(..., "--input", "-i", help="Path to benchmark .h5ad"),

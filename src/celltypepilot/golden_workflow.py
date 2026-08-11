@@ -15,7 +15,7 @@ from typing import Any
 
 from .agent_protocol import agent_decision
 
-PLAN_SCHEMA = "celltypepilot.agent-annotation-plan.v1"
+PLAN_SCHEMA = "celltypepilot.agent-annotation-plan.v2"
 STATE_SCHEMA = "celltypepilot.agent-annotation-state.v1"
 REVIEW_SCHEMA = "celltypepilot.agent-review-queue.v1"
 PLAN_FILE = "annotation_plan.json"
@@ -73,6 +73,9 @@ def prepare_annotation(
     marker_evidence_policy: str = "database",
     context_file_path: str | None = None,
     custom_markers_path: str | None = None,
+    candidate_artifact_paths: list[str] | None = None,
+    native_backend_config_path: str | None = None,
+    decision_policy_path: str | None = None,
 ) -> dict[str, Any]:
     """Step 1: inspect data and write an immutable, executable annotation plan."""
     from .data_adapter import compute_data_hash, inspect_adata
@@ -109,6 +112,48 @@ def prepare_annotation(
         blockers.append(f"context file not found: {context_file_path}")
     if custom_markers_path and not Path(custom_markers_path).is_file():
         blockers.append(f"custom marker file not found: {custom_markers_path}")
+    resolved_candidates: list[str] = []
+    candidate_hashes: dict[str, str] = {}
+    for candidate_path in candidate_artifact_paths or []:
+        resolved = Path(candidate_path).resolve()
+        if not resolved.is_file():
+            blockers.append(f"candidate artifact not found: {resolved}")
+            continue
+        resolved_candidates.append(str(resolved))
+        candidate_hashes[str(resolved)] = compute_data_hash(resolved)
+    resolved_native_config = None
+    native_config_sha256 = None
+    native_dependency_sha256: dict[str, str] = {}
+    if native_backend_config_path:
+        from .native_backend_config import (
+            NativeBackendConfigError,
+            hash_native_backend_dependencies,
+            load_native_backend_config,
+        )
+
+        try:
+            native_config = load_native_backend_config(native_backend_config_path)
+            resolved_native_config = native_config["config_path"]
+            native_config_sha256 = compute_data_hash(resolved_native_config)
+            native_dependency_sha256 = hash_native_backend_dependencies(native_config)
+        except NativeBackendConfigError as exc:
+            blockers.append(f"native backend config invalid: {exc}")
+    if (
+        not resolved_candidates
+        and not resolved_native_config
+        and not any(str(item).startswith("candidate artifact not found:") for item in blockers)
+    ):
+        warnings.append(
+            "no decision-eligible candidate artifacts were supplied; marker evidence will be "
+            "compiled, but the default hierarchical selector will abstain"
+        )
+    resolved_policy = str(Path(decision_policy_path).resolve()) if decision_policy_path else None
+    decision_policy_sha256 = None
+    if resolved_policy:
+        if not Path(resolved_policy).is_file():
+            blockers.append(f"selective decision policy not found: {resolved_policy}")
+        else:
+            decision_policy_sha256 = compute_data_hash(resolved_policy)
 
     installed = {item["name"]: item for item in list_installed_packs()}
     for name in packs or []:
@@ -129,7 +174,14 @@ def prepare_annotation(
             evidence_policy=marker_evidence_policy,
         )
         if coverage.get("gene_identity", {}).get("marker_overlap_after", 0) == 0:
-            blockers.append("no runtime marker genes are addressable after identity normalization")
+            message = "no runtime marker genes are addressable after identity normalization"
+            if resolved_candidates or resolved_native_config:
+                warnings.append(
+                    message
+                    + "; backend candidates may be generated but the marker critic will fail closed"
+                )
+            else:
+                blockers.append(message)
 
     plan = {
         "schema_version": PLAN_SCHEMA,
@@ -148,6 +200,13 @@ def prepare_annotation(
         "custom_markers_path": (
             str(Path(custom_markers_path).resolve()) if custom_markers_path else None
         ),
+        "candidate_artifact_paths": resolved_candidates,
+        "candidate_artifact_sha256": candidate_hashes,
+        "native_backend_config_path": resolved_native_config,
+        "native_backend_config_sha256": native_config_sha256,
+        "native_backend_dependency_sha256": native_dependency_sha256,
+        "decision_policy_path": resolved_policy,
+        "decision_policy_sha256": decision_policy_sha256,
         "blockers": blockers,
         "warnings": warnings,
         "inspection": inspection,
@@ -202,6 +261,28 @@ def annotate_from_plan(plan_path: str) -> dict[str, Any]:
     plan = _load_plan(plan_path)
     if compute_data_hash(plan["input_path"]) != plan["input_sha256"]:
         raise GoldenWorkflowError("Input h5ad changed after preparation")
+    for candidate_path, expected_hash in plan.get("candidate_artifact_sha256", {}).items():
+        if compute_data_hash(candidate_path) != expected_hash:
+            raise GoldenWorkflowError(
+                f"Candidate artifact changed after preparation: {candidate_path}"
+            )
+    native_config_path = plan.get("native_backend_config_path")
+    if native_config_path:
+        from .native_backend_config import (
+            hash_native_backend_dependencies,
+            load_native_backend_config,
+        )
+
+        if compute_data_hash(native_config_path) != plan.get("native_backend_config_sha256"):
+            raise GoldenWorkflowError("Native backend config changed after preparation")
+        native_config = load_native_backend_config(native_config_path)
+        if hash_native_backend_dependencies(native_config) != plan.get(
+            "native_backend_dependency_sha256"
+        ):
+            raise GoldenWorkflowError("Native backend dependency changed after preparation")
+    policy_path = plan.get("decision_policy_path")
+    if policy_path and compute_data_hash(policy_path) != plan.get("decision_policy_sha256"):
+        raise GoldenWorkflowError("Selective decision policy changed after preparation")
     result = run_annotation_pipeline(
         input_path=plan["input_path"],
         cluster_key=plan["cluster_key"],
@@ -213,6 +294,9 @@ def annotate_from_plan(plan_path: str) -> dict[str, Any]:
         context_file_path=plan.get("context_file_path"),
         custom_markers_path=plan.get("custom_markers_path"),
         packs=plan.get("packs"),
+        candidate_artifact_paths=plan.get("candidate_artifact_paths"),
+        native_backend_config_path=native_config_path,
+        decision_policy_path=policy_path,
     )
     state = {
         "schema_version": STATE_SCHEMA,
@@ -233,6 +317,9 @@ def annotate_from_plan(plan_path: str) -> dict[str, Any]:
         evidence_summary={
             "critic_summary": critic_summary,
             "validation_scope": result.get("validation_scope"),
+            "hierarchical_selector": result.get("manifest", {})
+            .get("parameters", {})
+            .get("hierarchical_selector", {}),
         },
         allowed_next_actions=["review_uncertain_clusters"],
         forbidden_claims=[

@@ -136,8 +136,8 @@ def validate_pack_manifest(manifest: dict) -> list[str]:
     if diseases is not None and not isinstance(diseases, list):
         issues.append("diseases must be a list when present")
     pack_kind = manifest.get("pack_kind", "evidence")
-    if pack_kind not in ("evidence", "reference", "mixed"):
-        issues.append("pack_kind must be evidence, reference, or mixed")
+    if pack_kind not in ("evidence", "reference", "mixed", "scope"):
+        issues.append("pack_kind must be evidence, reference, mixed, or scope")
     if manifest.get("license_tier", "community") not in PACK_LICENSE_TIERS:
         issues.append("license_tier must be one of community/academic/commercial")
     if manifest.get("trust", TRUST_ATLAS) not in TRUST_LEVELS:
@@ -211,6 +211,11 @@ def validate_pack(pack_dir: str | Path) -> list[str]:
     present = {name for name in ALLOWED_PACK_FILES if (pack_dir / name).exists()}
     if declared and not (declared & ALLOWED_PACK_FILES) & present:
         issues.append("no declared pack data file is present on disk")
+    if manifest.get("pack_kind") == "scope":
+        if ONTOLOGY_MAP_FILE not in declared or ONTOLOGY_MAP_FILE not in present:
+            issues.append("scope packs require ontology_map.json")
+        if ATLAS_FILE in present or STATE_FILE in present:
+            issues.append("scope packs must not duplicate marker or state atlases")
     return issues
 
 
@@ -283,7 +288,7 @@ def install_pack(
             if (pack_dir / filename).exists()
         }
         if not content_files:
-            raise PackError("Pack contains no marker_atlas.json or state_atlas.json")
+            raise PackError("Pack contains no declared data files")
 
         destination = packs_dir() / name
         if destination.exists():
@@ -447,8 +452,12 @@ def _load_pack_content(pack_dir: Path, manifest: dict, trust: str) -> dict:
             record["ontology_map"] = content
         elif filename == REFERENCE_MANIFEST_FILE:
             record["reference_manifest"] = content
-    if record["marker_atlas"] is None and record["state_atlas"] is None:
-        raise PackError(f"Pack {record['name']!r} provides no atlas data")
+    if (
+        record["marker_atlas"] is None
+        and record["state_atlas"] is None
+        and (manifest.get("pack_kind") != "scope" or record["ontology_map"] is None)
+    ):
+        raise PackError(f"Pack {record['name']!r} provides no atlas or governed scope data")
     return record
 
 

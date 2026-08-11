@@ -234,20 +234,57 @@ def run_celltypepilot_fold(
     cluster_key: str,
     species: str,
     tissue: str,
+    packs: tuple[str, ...] = (),
 ) -> tuple[pd.DataFrame, dict[str, Any]]:
-    """Run the plugin with a fold-train reference; test truth is absent."""
+    """Run the hierarchical product with fold-train-only native candidates."""
     from .orchestrator import run_annotation_pipeline
 
     output = paths["fold_dir"] / "celltypepilot"
+    native_config_path = paths["fold_dir"] / "celltypepilot_native_backends.json"
+    native_config = {
+        "schema_version": "celltypepilot.native-backends.v1",
+        "continue_on_failure": True,
+        "resume": True,
+        "backends": [
+            {
+                "backend": "celltypist",
+                "mode": "retrain",
+                "reference_path": str(paths["train"].resolve()),
+                "label_key": "cell_type",
+            },
+            {
+                "backend": "popv",
+                "mode": "retrain",
+                "reference_path": str(paths["train"].resolve()),
+                "label_key": "cell_type",
+            },
+            {
+                "backend": "singler",
+                "reference_path": str(paths["train"].resolve()),
+                "label_key": "cell_type",
+            },
+            {
+                "backend": "scanvi",
+                "reference_path": str(paths["train"].resolve()),
+                "label_key": "cell_type",
+            },
+            {
+                "backend": "custom_reference",
+                "method": "correlation",
+                "reference_path": str(paths["train"].resolve()),
+                "label_key": "cell_type",
+            },
+        ],
+    }
+    _atomic_write_text(native_config_path, json.dumps(native_config, indent=2))
     result = run_annotation_pipeline(
         paths["test"],
         cluster_key,
         output,
         species=species,
         tissue=tissue,
-        reference_path=paths["train"],
-        ref_label_key="cell_type",
-        reference_backend="correlation",
+        packs=list(packs),
+        native_backend_config_path=native_config_path,
         no_figures=True,
     )
     test = ad.read_h5ad(paths["test"])
@@ -259,10 +296,11 @@ def run_celltypepilot_fold(
 
         version = __version__
     return predictions, {
-        "implementation": "celltypepilot.orchestrator",
+        "implementation": "celltypepilot.orchestrator+native_backends",
         "version": version,
         "reference_policy": "fold_train_only",
         "confidence_semantics": "cluster_evidence_score_not_probability_calibrated",
+        "native_backend_status": str(output / "native_backends" / "native_backend_status.csv"),
     }
 
 
@@ -500,6 +538,7 @@ def run_benchmark_comparators(
     output_dir: str | Path,
     species: str,
     tissue: str,
+    packs: tuple[str, ...] = (),
     methods: tuple[str, ...] = ("celltypepilot", "celltypist"),
     command_specs: tuple[CommandComparator, ...] = (),
     label_map: pd.DataFrame | None = None,
@@ -628,12 +667,55 @@ def run_benchmark_comparators(
             persist_tables()
             try:
                 if method == "celltypepilot":
-                    frame, provenance = run_celltypepilot_fold(paths, cluster_key, species, tissue)
+                    frame, provenance = run_celltypepilot_fold(
+                        paths, cluster_key, species, tissue, packs
+                    )
                 elif method == "celltypist":
-                    frame, provenance = run_celltypist_fold(paths)
+                    shared_raw = (
+                        paths["fold_dir"]
+                        / "celltypepilot"
+                        / "native_backends"
+                        / method
+                        / "raw_candidates.csv"
+                    )
+                    if shared_raw.is_file():
+                        from .native_backends import run_fold_native_backend
+
+                        frame, provenance = run_fold_native_backend(
+                            paths["train"],
+                            paths["test"],
+                            cluster_key,
+                            method,
+                            paths["fold_dir"] / method,
+                            species=species,
+                            tissue=tissue,
+                            entry_overrides={"reuse_raw_path": str(shared_raw)},
+                        )
+                    else:
+                        frame, provenance = run_celltypist_fold(paths)
                 elif method in spec_by_method:
                     frame, provenance = run_command_fold(
                         spec_by_method[method], paths, truth_key, cluster_key
+                    )
+                elif method in {"popv", "singler", "scanvi", "custom_reference"}:
+                    from .native_backends import run_fold_native_backend
+
+                    shared_raw = (
+                        paths["fold_dir"]
+                        / "celltypepilot"
+                        / "native_backends"
+                        / method
+                        / "raw_candidates.csv"
+                    )
+                    frame, provenance = run_fold_native_backend(
+                        paths["train"],
+                        paths["test"],
+                        cluster_key,
+                        method,
+                        paths["fold_dir"] / method,
+                        species=species,
+                        tissue=tissue,
+                        entry_overrides={"reuse_raw_path": str(shared_raw)},
                     )
                 else:
                     raise BenchmarkValidationError(

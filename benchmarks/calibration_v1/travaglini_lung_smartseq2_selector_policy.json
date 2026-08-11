@@ -1,0 +1,129 @@
+{
+  "schema_version": "celltypepilot.abstention-policy.v1",
+  "method": "celltypepilot",
+  "dataset_role": "calibration",
+  "threshold": 1.0,
+  "max_selective_error": 0.25,
+  "min_coverage": 0.2,
+  "empirical_selective_error": 0.20800372266170308,
+  "empirical_coverage": 1.0,
+  "calibration_predictions_sha256": "b0b6d6566b6ea03c3f8b6fafaeba80076981c1f02118dc2ac11ca91b0757a599",
+  "diagnostics": {
+    "n_predictions": 2149,
+    "n_scored": 2149,
+    "top_label_brier": 0.2080037226617031,
+    "ece": 0.20800372266170308,
+    "aurc": null,
+    "confidence_semantics": "predicted_top_label_correctness"
+  },
+  "calibration_bins": [
+    {
+      "bin": 0,
+      "lower": 0.0,
+      "upper": 0.1,
+      "n": 0,
+      "mean_confidence": null,
+      "empirical_accuracy": null,
+      "absolute_gap": null
+    },
+    {
+      "bin": 1,
+      "lower": 0.1,
+      "upper": 0.2,
+      "n": 0,
+      "mean_confidence": null,
+      "empirical_accuracy": null,
+      "absolute_gap": null
+    },
+    {
+      "bin": 2,
+      "lower": 0.2,
+      "upper": 0.30000000000000004,
+      "n": 0,
+      "mean_confidence": null,
+      "empirical_accuracy": null,
+      "absolute_gap": null
+    },
+    {
+      "bin": 3,
+      "lower": 0.30000000000000004,
+      "upper": 0.4,
+      "n": 0,
+      "mean_confidence": null,
+      "empirical_accuracy": null,
+      "absolute_gap": null
+    },
+    {
+      "bin": 4,
+      "lower": 0.4,
+      "upper": 0.5,
+      "n": 0,
+      "mean_confidence": null,
+      "empirical_accuracy": null,
+      "absolute_gap": null
+    },
+    {
+      "bin": 5,
+      "lower": 0.5,
+      "upper": 0.6000000000000001,
+      "n": 0,
+      "mean_confidence": null,
+      "empirical_accuracy": null,
+      "absolute_gap": null
+    },
+    {
+      "bin": 6,
+      "lower": 0.6000000000000001,
+      "upper": 0.7000000000000001,
+      "n": 0,
+      "mean_confidence": null,
+      "empirical_accuracy": null,
+      "absolute_gap": null
+    },
+    {
+      "bin": 7,
+      "lower": 0.7000000000000001,
+      "upper": 0.8,
+      "n": 0,
+      "mean_confidence": null,
+      "empirical_accuracy": null,
+      "absolute_gap": null
+    },
+    {
+      "bin": 8,
+      "lower": 0.8,
+      "upper": 0.9,
+      "n": 0,
+      "mean_confidence": null,
+      "empirical_accuracy": null,
+      "absolute_gap": null
+    },
+    {
+      "bin": 9,
+      "lower": 0.9,
+      "upper": 1.0,
+      "n": 2149,
+      "mean_confidence": 1.0,
+      "empirical_accuracy": 0.7919962773382969,
+      "absolute_gap": 0.20800372266170308
+    }
+  ],
+  "independent_unit": "donor",
+  "independence_scope": "donor_independent_within_cohort_not_independent_cohort",
+  "cohort_id": "travaglini_lung_smartseq2_2020",
+  "calibration_donor_units": [
+    "travaglini_2020::3"
+  ],
+  "n_calibration_donors": 1,
+  "n_calibration_cells": 2149,
+  "source_sha256": {
+    "registry": "41c2a8a4536b89e95acb3055dd8ef75fae573aea88cc2e0c5ee8a05d74b39e58",
+    "assignments": "33d0879e8514592bb91f88da706a925affaf73834f23375a40aa7d1affb7cd8e",
+    "predictions": "aa220b1e4b0051215f47b3a56e77e1501e48833bcb279071d86d9d42ea131fce",
+    "label_map": "9ce2517698cc7b3cab47f4723bc615db14911e82d8cae4f5a7faa119a0976e05",
+    "extended_label_map": "5b9b40bfd01d2114b6443b525471fc5dd43cc65bb6d56d7d347b0e9d39abdc37"
+  },
+  "label_map_extension_policy": "ontology_equivalence_only_no_outcome_optimization",
+  "extended_label_map_path": "travaglini_lung_smartseq2_selector_policy.label_map.csv",
+  "claim_boundary": "Threshold is fit on donor-disjoint calibration cells and is downgrade-only. It is not independent-cohort calibration or a guarantee on evaluation donors."
+}

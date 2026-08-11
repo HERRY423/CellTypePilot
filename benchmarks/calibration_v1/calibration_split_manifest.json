@@ -1,0 +1,37 @@
+{
+  "schema_version": "celltypepilot.calibration-split.v1",
+  "registry_path": "benchmarks/public_v1/registry.json",
+  "registry_sha256": "41c2a8a4536b89e95acb3055dd8ef75fae573aea88cc2e0c5ee8a05d74b39e58",
+  "calibration_fraction": 0.2,
+  "seed": "celltypepilot-calibration-v1",
+  "independent_unit": "donor",
+  "role_scope": "donor_independent_within_cohort_not_independent_cohort",
+  "truth_access": "prohibited_not_read",
+  "n_unique_donors": 95,
+  "n_calibration_donors": 19,
+  "n_evaluation_donors": 76,
+  "cohort_role_counts": {
+    "garrido_trigo_ibd_2023": {
+      "calibration": 4,
+      "evaluation": 14
+    },
+    "pelka_crc_stromal_2021": {
+      "calibration": 12,
+      "evaluation": 50
+    },
+    "smillie_healthy_colon_portal_subset_2019": {
+      "calibration": 2,
+      "evaluation": 10
+    },
+    "travaglini_lung_10x_2020": {
+      "calibration": 1,
+      "evaluation": 2
+    },
+    "travaglini_lung_smartseq2_2020": {
+      "calibration": 1,
+      "evaluation": 2
+    }
+  },
+  "claim_boundary": "This split supports donor-independent calibration. It is not an independent-cohort calibration claim and cannot satisfy domains that require a separate cohort.",
+  "split_sha256": "1c0809d021f03e99e7f9fe5765c09082ebaaf38e343adebeaeba94388c2f326d"
+}

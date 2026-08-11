@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "celltypepilot"
-version = "0.3.1"
+version = "0.4.0"
 description = "Deterministic single-cell annotation backend for Agent plugins"
 readme = "README.md"
 license = "MIT"
@@ -52,6 +52,8 @@ mcp = ["fastmcp>=2.0.0"]
 seurat = ["rpy2>=3.5.0"]
 reference = ["celltypist>=1.6.0"]
 embedding = ["scvi-tools>=1.0.0"]
+popv = ["popv==0.6.1"]
+llm = ["openai>=1.66.0"]
 benchmark = [
     "celltypist>=1.6.0",
     "scikit-learn>=1.4.0",

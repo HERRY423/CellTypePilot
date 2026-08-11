@@ -1,0 +1,8 @@
+{
+  "schema_version": "celltypepilot.reference-manifest.v1",
+  "reference_included": false,
+  "status": "governed_scope_only",
+  "required_external_references": ["fold_isolated_custom_reference", "fold_isolated_scanvi_reference"],
+  "disallowed_claims": ["independent_ibd_validation", "treatment_response", "cross_study_robustness"],
+  "overlap_policy": "Calibration donors and evaluation donors must be disjoint and recorded before scoring."
+}

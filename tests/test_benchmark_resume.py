@@ -119,3 +119,53 @@ def test_running_checkpoint_is_machine_readable_before_comparator_returns(tmp_pa
     assert predictions.empty
     assert set(status["status"]) == {"failed_or_unavailable"}
     assert "intentional interruption" in " ".join(status["error"].astype(str))
+
+
+def test_native_comparator_methods_use_shared_fold_runner(tmp_path, monkeypatch):
+    dataset, assignments = _tiny_benchmark()
+    calls = []
+
+    def fake_native(
+        train,
+        query,
+        cluster_key,
+        backend,
+        run_dir,
+        *,
+        species,
+        tissue,
+        entry_overrides=None,
+    ):
+        test = ad.read_h5ad(query)
+        calls.append(backend)
+        return (
+            pd.DataFrame(
+                {
+                    "cell_id": test.obs_names.astype(str),
+                    "predicted_label": "A",
+                    "confidence": 0.5,
+                }
+            ),
+            {
+                "implementation": "shared-native-test",
+                "version": "1",
+                "reference_policy": "fold_train_only",
+                "confidence_semantics": "test",
+            },
+        )
+
+    monkeypatch.setattr("celltypepilot.native_backends.run_fold_native_backend", fake_native)
+    predictions, status = benchmark_runner.run_benchmark_comparators(
+        dataset,
+        assignments,
+        "truth",
+        "cluster",
+        tmp_path,
+        "human",
+        "general",
+        methods=("scanvi",),
+    )
+
+    assert calls == ["scanvi", "scanvi"]
+    assert len(predictions) == 4
+    assert set(status["implementation"]) == {"shared-native-test"}

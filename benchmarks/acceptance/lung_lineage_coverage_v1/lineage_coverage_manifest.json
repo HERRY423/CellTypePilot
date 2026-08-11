@@ -1,0 +1,60 @@
+{
+  "schema_version": "celltypepilot.lineage-coverage-audit.v1",
+  "domain_id": "lung",
+  "status": "passed",
+  "source_predictions_sha256": "faa38c9f6c381ebcabe5ddf5543095cd9d4e3ef5cb0479a30f7b91446eca8377",
+  "source_cluster_map_sha256": "a9245acd36417ffda427a8c2697506dfb34373cdf43e1b2c27281c5b804b6244",
+  "methods": [
+    "celltypist",
+    "popv",
+    "singler"
+  ],
+  "required_packs": [
+    "lung_evidence_v0_1"
+  ],
+  "pack_warnings": [
+    "High severity conflict introduced by pack: polarity on FOXP3 between blood/Regulatory T cell and blood/CD4+ T cell",
+    "High severity conflict introduced by pack: uniqueness on multiple between blood/Naive CD4+ T cell and blood/Naive CD8+ T cell",
+    "High severity conflict introduced by pack: polarity on GZMB between blood/CD8+ T cell and blood/Naive CD8+ T cell",
+    "High severity conflict introduced by pack: polarity on PRF1 between blood/CD8+ T cell and blood/Naive CD8+ T cell",
+    "High severity conflict introduced by pack: polarity on GNLY between blood/CD8+ T cell and blood/Naive CD8+ T cell",
+    "High severity conflict introduced by pack: polarity on CD19 between blood/B cell and blood/Plasma cell",
+    "High severity conflict introduced by pack: polarity on MS4A1 between blood/B cell and blood/Plasma cell",
+    "High severity conflict introduced by pack: polarity on FCGR3A between blood/NK cell and blood/CD56bright NK cell",
+    "High severity conflict introduced by pack: polarity on S100A9 between blood/Monocyte and blood/Non-classical monocyte",
+    "High severity conflict introduced by pack: polarity on S100A8 between blood/Monocyte and blood/Non-classical monocyte",
+    "High severity conflict introduced by pack: polarity on FCGR3A between blood/Non-classical monocyte and blood/Monocyte",
+    "High severity conflict introduced by pack: polarity on CD1C between blood/Dendritic cell and blood/pDC"
+  ],
+  "active_tissues": [
+    "lung",
+    "general",
+    "blood"
+  ],
+  "required_lineages": [
+    "epithelial",
+    "vascular",
+    "stromal",
+    "immune"
+  ],
+  "observed_lineages": [
+    "epithelial",
+    "immune",
+    "stromal",
+    "vascular"
+  ],
+  "missing_lineages": [],
+  "n_clusters": 17,
+  "n_accepted_clusters": 16,
+  "decision_counts": {
+    "accepted_leaf": 16,
+    "abstain": 1
+  },
+  "truth_access": "prohibited_not_read",
+  "claim_boundary": "Passing proves multi-lineage candidate addressability in these OOF artifacts only; it is not accuracy, calibration, biological validation, or a reason to relax abstention.",
+  "artifacts": {
+    "decisions": "selector_lineage_decisions.csv",
+    "candidates": "backend_candidates.normalized.csv",
+    "cell_predictions": "selector_cell_predictions.csv"
+  }
+}

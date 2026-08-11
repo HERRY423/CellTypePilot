@@ -1,0 +1,256 @@
+method,raw_label,canonical_label
+__truth__,B cell,b_cell
+__truth__,CD1c-positive myeloid dendritic cell,myeloid
+__truth__,alveolar macrophage,myeloid
+__truth__,basal cell,epithelial
+__truth__,bronchial smooth muscle cell,smooth_muscle
+__truth__,capillary endothelial cell,endothelial
+__truth__,classical monocyte,myeloid
+__truth__,club cell,epithelial
+__truth__,dendritic cell,myeloid
+__truth__,"dendritic cell, human",myeloid
+__truth__,"effector memory CD4-positive, alpha-beta T cell",t_cell
+__truth__,"effector memory CD8-positive, alpha-beta T cell",t_cell
+__truth__,endothelial cell,endothelial
+__truth__,endothelial cell of artery,endothelial
+__truth__,endothelial cell of lymphatic vessel,endothelial
+__truth__,epithelial cell,epithelial
+__truth__,fibroblast,fibroblast_stromal
+__truth__,intermediate monocyte,myeloid
+__truth__,lung goblet cell,epithelial
+__truth__,lung multiciliated epithelial cell,epithelial
+__truth__,lymphocyte,other
+__truth__,mature NK T cell,t_cell
+__truth__,myeloid leukocyte,myeloid
+__truth__,myofibroblast cell,fibroblast_stromal
+__truth__,"naive thymus-derived CD4-positive, alpha-beta T cell",t_cell
+__truth__,"naive thymus-derived CD8-positive, alpha-beta T cell",t_cell
+__truth__,natural killer cell,nk_cell
+__truth__,neutrophil,myeloid
+__truth__,non-classical monocyte,myeloid
+__truth__,pericyte,pericyte
+__truth__,plasma cell,plasma_cell
+__truth__,"plasmacytoid dendritic cell, human",plasma_cell
+__truth__,pulmonary alveolar type 1 cell,epithelial
+__truth__,pulmonary alveolar type 2 cell,epithelial
+__truth__,pulmonary interstitial fibroblast,fibroblast_stromal
+__truth__,pulmonary ionocyte,epithelial
+__truth__,pulmonary neuroendocrine cell,epithelial
+__truth__,respiratory basal cell,epithelial
+__truth__,vascular associated smooth muscle cell,smooth_muscle
+__truth__,vein endothelial cell,endothelial
+celltypepilot,Alveolar macrophage,myeloid
+celltypepilot,Alveolar type 1 cell,epithelial
+celltypepilot,Alveolar type 2 cell,epithelial
+celltypepilot,B cell,b_cell
+celltypepilot,Basal cell,epithelial
+celltypepilot,CD1c-positive myeloid dendritic cell,myeloid
+celltypepilot,Ciliated cell,epithelial
+celltypepilot,Club cell,epithelial
+celltypepilot,Goblet cell,epithelial
+celltypepilot,Unknown,Unknown
+celltypepilot,alveolar macrophage,myeloid
+celltypepilot,basal cell,epithelial
+celltypepilot,bronchial smooth muscle cell,smooth_muscle
+celltypepilot,capillary endothelial cell,endothelial
+celltypepilot,classical monocyte,myeloid
+celltypepilot,club cell,epithelial
+celltypepilot,dendritic cell,myeloid
+celltypepilot,"dendritic cell, human",myeloid
+celltypepilot,"effector memory CD4-positive, alpha-beta T cell",t_cell
+celltypepilot,"effector memory CD8-positive, alpha-beta T cell",t_cell
+celltypepilot,endothelial cell,endothelial
+celltypepilot,endothelial cell of artery,endothelial
+celltypepilot,endothelial cell of lymphatic vessel,endothelial
+celltypepilot,epithelial cell,epithelial
+celltypepilot,fibroblast,fibroblast_stromal
+celltypepilot,intermediate monocyte,myeloid
+celltypepilot,lung goblet cell,epithelial
+celltypepilot,lung multiciliated epithelial cell,epithelial
+celltypepilot,lymphocyte,other
+celltypepilot,mature NK T cell,t_cell
+celltypepilot,myeloid leukocyte,myeloid
+celltypepilot,myofibroblast cell,fibroblast_stromal
+celltypepilot,"naive thymus-derived CD4-positive, alpha-beta T cell",t_cell
+celltypepilot,"naive thymus-derived CD8-positive, alpha-beta T cell",t_cell
+celltypepilot,natural killer cell,nk_cell
+celltypepilot,neutrophil,myeloid
+celltypepilot,non-classical monocyte,myeloid
+celltypepilot,pericyte,pericyte
+celltypepilot,plasma cell,plasma_cell
+celltypepilot,"plasmacytoid dendritic cell, human",plasma_cell
+celltypepilot,pulmonary alveolar type 1 cell,epithelial
+celltypepilot,pulmonary alveolar type 2 cell,epithelial
+celltypepilot,pulmonary interstitial fibroblast,fibroblast_stromal
+celltypepilot,pulmonary ionocyte,epithelial
+celltypepilot,pulmonary neuroendocrine cell,epithelial
+celltypepilot,respiratory basal cell,epithelial
+celltypepilot,vascular associated smooth muscle cell,smooth_muscle
+celltypepilot,vein endothelial cell,endothelial
+celltypist,B cell,b_cell
+celltypist,CD1c-positive myeloid dendritic cell,myeloid
+celltypist,Unknown,Unknown
+celltypist,alveolar macrophage,myeloid
+celltypist,basal cell,epithelial
+celltypist,bronchial smooth muscle cell,smooth_muscle
+celltypist,capillary endothelial cell,endothelial
+celltypist,classical monocyte,myeloid
+celltypist,club cell,epithelial
+celltypist,dendritic cell,myeloid
+celltypist,"dendritic cell, human",myeloid
+celltypist,"effector memory CD4-positive, alpha-beta T cell",t_cell
+celltypist,"effector memory CD8-positive, alpha-beta T cell",t_cell
+celltypist,endothelial cell,endothelial
+celltypist,endothelial cell of artery,endothelial
+celltypist,endothelial cell of lymphatic vessel,endothelial
+celltypist,epithelial cell,epithelial
+celltypist,fibroblast,fibroblast_stromal
+celltypist,intermediate monocyte,myeloid
+celltypist,lung goblet cell,epithelial
+celltypist,lung multiciliated epithelial cell,epithelial
+celltypist,lymphocyte,other
+celltypist,mature NK T cell,t_cell
+celltypist,myeloid leukocyte,myeloid
+celltypist,myofibroblast cell,fibroblast_stromal
+celltypist,"naive thymus-derived CD4-positive, alpha-beta T cell",t_cell
+celltypist,"naive thymus-derived CD8-positive, alpha-beta T cell",t_cell
+celltypist,natural killer cell,nk_cell
+celltypist,neutrophil,myeloid
+celltypist,non-classical monocyte,myeloid
+celltypist,pericyte,pericyte
+celltypist,plasma cell,plasma_cell
+celltypist,"plasmacytoid dendritic cell, human",plasma_cell
+celltypist,pulmonary alveolar type 1 cell,epithelial
+celltypist,pulmonary alveolar type 2 cell,epithelial
+celltypist,pulmonary interstitial fibroblast,fibroblast_stromal
+celltypist,pulmonary ionocyte,epithelial
+celltypist,pulmonary neuroendocrine cell,epithelial
+celltypist,respiratory basal cell,epithelial
+celltypist,vascular associated smooth muscle cell,smooth_muscle
+celltypist,vein endothelial cell,endothelial
+singler,B cell,b_cell
+singler,CD1c-positive myeloid dendritic cell,myeloid
+singler,Unknown,Unknown
+singler,alveolar macrophage,myeloid
+singler,basal cell,epithelial
+singler,bronchial smooth muscle cell,smooth_muscle
+singler,capillary endothelial cell,endothelial
+singler,classical monocyte,myeloid
+singler,club cell,epithelial
+singler,dendritic cell,myeloid
+singler,"dendritic cell, human",myeloid
+singler,"effector memory CD4-positive, alpha-beta T cell",t_cell
+singler,"effector memory CD8-positive, alpha-beta T cell",t_cell
+singler,endothelial cell,endothelial
+singler,endothelial cell of artery,endothelial
+singler,endothelial cell of lymphatic vessel,endothelial
+singler,epithelial cell,epithelial
+singler,fibroblast,fibroblast_stromal
+singler,intermediate monocyte,myeloid
+singler,lung goblet cell,epithelial
+singler,lung multiciliated epithelial cell,epithelial
+singler,lymphocyte,other
+singler,mature NK T cell,t_cell
+singler,myeloid leukocyte,myeloid
+singler,myofibroblast cell,fibroblast_stromal
+singler,"naive thymus-derived CD4-positive, alpha-beta T cell",t_cell
+singler,"naive thymus-derived CD8-positive, alpha-beta T cell",t_cell
+singler,natural killer cell,nk_cell
+singler,neutrophil,myeloid
+singler,non-classical monocyte,myeloid
+singler,pericyte,pericyte
+singler,plasma cell,plasma_cell
+singler,"plasmacytoid dendritic cell, human",plasma_cell
+singler,pulmonary alveolar type 1 cell,epithelial
+singler,pulmonary alveolar type 2 cell,epithelial
+singler,pulmonary interstitial fibroblast,fibroblast_stromal
+singler,pulmonary ionocyte,epithelial
+singler,pulmonary neuroendocrine cell,epithelial
+singler,respiratory basal cell,epithelial
+singler,vascular associated smooth muscle cell,smooth_muscle
+singler,vein endothelial cell,endothelial
+azimuth,B cell,b_cell
+azimuth,CD1c-positive myeloid dendritic cell,myeloid
+azimuth,Unknown,Unknown
+azimuth,alveolar macrophage,myeloid
+azimuth,basal cell,epithelial
+azimuth,bronchial smooth muscle cell,smooth_muscle
+azimuth,capillary endothelial cell,endothelial
+azimuth,classical monocyte,myeloid
+azimuth,club cell,epithelial
+azimuth,dendritic cell,myeloid
+azimuth,"dendritic cell, human",myeloid
+azimuth,"effector memory CD4-positive, alpha-beta T cell",t_cell
+azimuth,"effector memory CD8-positive, alpha-beta T cell",t_cell
+azimuth,endothelial cell,endothelial
+azimuth,endothelial cell of artery,endothelial
+azimuth,endothelial cell of lymphatic vessel,endothelial
+azimuth,epithelial cell,epithelial
+azimuth,fibroblast,fibroblast_stromal
+azimuth,intermediate monocyte,myeloid
+azimuth,lung goblet cell,epithelial
+azimuth,lung multiciliated epithelial cell,epithelial
+azimuth,lymphocyte,other
+azimuth,mature NK T cell,t_cell
+azimuth,myeloid leukocyte,myeloid
+azimuth,myofibroblast cell,fibroblast_stromal
+azimuth,"naive thymus-derived CD4-positive, alpha-beta T cell",t_cell
+azimuth,"naive thymus-derived CD8-positive, alpha-beta T cell",t_cell
+azimuth,natural killer cell,nk_cell
+azimuth,neutrophil,myeloid
+azimuth,non-classical monocyte,myeloid
+azimuth,pericyte,pericyte
+azimuth,plasma cell,plasma_cell
+azimuth,"plasmacytoid dendritic cell, human",plasma_cell
+azimuth,pulmonary alveolar type 1 cell,epithelial
+azimuth,pulmonary alveolar type 2 cell,epithelial
+azimuth,pulmonary interstitial fibroblast,fibroblast_stromal
+azimuth,pulmonary ionocyte,epithelial
+azimuth,pulmonary neuroendocrine cell,epithelial
+azimuth,respiratory basal cell,epithelial
+azimuth,vascular associated smooth muscle cell,smooth_muscle
+azimuth,vein endothelial cell,endothelial
+popv,B cell,b_cell
+popv,CD1c-positive myeloid dendritic cell,myeloid
+popv,Unknown,Unknown
+popv,alveolar macrophage,myeloid
+popv,basal cell,epithelial
+popv,bronchial smooth muscle cell,smooth_muscle
+popv,capillary endothelial cell,endothelial
+popv,classical monocyte,myeloid
+popv,club cell,epithelial
+popv,dendritic cell,myeloid
+popv,"dendritic cell, human",myeloid
+popv,"effector memory CD4-positive, alpha-beta T cell",t_cell
+popv,"effector memory CD8-positive, alpha-beta T cell",t_cell
+popv,endothelial cell,endothelial
+popv,endothelial cell of artery,endothelial
+popv,endothelial cell of lymphatic vessel,endothelial
+popv,epithelial cell,epithelial
+popv,fibroblast,fibroblast_stromal
+popv,intermediate monocyte,myeloid
+popv,lung goblet cell,epithelial
+popv,lung multiciliated epithelial cell,epithelial
+popv,lymphocyte,other
+popv,mature NK T cell,t_cell
+popv,myeloid leukocyte,myeloid
+popv,myofibroblast cell,fibroblast_stromal
+popv,"naive thymus-derived CD4-positive, alpha-beta T cell",t_cell
+popv,"naive thymus-derived CD8-positive, alpha-beta T cell",t_cell
+popv,natural killer cell,nk_cell
+popv,neutrophil,myeloid
+popv,non-classical monocyte,myeloid
+popv,pericyte,pericyte
+popv,plasma cell,plasma_cell
+popv,"plasmacytoid dendritic cell, human",plasma_cell
+popv,pulmonary alveolar type 1 cell,epithelial
+popv,pulmonary alveolar type 2 cell,epithelial
+popv,pulmonary interstitial fibroblast,fibroblast_stromal
+popv,pulmonary ionocyte,epithelial
+popv,pulmonary neuroendocrine cell,epithelial
+popv,respiratory basal cell,epithelial
+popv,vascular associated smooth muscle cell,smooth_muscle
+popv,vein endothelial cell,endothelial
+celltypepilot,Capillary endothelial cell,endothelial
+celltypepilot,Fibroblast,fibroblast_stromal
+celltypepilot,NK cell,nk_cell

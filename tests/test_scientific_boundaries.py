@@ -357,8 +357,15 @@ def test_reference_ensemble_critic_writeback_report_and_manifest_are_one_pipelin
     }
     query_path = tmp_path / "query.h5ad"
     reference_path = tmp_path / "reference.h5ad"
+    popv_path = tmp_path / "popv_candidates.csv"
     query.write(query_path)
     reference.write(reference_path)
+    pd.DataFrame(
+        [
+            {"cluster": "0", "backend": "popv", "cell_type": "T cell"},
+            {"cluster": "1", "backend": "popv", "cell_type": "B cell"},
+        ]
+    ).to_csv(popv_path, index=False)
 
     result = run_annotation_pipeline(
         query_path,
@@ -368,21 +375,24 @@ def test_reference_ensemble_critic_writeback_report_and_manifest_are_one_pipelin
         tissue="blood",
         reference_path=reference_path,
         reference_backend="correlation",
+        candidate_artifact_paths=[popv_path],
         no_figures=True,
     )
     assert set(result["critic_results"]["cell_type"]) == {"T cell", "B cell"}
     assert set(result["critic_results"]["decision"]) == {"accepted"}
     assert "reference_scores" in result["paths"]
     assert "ensemble_scores" in result["paths"]
+    assert "backend_candidates" in result["paths"]
+    assert "hierarchical_decisions" in result["paths"]
     assert result["paths"]["novelty"].name == "novelty_results.csv"
     assert result["paths"]["novelty"].exists()
     assert "data.annotated.h5ad" in result["manifest"]["outputs"]
     assert result["manifest"]["parameters"]["novelty_ood"]["identity_invariant"] is True
     assert result["manifest"]["parameters"]["pipeline_stages"] == [
         "context",
-        "marker",
-        "reference",
-        "ensemble",
+        "marker_evidence_compilation",
+        "candidate_backends",
+        "hierarchical_selective_decision",
         "critic",
         "state",
         "novelty_ood",

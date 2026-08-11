@@ -14,6 +14,7 @@ from celltypepilot.agent_protocol import AGENT_DECISION_SCHEMA, validate_agent_d
 from celltypepilot.golden_workflow import (
     GoldenWorkflowError,
     _load_plan,
+    annotate_from_plan,
     prepare_annotation,
     review_uncertain_clusters,
 )
@@ -61,6 +62,51 @@ def test_prepare_writes_locked_executable_plan(tmp_path: Path):
     Path(result["plan_path"]).write_text(json.dumps(raw), encoding="utf-8")
     with pytest.raises(GoldenWorkflowError, match="hash mismatch"):
         _load_plan(result["plan_path"])
+
+
+def test_prepare_locks_native_backend_config_and_reference(tmp_path: Path):
+    input_path = tmp_path / "lung.h5ad"
+    reference_path = tmp_path / "reference.h5ad"
+    output_dir = tmp_path / "run"
+    _write_lung_input(input_path)
+    _write_lung_input(reference_path)
+    reference = ad.read_h5ad(reference_path)
+    reference.obs["cell_type"] = ["endothelial", "endothelial", "epithelial", "epithelial"]
+    reference.write_h5ad(reference_path)
+    native_config = tmp_path / "native.json"
+    native_config.write_text(
+        json.dumps(
+            {
+                "schema_version": "celltypepilot.native-backends.v1",
+                "backends": [
+                    {
+                        "backend": "custom_reference",
+                        "method": "correlation",
+                        "reference_path": str(reference_path),
+                        "label_key": "cell_type",
+                    }
+                ],
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    result = prepare_annotation(
+        str(input_path),
+        str(output_dir),
+        cluster_key="cluster",
+        species="human",
+        tissue="lung",
+        native_backend_config_path=str(native_config),
+    )
+    plan = result["plan"]
+    assert plan["native_backend_config_sha256"]
+    assert str(reference_path.resolve()) in plan["native_backend_dependency_sha256"]
+
+    with reference_path.open("ab") as handle:
+        handle.write(b"changed")
+    with pytest.raises(GoldenWorkflowError, match="dependency changed"):
+        annotate_from_plan(result["plan_path"])
 
 
 def test_review_queue_is_bounded_and_read_only(tmp_path: Path):

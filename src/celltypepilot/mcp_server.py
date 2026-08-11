@@ -1008,6 +1008,9 @@ def tool_annotate_clusters(
     tissue: str | None = None,
     embedding_key: str | None = None,
     no_figures: bool = False,
+    candidate_artifact_paths: list[str] | None = None,
+    native_backend_config_path: str | None = None,
+    decision_policy_path: str | None = None,
 ) -> Any:
     """Run the bounded annotation pipeline and write reviewable artifacts."""
     from .orchestrator import run_annotation_pipeline
@@ -1020,6 +1023,9 @@ def tool_annotate_clusters(
         tissue=tissue,
         embedding_key=embedding_key,
         no_figures=no_figures,
+        candidate_artifact_paths=candidate_artifact_paths,
+        native_backend_config_path=native_backend_config_path,
+        decision_policy_path=decision_policy_path,
     )
     return _jsonable(
         {

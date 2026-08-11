@@ -6,8 +6,8 @@ description: >-
   single-cell or spatial transcriptomics data (.h5ad), or says things like "annotate my clusters",
   "what cell types are these?", "label my scRNA-seq", "figure out the cell types", or "run CellTypePilot".
   CellTypePilot runs through the host coding workspace — no separate app, no MCP required for basic use.
-  It provides governed study context, marker-based identity scoring, an independent state lens,
-  a rules-based Annotation Critic that flags doubtful calls, colorblind-friendly figures, and
+  It provides governed study context, backend-neutral hierarchical selective identity decisions,
+  an independent state lens, a rules-based Annotation Critic that flags doubtful calls, and
   a draft methodology paragraph ready for papers.
 license: MIT
 ---
@@ -27,6 +27,12 @@ artifacts; a qualified human remains responsible for final biological adjudicati
 - **Evidence over black-box.** Every annotation comes with: which markers support it, what
   fraction of cells express them, whether negative markers conflict, and a rules-based
   critic verdict. No label without evidence.
+- **Candidate generators are peers.** CellTypist, popV, SingleR, scANVI, custom references, and
+  optional LLM hypotheses enter one candidate contract. Marker scoring is evidence-only and is
+  never the primary classifier. LLM candidates are hypothesis-only by default.
+- **Hierarchical selective decision.** Require independent backend support for a leaf; collapse
+  sibling disagreement only to a governed parent; otherwise preserve the candidate set and write
+  `Unknown`. Agreement is descriptive, never a calibrated probability.
 - **Governed context.** Free text is retained for provenance only. Only explicit structured
   marker hypotheses enter scoring, under the same statistical and critic gates as atlas markers.
 - **Identity and state are separate.** State output cannot overwrite or rescue the canonical
@@ -108,18 +114,26 @@ celltypepilot annotate \
   --embedding-key <key> \
   [--context <text>] \
   [--context-file <context.json>] \
-  [--custom-markers <markers.csv>]
+  [--custom-markers <markers.csv>] \
+  [--candidate-table <celltypist.csv>] \
+  [--candidate-table <popv.csv>] \
+  [--native-backends <celltypepilot.native-backends.v1.json>]
 ```
+
+Use `--native-backends` only with an explicit governed JSON configuration. The
+native layer can train/run CellTypist, popV, SingleR, scANVI, and custom references;
+optional LLM output is hypothesis-only. Missing runtimes fail closed with a status
+artifact and never promote marker evidence into a primary classifier.
 
 This runs the full pipeline:
 1. Load data and compute hash (for provenance)
 2. Auto-detect or confirm species/tissue
-3. Load the built-in Marker Knowledge Graph (MKG) for the species/tissue
-4. Compute marker scores: DE analysis (Wilcoxon) + marker overlap + specificity + negative marker check
-5. Run the Annotation Critic: evidence sufficiency, negative marker conflict, doublet heuristic, ontology check
-6. Score cell states on an independent, identity-invariant output axis
-7. Generate figures: UMAP (clusters, cell types, confidence), dotplot, confidence distribution
-8. Save outputs: annotated .h5ad, evidence/state tables, HTML report, manifest, methodology draft
+3. Load the governed identity/ontology scope and compile marker evidence
+4. Normalize CellTypist/popV/SingleR/scANVI/custom-reference/LLM candidate artifacts
+5. Select a leaf, governed ancestor, candidate set, or abstention without blending backend scores
+6. Run the Annotation Critic; marker evidence may downgrade but cannot rescue the selector
+7. Score State and Novelty/OOD on independent, identity-invariant output axes
+8. Save annotated data, backend/decision/evidence tables, report, and manifest
 
 **2b. Review the results.** Read the evidence table and HTML report. Present the key findings:
 - How many clusters were annotated
@@ -213,6 +227,8 @@ All commands support `--json` for structured output that the host integration ca
 | File | Description |
 |---|---|
 | `data.annotated.h5ad` | AnnData with separate identity/state candidates, decisions, evidence, CL ID, and confidence in obs |
+| `backend_candidates.csv` | Normalized prediction, hypothesis-only, and marker-evidence rows with native score semantics |
+| `hierarchical_decisions.csv` | Leaf/ancestor/candidate-set/abstain decisions and independent backend support |
 | `evidence_table.csv` | Per-cluster evidence: scores, markers, critic flags, confidence |
 | `contrastive_evidence.csv` | Existing top-two ranking with shared and candidate-specific support, missing/silent markers, conflicts, and provenance; no reranking |
 | `evidence_gaps.json` | Per-Unknown observed evidence gaps with bounded next actions, prohibited actions, and human-review requirement |
@@ -229,6 +245,11 @@ All commands support `--json` for structured output that the host integration ca
 | `manifest.json` | Run manifest: versions, parameters, data hash, output hashes |
 
 ## Marker Knowledge Graph (MKG)
+
+Broad MKG coverage is exploratory scope, not the validation strategy. Deep validation is limited
+to lung, gut/IBD, and tumor microenvironment. All three remain `evidence_required` until the
+machine-readable multi-study, transport, calibration, hierarchy-error, abstention-audit, and
+expert-adjudication gates in `validation_domains.json` are satisfied.
 
 The built-in atlas (`mkg-2026.08.1`) covers:
 - **Blood/PBMC**: T cells (CD4/CD8/naive/memory/Treg/Th1/Th17), B cells (naive/memory/plasma), NK cells, monocytes (classical/non-classical), dendritic cells (cDC1/cDC2/pDC), platelets
