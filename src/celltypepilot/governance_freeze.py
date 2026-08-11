@@ -6,19 +6,27 @@ import hashlib
 import json
 from pathlib import Path
 
-GOVERNANCE_FREEZE_SCHEMA = "celltypepilot.governance-freeze.v1"
+GOVERNANCE_FREEZE_SCHEMA = "celltypepilot.governance-freeze.v2"
+GOVERNANCE_HASH_SEMANTICS = "utf8_text_lf_v1"
 
 
 class GovernanceFreezeError(ValueError):
     """Raised when a frozen governance artifact is incomplete or changed."""
 
 
+def _normalized_content(path: Path) -> bytes:
+    """Return governed UTF-8 text with platform-independent LF endings."""
+    try:
+        text = path.read_text(encoding="utf-8")
+    except UnicodeDecodeError as exc:
+        raise GovernanceFreezeError(
+            f"Governed file must be UTF-8 text for {GOVERNANCE_HASH_SEMANTICS}: {path}"
+        ) from exc
+    return text.encode("utf-8")
+
+
 def _sha256(path: Path) -> str:
-    digest = hashlib.sha256()
-    with path.open("rb") as handle:
-        for chunk in iter(lambda: handle.read(1024 * 1024), b""):
-            digest.update(chunk)
-    return digest.hexdigest()
+    return hashlib.sha256(_normalized_content(path)).hexdigest()
 
 
 def _repo_root() -> Path:
@@ -78,12 +86,13 @@ def build_governance_freeze(
         records.append(
             {
                 "path": path.relative_to(base).as_posix(),
-                "size": path.stat().st_size,
+                "normalized_size": len(_normalized_content(path)),
                 "sha256": _sha256(path),
             }
         )
     payload = {
         "schema_version": GOVERNANCE_FREEZE_SCHEMA,
+        "hash_semantics": GOVERNANCE_HASH_SEMANTICS,
         "release_id": release_id,
         "files": records,
         "frozen_invariants": {
@@ -127,6 +136,8 @@ def verify_governance_freeze(
     payload = json.loads(freeze_path.read_text(encoding="utf-8"))
     if payload.get("schema_version") != GOVERNANCE_FREEZE_SCHEMA:
         raise GovernanceFreezeError(f"Freeze schema must be {GOVERNANCE_FREEZE_SCHEMA}")
+    if payload.get("hash_semantics") != GOVERNANCE_HASH_SEMANTICS:
+        raise GovernanceFreezeError(f"Freeze hash semantics must be {GOVERNANCE_HASH_SEMANTICS}")
     unsigned = {key: value for key, value in payload.items() if key != "freeze_sha256"}
     canonical = json.dumps(
         unsigned, sort_keys=True, separators=(",", ":"), ensure_ascii=False
@@ -161,12 +172,17 @@ def verify_governance_freeze(
     changed = []
     for relative, record in expected.items():
         path = current_paths[relative]
-        if path.stat().st_size != record["size"] or _sha256(path) != record["sha256"]:
+        normalized = _normalized_content(path)
+        if (
+            len(normalized) != record["normalized_size"]
+            or hashlib.sha256(normalized).hexdigest() != record["sha256"]
+        ):
             changed.append(relative)
     if changed:
         raise GovernanceFreezeError(f"Governed files changed after freeze: {changed[:5]}")
     return {
         "schema_version": GOVERNANCE_FREEZE_SCHEMA,
+        "hash_semantics": GOVERNANCE_HASH_SEMANTICS,
         "status": "verified",
         "release_id": payload["release_id"],
         "freeze_sha256": payload["freeze_sha256"],

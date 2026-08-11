@@ -17,7 +17,7 @@ def main() -> None:
     parser.add_argument("--release-id", required=True)
     parser.add_argument(
         "--output",
-        default="src/celltypepilot/data/governance_freeze_v1.json",
+        default="src/celltypepilot/data/governance_freeze_v2.json",
     )
     args = parser.parse_args()
     output = Path(args.output)

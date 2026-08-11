@@ -57,17 +57,28 @@ jobs:
         run: |
           python -m venv --system-site-packages .release-smoke
           .release-smoke/bin/python -m pip install --no-deps --force-reinstall dist/*.whl
-          .release-smoke/bin/python -c \
-            "import celltypepilot; assert celltypepilot.__version__ == '${GITHUB_REF_NAME#v}'"
-          .release-smoke/bin/celltypepilot --version
-          .release-smoke/bin/celltypepilot doctor --json
+          .release-smoke/bin/python -I -c \
+            "import pathlib, sys, celltypepilot; root=pathlib.Path(sys.prefix).resolve(); module=pathlib.Path(celltypepilot.__file__).resolve(); assert module.is_relative_to(root), (module, root); assert celltypepilot.__version__ == '${GITHUB_REF_NAME#v}'"
+
+          smoke_cwd="$(mktemp -d)"
+          smoke_cli="$GITHUB_WORKSPACE/.release-smoke/bin/celltypepilot"
+          (
+            cd "$smoke_cwd"
+            "$smoke_cli" --version
+            "$smoke_cli" doctor --json
+            "$smoke_cli" governance-freeze-verify
+          )
 
           mkdir plugin-smoke
           python -m zipfile -e release-assets/celltypepilot-plugin-*.zip plugin-smoke
           .release-smoke/bin/python -m pip install \
             --no-build-isolation --no-deps --force-reinstall \
             plugin-smoke/celltypepilot-plugin-*
-          .release-smoke/bin/celltypepilot --version
+          (
+            cd "$smoke_cwd"
+            "$smoke_cli" --version
+            "$smoke_cli" governance-freeze-verify
+          )
 
       - name: Upload Python distributions
         uses: actions/upload-artifact@v7
