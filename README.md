@@ -330,7 +330,7 @@ CellTypePilot/
 │       ├── agents/
 │       │   └── openai.yaml       ← Codex agent interface config
 │       └── reference/            ← Reference docs
-├── commands/                     ← Claude Code slash commands: /annotate, /critic, /inspect, /doctor
+├── commands/                     ← Claude Code slash commands: /annotate, /critic, /ctp-inspect, /ctp-doctor
 ├── hooks/                        ← Claude Code lifecycle hooks: session-start check
 ├── rules/                        ← Claude Code behavior rules: annotation-workflow
 ├── .mcp.json                     ← MCP servers (PubMed, bioRxiv)

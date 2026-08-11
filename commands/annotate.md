@@ -43,4 +43,4 @@ Run the full CellTypePilot annotation pipeline on pre-clustered single-cell data
 - Input must be a pre-clustered `.h5ad` file
 - All outputs are written to `<output_dir>/`
 - Use `/critic <cluster_id>` to deep-review any flagged cluster
-- Use `/inspect <path>` to re-inspect data without annotating
+- Use `/ctp-inspect <path>` to re-inspect data without annotating

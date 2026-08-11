@@ -12,6 +12,10 @@ validation scope recorded in the repository and generated manifests.
   redirections whose paths depended on the parent shell working directory.
 - Fail closed unless the current version has exactly one wheel, one source distribution, and one
   Agent plugin bundle before `SHA256SUMS` is written.
+- Rename the Claude Code `/doctor` slash command to `/ctp-doctor` so it no longer silently
+  shadows Claude Code's built-in `/doctor` health checkup.
+- Rename the Claude Code `/inspect` slash command to `/ctp-inspect` to avoid a future collision
+  with a possible built-in `/inspect` and to stay distinct from the `claude inspect` CLI.
 
 ### Release note
 

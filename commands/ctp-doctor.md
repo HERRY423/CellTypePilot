@@ -2,9 +2,13 @@
 description: Check CellTypePilot environment — dependencies, capabilities, MCP status.
 ---
 
-# Doctor
+# CellTypePilot Doctor
 
 Verify that CellTypePilot is properly installed and report the capability tier.
+
+> **Naming note**: registered as `/ctp-doctor` (not `/doctor`) so it does not shadow
+> Claude Code's built-in `/doctor` health checkup. The underlying CLI check is
+> `celltypepilot doctor`.
 
 ## Instructions
 

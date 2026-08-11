@@ -54,10 +54,15 @@ benchmarks/**/batches/**/run/
 benchmarks/**/batches/**/aggregate/
 # Host acceptance fixture outputs
 scratch/host_acceptance/
+# Pytest temp artifacts
+scratch/pytest_temp/
+# CI pytest acceptance runs
+benchmarks/acceptance/pytest_ci*/
 
 # Runtime cache and local environments
 .runtime_cache/
 .codex/environments/
+.claude/
 
 # License private key (NEVER commit — kept offline for signing)
 .license_private_key.pem

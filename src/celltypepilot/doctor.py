@@ -41,24 +41,43 @@ def check_python() -> tuple[bool, str]:
     return ok, version_str
 
 
-def check_dependency(name: str, required: bool = True) -> DependencyStatus:
+def check_dependency(name: str, required: bool = True, import_name: str | None = None) -> DependencyStatus:
     """Check if a Python package is installed."""
-    try:
+    mod_name = import_name or name.replace("-", "_")
+    # Common mappings where PyPI / package metadata differs from import module name
+    pkg_meta_name = name.replace("_", "-")
+    meta_names_to_try = [name, pkg_meta_name]
+    
+    version = ""
+    installed = False
+    
+    # 1. Try importlib.metadata
+    from importlib.metadata import version as pkg_version
+    for mname in meta_names_to_try:
         try:
-            from importlib.metadata import version as pkg_version
-
-            version = pkg_version(name)
+            version = pkg_version(mname)
+            installed = True
+            break
         except Exception:
-            mod = importlib.import_module(name)
-            version = getattr(mod, "__version__", "unknown")
-        return DependencyStatus(name=name, installed=True, version=version, required=required)
-    except ImportError:
-        return DependencyStatus(
-            name=name,
-            installed=False,
-            required=required,
-            note="NOT INSTALLED" if required else "optional",
-        )
+            pass
+            
+    # 2. Try importing module if metadata failed or import module differs (e.g. scvi)
+    if not installed or import_name:
+        try:
+            mod = importlib.import_module(mod_name)
+            installed = True
+            if not version:
+                version = getattr(mod, "__version__", "unknown")
+        except ImportError:
+            if not installed:
+                return DependencyStatus(
+                    name=name,
+                    installed=False,
+                    required=required,
+                    note="NOT INSTALLED" if required else "optional",
+                )
+
+    return DependencyStatus(name=name, installed=True, version=version, required=required)
 
 
 def run_doctor() -> DoctorReport:
@@ -87,16 +106,18 @@ def run_doctor() -> DoctorReport:
 
     # Optional dependencies
     opt_deps = [
-        ("python_docx", "docx export", False),
-        ("cupy", "GPU acceleration", False),
-        ("scvi_tools", "reference mapping (Phase 2)", False),
-        ("decoupler", "pathway scoring (Phase 2)", False),
-        ("flask", "Web Inspector", False),
-        ("fastmcp", "Native CellTypePilot MCP facade", False),
-        ("rpy2", "Seurat .rds support", False),
+        ("python_docx", "docx export", False, "docx"),
+        ("cupy", "GPU acceleration", False, "cupy"),
+        ("scvi-tools", "reference mapping (Phase 2)", False, "scvi"),
+        ("decoupler", "pathway scoring (Phase 2)", False, "decoupler"),
+        ("flask", "Web Inspector", False, "flask"),
+        ("fastmcp", "Native CellTypePilot MCP facade", False, "fastmcp"),
+        ("rpy2", "Seurat .rds support", False, "rpy2"),
     ]
-    for dep_name, desc, req in opt_deps:
-        status = check_dependency(dep_name, required=req)
+    for item in opt_deps:
+        dep_name, desc, req = item[0], item[1], item[2]
+        imp_name = item[3] if len(item) > 3 else None
+        status = check_dependency(dep_name, required=req, import_name=imp_name)
         status.note = desc
         report.optional_deps.append(status)
 

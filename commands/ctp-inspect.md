@@ -2,9 +2,13 @@
 description: Inspect single-cell data — auto-detect species, tissue, clusters, embeddings.
 ---
 
-# Inspect
+# CellTypePilot Inspect
 
 Quickly understand the structure and content of a `.h5ad` file before annotation.
+
+> **Naming note**: registered as `/ctp-inspect` (not `/inspect`) to avoid a future collision
+> with a possible built-in `/inspect` (requested upstream) and to stay distinct from the
+> `claude inspect` CLI. The underlying CLI check is `celltypepilot inspect`.
 
 ## Instructions
 
