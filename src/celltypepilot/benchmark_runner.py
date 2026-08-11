@@ -667,9 +667,16 @@ def run_benchmark_comparators(
             persist_tables()
             try:
                 if method == "celltypepilot":
-                    frame, provenance = run_celltypepilot_fold(
-                        paths, cluster_key, species, tissue, packs
-                    )
+                    if packs:
+                        frame, provenance = run_celltypepilot_fold(
+                            paths, cluster_key, species, tissue, packs
+                        )
+                    else:
+                        # Preserve the historical four-argument runner contract
+                        # for ordinary benchmarks and external wrappers.
+                        frame, provenance = run_celltypepilot_fold(
+                            paths, cluster_key, species, tissue
+                        )
                 elif method == "celltypist":
                     shared_raw = (
                         paths["fold_dir"]
